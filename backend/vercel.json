@@ -17,5 +17,6 @@
             "path": "/api/admin/cron/auto-close",
             "schedule": "* * * * *"
         }
-    ]
+    ],
+    "outputDirectory": "."
 }

@@ -18,5 +18,5 @@
             "schedule": "* * * * *"
         }
     ],
-    "outputDirectory": "."
+    "outputDirectory": "public"
 }

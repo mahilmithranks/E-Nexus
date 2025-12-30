@@ -25,42 +25,47 @@ const app = express();
 connectDB();
 
 // Middleware
+// Middleware
+// Allow requests from anywhere (CORS fix for Vercel)
 app.use(cors({
-    origin: 'http://localhost:5173', // Frontend URL
-    credentials: true
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Apply rate limiting to all routes
-// Apply rate limiting to all routes
 app.use('/api/', apiLimiter);
 
 // Background job to close expired attendance sessions
-// Runs every 1 minute
+// SKIP on Vercel (We use Vercel Cron instead)
 import Session from './models/Session.js';
 
-setInterval(async () => {
-    try {
-        const now = new Date();
-        const result = await Session.updateMany(
-            {
-                attendanceOpen: true,
-                attendanceEndTime: { $lt: now }
-            },
-            {
-                $set: { attendanceOpen: false }
-            }
-        );
+if (!process.env.VERCEL) {
+    setInterval(async () => {
+        try {
+            const now = new Date();
+            const result = await Session.updateMany(
+                {
+                    attendanceOpen: true,
+                    attendanceEndTime: { $lt: now }
+                },
+                {
+                    $set: { attendanceOpen: false }
+                }
+            );
 
-        if (result.modifiedCount > 0) {
-            console.log(`Auto-closed ${result.modifiedCount} expired session(s).`);
+            if (result.modifiedCount > 0) {
+                console.log(`Auto-closed ${result.modifiedCount} expired session(s).`);
+            }
+        } catch (error) {
+            console.error('Error in auto-close job:', error);
         }
-    } catch (error) {
-        console.error('Error in auto-close job:', error);
-    }
-}, 60 * 1000);
+    }, 60 * 1000);
+}
+
 
 // Create upload directories if they don't exist
 // wrapped in try-catch for Vercel (read-only fs)

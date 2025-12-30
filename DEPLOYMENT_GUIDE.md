@@ -1,15 +1,24 @@
-# 🚀 E-Nexus Vercel Deployment Guide
+# 🚀 E-Nexus Deployment Guide
 
-This guide will help you deploy the Workshop Management System to **Vercel**.
+You have two options to deploy this system. Choose the one that fits your workshop best.
 
-> ⚠️ **IMPORTANT REQUIREMENTS**
-> Since Vercel is "serverless", your local files and database won't work there. You MUST use:
-> 1.  **MongoDB Atlas** (Cloud Database) instead of `localhost:27017`.
-> 2.  **Cloudinary** (Cloud Storage) for all photos (no local uploads).
+## ⚖️ Option 1 vs Option 2
+
+| Feature | **Option 1: Vercel (Cloud)** | **Option 2: Local Network (Simpler)** |
+| :--- | :--- | :--- |
+| **Accessibility** | Accessible from anywhere (Internet) | Accessible only on Campus WiFi |
+| **Database** | **MUST use MongoDB Atlas** (Cloud) | Uses **Local MongoDB** (on laptop) |
+| **Setup** | Medium (Requires GitHub + Atlas) | Easy (Just run a command) |
+| **Cost** | Free (Hobby Tier) | Free |
+| **Best For** | Remote events, permanent access | **On-site workshops**, unstable internet |
 
 ---
 
-## 📦 Step 1: Push Code to GitHub
+## ☁️ Option 1: Vercel Deployment (Internet)
+
+> ⚠️ **Requirement**: Vercel cannot see your local files. You **MUST** use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (Cloud DB).
+
+### 📦 Step 1: Push Code to GitHub
 
 Since you have the code ready locally, push it to a new GitHub repository:
 
@@ -48,6 +57,24 @@ Since you have the code ready locally, push it to a new GitHub repository:
 
 ---
 
+
+---
+
+## 🛠️ Vercel Configuration Reference (Copy-Paste)
+
+If Vercel asks for "Build & Development Settings", use these:
+
+| Setting | **Frontend (Select "Vite")** | **Backend (Select "Other")** |
+| :--- | :--- | :--- |
+| **Framework Preset** | `Vite` | `Other` |
+| **Build Command** | `npm run build` | `npm install` |
+| **Output Directory** | `dist` | `.` (Leave empty or dot) |
+| **Install Command** | `npm install` | `npm install` |
+
+> **Note for Backend**: Since we added `vercel.json`, Vercel usually detects settings automatically. If it asks, use the values above.
+
+---
+
 ## ⚙️ Step 4: Deploy Backend (Vercel or Render)
 
 **Recommendation**: Use **Render.com** for the backend (it's easier for Express apps), or allow Vercel to handle it as serverless functions.
@@ -82,8 +109,52 @@ Since Vercel puts the server to sleep, the "Auto-Close" timer won't run automati
 
 ---
 
+---
+
+## � Option 2: Local Network Deployment (No Cloud)
+
+Use this if you want to run the workshop on **your laptop** and have students connect via **WiFi**.
+
+### 1. Find Your IP Address
+- **Windows**: Open Terminal -> Type `ipconfig` -> Look for **IPv4 Address** (e.g., `192.168.1.15`).
+- **Mac/Linux**: Type `ifconfig`.
+
+### 2. Update Frontend Config
+1.  Open `frontend/src/services/api.js` (or `.env`).
+2.  Change `localhost` to your IP:
+    ```javascript
+    // Change this:
+    const API_URL = 'http://localhost:5000/api';
+    // To this (use YOUR IP):
+    const API_URL = 'http://192.168.1.15:5000/api';
+    ```
+
+### 3. Run the Servers
+Open two terminals:
+1.  **Backend**: `cd backend && npm run dev` (Access: `http://192.168.1.15:5000`)
+2.  **Frontend**: `cd frontend && npm run dev -- --host` (Access: `http://192.168.1.15:5173`)
+
+### 4. Students Connect
+Tell students to open `http://192.168.1.15:5173` on their laptops/phones.
+They must be on the **same WiFi**.
+
+---
+
+## 🏆 Recommendation for 150+ Users
+
+**Use Option 1 (Vercel/Cloud).**
+
+**Why?**
+1.  **Network Load**: 150 students connecting to one Local WiFi router will likely **crash the router**.
+2.  **Flexibility**: With Cloud, students can use their own **4G/5G mobile data** if the WiFi is slow.
+3.  **Reliability**: Vercel handles the traffic load better than a single laptop server.
+
+**Only use Option 2 (Local)** if you have a **Professional Enterprise WiFi Access Point** and no internet access.
+
+---
+
 ## 🎉 Done!
 
-Your system is now live on the internet! 
-- **Frontend**: `https://e-nexus-frontend.vercel.app`
-- **Backend API**: `https://e-nexus-backend.vercel.app`
+Your system is ready!
+- **Option 1**: `https://e-nexus-frontend.vercel.app`
+- **Option 2**: `http://YOUR_IP:5173`

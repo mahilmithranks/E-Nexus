@@ -63,18 +63,24 @@ setInterval(async () => {
 }, 60 * 1000);
 
 // Create upload directories if they don't exist
+// wrapped in try-catch for Vercel (read-only fs)
 const uploadDirs = [
     'uploads/attendance-photos',
     'uploads/assignments'
 ];
 
-uploadDirs.forEach(dir => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-});
+try {
+    uploadDirs.forEach(dir => {
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+    });
+} catch (error) {
+    console.log('Skipping mkdir in read-only environment (Vercel)');
+}
 
 // Serve static files (uploaded photos and assignments)
+// Only works if files exist
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
@@ -140,16 +146,20 @@ const initializeAdmin = async () => {
     }
 };
 
-// Start server
+// Start server (Only if not in Vercel/Serverless)
 const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`\n🚀 Server running on port ${PORT}`);
+        console.log(`📡 API available at http://localhost:${PORT}/api`);
+        console.log(`🏥 Health check: http://localhost:${PORT}/api/health\n`);
 
-app.listen(PORT, () => {
-    console.log(`\n🚀 Server running on port ${PORT}`);
-    console.log(`📡 API available at http://localhost:${PORT}/api`);
-    console.log(`🏥 Health check: http://localhost:${PORT}/api/health\n`);
-
-    // Initialize admin user
+        // Initialize admin user
+        initializeAdmin();
+    });
+} else {
+    // In Vercel, just initialize admin (async check)
     initializeAdmin();
-});
+}
 
 export default app;

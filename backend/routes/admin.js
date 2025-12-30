@@ -12,13 +12,17 @@ import {
     overrideAttendance,
     getProgress,
     exportAttendance,
-    exportAssignments
+    exportAssignments,
+    runAutoCloseJob
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// All routes require admin authentication
+// Cron job (Publicly accessible for Vercel Cron, typically protected by a Secret in headers in production)
+router.get('/cron/auto-close', runAutoCloseJob);
+
+// All routes below require admin authentication
 router.use(protect, adminOnly);
 
 // Student management

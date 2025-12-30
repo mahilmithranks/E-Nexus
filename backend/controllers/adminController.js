@@ -784,3 +784,38 @@ export const exportAssignments = async (req, res) => {
         res.status(500).json({ message: 'Server error exporting assignments' });
     }
 };
+
+// @desc    Run auto-close job (Cron/Manual)
+// @route   GET /api/admin/cron/auto-close
+// @access  Public (protected by secret in Vercel) or Admin
+export const runAutoCloseJob = async (req, res) => {
+    try {
+        const now = new Date();
+        const result = await Session.updateMany(
+            {
+                attendanceOpen: true,
+                attendanceEndTime: { $lt: now }
+            },
+            {
+                $set: { attendanceOpen: false }
+            }
+        );
+
+        const message = result.modifiedCount > 0
+            ? `Auto-closed ${result.modifiedCount} expired session(s).`
+            : 'No expired sessions found.';
+
+        console.log(`[Cron] ${message}`);
+
+        if (res) {
+            res.status(200).json({ message, modified: result.modifiedCount });
+        } else {
+            return result;
+        }
+    } catch (error) {
+        console.error('Error in auto-close job:', error);
+        if (res) {
+            res.status(500).json({ message: 'Error running auto-close job' });
+        }
+    }
+};

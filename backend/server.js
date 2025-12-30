@@ -93,6 +93,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/student', studentRoutes);
 
+// Root route (for browser check)
+app.get('/', (req, res) => {
+    res.send('<h1>Backend Server is Running! 🚀</h1><p>API is available at /api</p>');
+});
+
 // Root API route
 app.get('/api', (req, res) => {
     res.json({

@@ -11,6 +11,7 @@ import {
     getSession
 } from '../controllers/studentController.js';
 import { protect, studentOnly } from '../middleware/auth.js';
+import { cacheMiddleware } from '../middleware/cache.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,18 +46,18 @@ const upload = multer({
 // All routes require student authentication
 router.use(protect, studentOnly);
 
-// Day and session routes
-router.get('/days', getEnabledDays);
-router.get('/sessions/:dayId', getSessionsForDay);
-router.get('/session/:sessionId', getSession);
+// Day and session routes (cached for faster loading)
+router.get('/days', cacheMiddleware('student-days', 30000), getEnabledDays); // Cache for 30s
+router.get('/sessions/:dayId', cacheMiddleware('student-sessions', 30000), getSessionsForDay); // Cache for 30s
+router.get('/session/:sessionId', getSession); // No cache - real-time data needed
 
-// Attendance route with photo upload
+// Attendance route with photo upload (no cache - write operation)
 router.post('/attendance', upload.single('photo'), markAttendance);
 
-// Assignment submission route
+// Assignment submission route (no cache - write operation)
 router.post('/assignment', upload.array('assignment'), submitAssignment);
 
-// Profile route
+// Profile route (no cache - user-specific data)
 router.get('/profile', getProfile);
 
 export default router;

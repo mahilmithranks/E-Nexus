@@ -97,7 +97,7 @@ export const createDay = async (req, res) => {
 // @access  Private/Admin
 export const getAllDays = async (req, res) => {
     try {
-        const days = await Day.find().sort({ dayNumber: 1 });
+        const days = await Day.find().sort({ dayNumber: 1 }).lean();
         res.json(days);
     } catch (error) {
         console.error('Get days error:', error);
@@ -166,7 +166,7 @@ export const createSession = async (req, res) => {
 // @access  Private/Admin
 export const getAllSessions = async (req, res) => {
     try {
-        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 });
+        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 }).lean();
         res.json(sessions);
     } catch (error) {
         console.error('Get sessions error:', error);
@@ -299,7 +299,7 @@ export const overrideAttendance = async (req, res) => {
 // @access  Private/Admin
 export const getProgress = async (req, res) => {
     try {
-        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
+        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 }).lean();
         const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 });
 
         const progressData = [];

@@ -17,20 +17,8 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        if (file.fieldname === 'photo') {
-            cb(null, 'uploads/attendance-photos/');
-        } else if (file.fieldname === 'assignment') {
-            cb(null, 'uploads/assignments/');
-        }
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
+// Configure multer for file uploads (memory storage for Vercel serverless)
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
     if (file.fieldname === 'photo') {

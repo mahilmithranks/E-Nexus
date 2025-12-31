@@ -168,28 +168,32 @@ export const markAttendance = async (req, res) => {
             return res.status(400).json({ message: 'Photo is required for attendance' });
         }
 
-        let photoPath = req.file.path; // Default to local path
+        let photoPath = null;
 
-        // Try to upload to Cloudinary if configured
+        // Upload to Cloudinary (required for Vercel serverless)
         try {
-            if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
-                const cloudinary = (await import('../config/cloudinary.js')).default;
-                const result = await cloudinary.uploader.upload(req.file.path, {
-                    folder: 'e-nexus/attendance',
-                    resource_type: 'image',
-                    transformation: [
-                        { width: 800, height: 800, crop: 'limit' },
-                        { quality: 'auto' }
-                    ]
-                });
-                photoPath = result.secure_url; // Use Cloudinary URL
-                console.log('Photo uploaded to Cloudinary:', photoPath);
-            } else {
-                console.log('Cloudinary not configured, using local storage');
-            }
+            const cloudinary = (await import('../config/cloudinary.js')).default;
+
+            // Convert buffer to base64 for Cloudinary upload
+            const b64 = Buffer.from(req.file.buffer).toString('base64');
+            const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+            const result = await cloudinary.uploader.upload(dataURI, {
+                folder: 'e-nexus/attendance',
+                resource_type: 'image',
+                transformation: [
+                    { width: 800, height: 800, crop: 'limit' },
+                    { quality: 'auto' }
+                ]
+            });
+
+            photoPath = result.secure_url;
+            console.log('Photo uploaded to Cloudinary:', photoPath);
         } catch (cloudinaryError) {
-            console.error('Cloudinary upload failed, falling back to local storage:', cloudinaryError.message);
-            // Continue with local path
+            console.error('Cloudinary upload failed:', cloudinaryError);
+            return res.status(500).json({
+                message: 'Failed to upload photo. Please try again.'
+            });
         }
 
         // Create attendance record

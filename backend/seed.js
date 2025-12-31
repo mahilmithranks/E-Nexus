@@ -49,6 +49,14 @@ const seedData = async () => {
                 yearOfStudy: '1',
                 department: 'CSE',
                 role: 'student'
+            },
+            {
+                registerNumber: '99240041374',
+                password: '25062007', // 25/06/2007
+                name: 'Sanjai',
+                yearOfStudy: '2',
+                department: 'CSE',
+                role: 'student'
             }
         ];
 

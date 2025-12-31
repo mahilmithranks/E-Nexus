@@ -8,7 +8,7 @@ const connectDB = async () => {
             minPoolSize: 0, // Allow dropping to 0 to save resources
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-            bufferCommands: false, // Disable buffering to fail fast if disconnected
+            // bufferCommands removed - let Mongoose queue operations until connected
         });
 
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);

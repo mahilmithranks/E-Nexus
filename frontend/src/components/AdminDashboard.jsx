@@ -397,60 +397,7 @@ function AdminDashboard() {
                                 </div>
 
                                 {/* Manual Override Toggle */}
-                                <div className="pt-8 border-t border-white/10">
-                                    <button
-                                        onClick={() => setShowOverrideForm(!showOverrideForm)}
-                                        className="text-white/60 hover:text-white text-sm font-medium flex items-center gap-2 mb-4"
-                                    >
-                                        {showOverrideForm ? 'Hide' : 'Show'} Manual Override
-                                    </button>
 
-                                    <AnimatePresence>
-                                        {showOverrideForm && (
-                                            <motion.form
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                onSubmit={handleOverrideSubmit}
-                                                className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4"
-                                            >
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Register Number"
-                                                        value={overrideData.registerNumber}
-                                                        onChange={(e) => setOverrideData({ ...overrideData, registerNumber: e.target.value })}
-                                                        className="bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-blue-500"
-                                                        required
-                                                    />
-                                                    <select
-                                                        value={overrideData.sessionId}
-                                                        onChange={(e) => setOverrideData({ ...overrideData, sessionId: e.target.value })}
-                                                        className="bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
-                                                        required
-                                                    >
-                                                        <option value="" className="bg-gray-900">Select Session</option>
-                                                        {sessions.map(s => (
-                                                            <option key={s._id} value={s._id} className="bg-gray-900">
-                                                                {s.title} (Day {s.dayId?.dayNumber})
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <textarea
-                                                    placeholder="Reason for override..."
-                                                    value={overrideData.comment}
-                                                    onChange={(e) => setOverrideData({ ...overrideData, comment: e.target.value })}
-                                                    className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-blue-500 h-24 resize-none"
-                                                    required
-                                                />
-                                                <button type="submit" className="px-6 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors">
-                                                    Submit Override
-                                                </button>
-                                            </motion.form>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
                             </div>
                         )}
 

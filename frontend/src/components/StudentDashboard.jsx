@@ -587,24 +587,29 @@ function StudentDashboard() {
                             <div className="p-6 border-t border-white/10 flex gap-4">
                                 <button
                                     onClick={handleRetakePhoto}
-                                    className="flex-1 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                                    className={cn(
+                                        "px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors flex items-center justify-center gap-2",
+                                        faceDetected === false ? "w-full" : "flex-1"
+                                    )}
                                 >
                                     <Camera className="w-5 h-5" />
                                     Retake Photo
                                 </button>
-                                <button
-                                    onClick={handleConfirmPhoto}
-                                    className="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium hover:from-blue-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <CheckCircle className="w-5 h-5" />
-                                    Confirm & Submit
-                                </button>
+                                {faceDetected !== false && (
+                                    <button
+                                        onClick={handleConfirmPhoto}
+                                        className="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium hover:from-blue-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <CheckCircle className="w-5 h-5" />
+                                        Confirm & Submit
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
 

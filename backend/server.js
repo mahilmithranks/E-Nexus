@@ -168,8 +168,11 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
         initializeAdmin();
     });
 } else {
-    // In Vercel, just initialize admin (async check)
-    initializeAdmin();
+    // In Vercel, wait for DB connection before initializing admin
+    (async () => {
+        await connectDB();
+        await initializeAdmin();
+    })();
 }
 
 export default app;

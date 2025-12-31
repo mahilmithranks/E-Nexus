@@ -12,11 +12,5 @@
             "dest": "server.js"
         }
     ],
-    "crons": [
-        {
-            "path": "/api/admin/cron/auto-close",
-            "schedule": "* * * * *"
-        }
-    ],
     "outputDirectory": "public"
 }

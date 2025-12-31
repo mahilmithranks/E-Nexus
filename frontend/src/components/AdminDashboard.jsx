@@ -36,6 +36,37 @@ function AdminDashboard() {
         fetchData();
     }, []);
 
+    // Auto-close polling: Check every 30s for expired sessions
+    useEffect(() => {
+        const checkAndCloseExpiredSessions = async () => {
+            try {
+                const now = new Date();
+                const expiredSessions = sessions.filter(session =>
+                    session.attendanceOpen &&
+                    session.attendanceEndTime &&
+                    new Date(session.attendanceEndTime) < now
+                );
+
+                for (const session of expiredSessions) {
+                    await api.post(`/admin/sessions/${session._id}/attendance/stop`);
+                    toast.info(`Auto-closed attendance for: ${session.title}`);
+                }
+
+                if (expiredSessions.length > 0) {
+                    fetchData(); // Refresh data after auto-close
+                }
+            } catch (error) {
+                console.error('Auto-close error:', error);
+            }
+        };
+
+        // Run check every 30 seconds
+        const interval = setInterval(checkAndCloseExpiredSessions, 30000);
+
+        // Cleanup on unmount
+        return () => clearInterval(interval);
+    }, [sessions]); // Re-run when sessions change
+
     const fetchData = async () => {
         try {
             const [daysRes, sessionsRes, progressRes] = await Promise.all([

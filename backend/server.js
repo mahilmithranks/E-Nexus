@@ -25,7 +25,20 @@ const app = express();
 connectDB();
 
 // Middleware
-// Middleware
+// Explicit CORS headers for Vercel serverless compatibility
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 // Allow requests from anywhere (CORS fix for Vercel)
 app.use(cors({
     origin: '*',

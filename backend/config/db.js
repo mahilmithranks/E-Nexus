@@ -3,10 +3,12 @@ import mongoose from 'mongoose';
 const connectDB = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
-            maxPoolSize: 200, // Support for 150+ concurrent users
-            minPoolSize: 10,
+            // Optimized for Serverless (Netlify/Vercel) & High Concurrency
+            maxPoolSize: 1, // Keep low per-function to avoid DB connection limit exhaustion (150 users = 150 connections)
+            minPoolSize: 0, // Allow dropping to 0 to save resources
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
+            bufferCommands: false, // Disable buffering to fail fast if disconnected
         });
 
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);

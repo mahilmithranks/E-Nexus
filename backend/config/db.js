@@ -13,8 +13,8 @@ const connectDB = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             // Optimized for Serverless (Netlify/Vercel) & High Concurrency
-            maxPoolSize: 1, // Keep low per-function to avoid DB connection limit exhaustion (150 users = 150 connections)
-            minPoolSize: 0, // Allow dropping to 0 to save resources
+            maxPoolSize: 10, // Increased for 150+ concurrent users (was 1)
+            minPoolSize: 5,  // Keep some connections ready
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
             // bufferCommands removed - let Mongoose queue operations until connected

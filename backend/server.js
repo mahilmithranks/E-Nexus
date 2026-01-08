@@ -11,6 +11,7 @@ import adminRoutes from './routes/admin.js';
 import studentRoutes from './routes/student.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import User from './models/User.js';
+import compression from 'compression';
 
 // Load environment variables
 dotenv.config();
@@ -48,6 +49,9 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Compress all responses
+app.use(compression());
 
 // Apply rate limiting to all routes
 app.use('/api/', apiLimiter);

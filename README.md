@@ -246,13 +246,13 @@ App runs on: `http://localhost:5173`
 
 ## 🔑 Default Credentials
 
-### Admin (Mock Data)
-- **Register Number**: `99240041375`
-- **Password**: `19012007`
+### Admin
+- **Register Number**: `9999999999`
+- **Password**: `01012001` (DOB: 01/01/2001)
 
-### Students (Mock Data)
-- **Register Numbers**: `99240041001` - `99240041005`
-- **Password**: `student123` (all students)
+### Student
+- **Register Number**: `9999999991` (Name: Gopal)
+- **Password**: `02022002` (DOB: 02/02/2002)
 
 ---
 

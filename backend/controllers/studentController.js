@@ -26,7 +26,7 @@ export const getSessionsForDay = async (req, res) => {
         const { dayId } = req.params;
 
         // Verify day exists and is open
-        const day = await Day.findById(dayId);
+        const day = await Day.findById(dayId).lean();
         if (!day) {
             return res.status(404).json({ message: 'Day not found' });
         }
@@ -35,43 +35,57 @@ export const getSessionsForDay = async (req, res) => {
             return res.status(403).json({ message: 'This day is not accessible' });
         }
 
+        // Fetch all sessions for determination
         const sessions = await Session.find({ dayId }).sort({ createdAt: 1 });
+        const sessionIds = sessions.map(s => s._id);
 
-        // For each session, check if student has marked attendance
-        const sessionsWithStatus = await Promise.all(
-            sessions.map(async (session) => {
-                const attendance = await Attendance.findOne({
-                    registerNumber: req.user.registerNumber,
-                    sessionId: session._id
-                });
+        // Batch fetch attendance and submissions
+        const [attendances, submissions] = await Promise.all([
+            Attendance.find({
+                registerNumber: req.user.registerNumber,
+                sessionId: { $in: sessionIds }
+            }).lean(),
+            AssignmentSubmission.find({
+                registerNumber: req.user.registerNumber,
+                sessionId: { $in: sessionIds }
+            }).lean()
+        ]);
 
-                const submissions = await AssignmentSubmission.find({
-                    registerNumber: req.user.registerNumber,
-                    sessionId: session._id
-                });
+        // Create lookups for faster access
+        const attendanceMap = new Map(attendances.map(a => [a.sessionId.toString(), a]));
+        const submissionMap = new Map();
 
-                // Get unique submitted assignment titles
-                const uniqueTitles = new Set(submissions.map(s => s.assignmentTitle));
+        submissions.forEach(s => {
+            const sessId = s.sessionId.toString();
+            if (!submissionMap.has(sessId)) {
+                submissionMap.set(sessId, new Set());
+            }
+            submissionMap.get(sessId).add(s.assignmentTitle);
+        });
 
-                // Determine attendance window status
-                let attendanceWindowStatus = 'not_started';
-                if (session.attendanceOpen) {
-                    attendanceWindowStatus = 'active';
-                } else if (session.attendanceEndTime && new Date() > new Date(session.attendanceEndTime)) {
-                    attendanceWindowStatus = 'closed';
-                }
+        const sessionsWithStatus = sessions.map((session) => {
+            const sessId = session._id.toString();
+            const attendance = attendanceMap.get(sessId);
+            const submittedTitles = submissionMap.get(sessId) || new Set();
 
-                return {
-                    ...session.toObject(),
-                    hasAttendance: !!attendance,
-                    attendanceStatus: attendanceWindowStatus,
-                    isAttendanceActive: session.isAttendanceActive(),
-                    attendanceEndTime: session.attendanceEndTime,
-                    assignmentsSubmitted: uniqueTitles.size,
-                    totalAssignments: session.assignments.length
-                };
-            })
-        );
+            // Determine attendance window status
+            let attendanceWindowStatus = 'not_started';
+            if (session.attendanceOpen) {
+                attendanceWindowStatus = 'active';
+            } else if (session.attendanceEndTime && new Date() > new Date(session.attendanceEndTime)) {
+                attendanceWindowStatus = 'closed';
+            }
+
+            return {
+                ...session.toObject(),
+                hasAttendance: !!attendance,
+                attendanceStatus: attendanceWindowStatus,
+                isAttendanceActive: session.isAttendanceActive(),
+                attendanceEndTime: session.attendanceEndTime,
+                assignmentsSubmitted: submittedTitles.size,
+                totalAssignments: session.assignments.length
+            };
+        });
 
         res.json(sessionsWithStatus);
     } catch (error) {

@@ -157,16 +157,16 @@ const initializeAdmin = async () => {
 
         if (!adminExists) {
             const admin = await User.create({
-                registerNumber: process.env.ADMIN_REGISTER_NUMBER || '99240041375',
+                registerNumber: process.env.ADMIN_REGISTER_NUMBER || '9999999999',
                 email: 'admin@workshop.edu', // Optional email for admin
-                password: process.env.ADMIN_PASSWORD || '19012007',
+                password: process.env.ADMIN_PASSWORD || '01012001', // DOB: 01/01/2001
                 name: 'System Administrator',
                 role: 'admin'
             });
 
             console.log('✅ Admin user created successfully');
             console.log(`   Register Number: ${admin.registerNumber}`);
-            console.log(`   Password: ${process.env.ADMIN_PASSWORD || '19012007'}`);
+            console.log(`   Password: ${process.env.ADMIN_PASSWORD || '01012001'}`);
         }
     } catch (error) {
         console.error('Error initializing admin:', error);

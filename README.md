@@ -2,6 +2,13 @@
 
 A comprehensive, local-first web application for managing multi-day college workshop events with **AI-powered face detection**, automatic attendance management, and support for **150+ concurrent users**.
 
+> [!IMPORTANT]
+> **🚀 Quick Login Credentials**
+>
+> **Admin**: `9999999999` / `01012001`
+>
+> **Student**: `9999999991` / `02022002` (User: Gopal)
+
 ## 🎯 System Overview
 
 **Production Status**: ✅ **READY FOR DEPLOYMENT**

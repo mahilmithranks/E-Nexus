@@ -19,6 +19,14 @@ const seedData = async () => {
         // Create sample students
         const students = [
             {
+                registerNumber: '9999999991',
+                password: '02022002', // 02/02/2002
+                name: 'Gopal',
+                yearOfStudy: '3',
+                department: 'CSE',
+                role: 'student'
+            },
+            {
                 registerNumber: '9924005056',
                 password: '07042007', // 7/4/2007
                 name: 'Gurru Ganesh S K',
@@ -133,8 +141,8 @@ const seedData = async () => {
         console.log(`   Days: ${days.length}`);
         console.log(`   Sessions per day: 2`);
         console.log('\n🔐 Login Credentials:');
-        console.log('   Admin: 99240041375 / 19012007');
-        console.log('   Student Example: 9924005056 / 07042007 (DDMMYYYY format)\n');
+        console.log('   Admin: 9999999999 / 01012001 (Created on first server start)');
+        console.log('   Student Example: 9999999991 / 02022002 (Gopal)\n');
 
         process.exit(0);
     } catch (error) {

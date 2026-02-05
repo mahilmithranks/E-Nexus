@@ -19,11 +19,17 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: 'Please provide username and password' });
         }
 
-        // Find user by registerNumber or email
+        // Validate college email domain if an email is provided
+        const normalizedUsername = username.trim().toLowerCase();
+        if (normalizedUsername.includes('@') && !normalizedUsername.endsWith('@klu.ac.in')) {
+            return res.status(400).json({ message: 'Please enter a proper college mail ID (ending with @klu.ac.in)' });
+        }
+
+        // Find user by registerNumber or email using the normalized (trimmed, lowercase) username
         const user = await User.findOne({
             $or: [
-                { registerNumber: username.toUpperCase() },
-                { email: username.toLowerCase() }
+                { registerNumber: normalizedUsername.toUpperCase() },
+                { email: normalizedUsername }
             ]
         });
 
@@ -81,7 +87,7 @@ export const getMe = async (req, res) => {
         const user = await User.findById(req.user.id).select('-password');
         res.json(user);
     } catch (error) {
-        console.error('Get user error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Get me error:', error);
+        res.status(500).json({ message: 'Server error fetching user profile' });
     }
 };

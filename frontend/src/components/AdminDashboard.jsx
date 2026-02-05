@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Users, Calendar, Clock, BarChart2, Download, LogOut,
     CheckCircle, AlertCircle, XCircle, Lock, Unlock, Play, Square,
-    FileText
+    FileText, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import api from '../services/api';
 import { getUser, clearAuth } from '../utils/auth';
@@ -17,8 +17,10 @@ import toast from 'react-hot-toast';
 function AdminDashboard() {
     const [days, setDays] = useState([]);
     const [sessions, setSessions] = useState([]);
-    const [progress, setProgress] = useState([]);
+    const [progressData, setProgressData] = useState([]);
+    const [pagination, setPagination] = useState({ total: 0, pages: 1, currentPage: 1, limit: 20 });
     const [loading, setLoading] = useState(true);
+    const [progressLoading, setProgressLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('days');
     const [showOverrideForm, setShowOverrideForm] = useState(false);
     const [showPhotoModal, setShowPhotoModal] = useState({ show: false, url: '', student: '' });
@@ -32,9 +34,6 @@ function AdminDashboard() {
     const user = getUser();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     // Auto-close polling: Check every 30s for expired sessions
     useEffect(() => {
@@ -61,33 +60,80 @@ function AdminDashboard() {
         };
 
         // Run check every 30 seconds
-        const interval = setInterval(checkAndCloseExpiredSessions, 30000);
+        const interval = setInterval(checkAndCloseExpiredSessions, 15000);
 
         // Cleanup on unmount
         return () => clearInterval(interval);
     }, [sessions]); // Re-run when sessions change
 
-    const fetchData = async () => {
+    useEffect(() => {
+        fetchInitialData();
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'attendance' || activeTab === 'assignments') {
+            fetchProgress(pagination.currentPage);
+        }
+    }, [activeTab]);
+
+    const fetchInitialData = async () => {
         try {
-            const [daysRes, sessionsRes, progressRes] = await Promise.all([
+            setLoading(true);
+            const [daysRes, sessionsRes] = await Promise.all([
                 api.get('/admin/days'),
-                api.get('/admin/sessions'),
-                api.get('/admin/progress')
+                api.get('/admin/sessions')
             ]);
 
             setDays(daysRes.data);
             setSessions(sessionsRes.data);
-            setProgress(progressRes.data);
+
+            // Only fetch progress if we are on those tabs or initially
+            await fetchProgress(1);
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching initial data:', error);
+            toast.error('Failed to load dashboard data');
         } finally {
             setLoading(false);
         }
     };
 
+    const fetchProgress = async (page = 1) => {
+        try {
+            setProgressLoading(true);
+            const res = await api.get(`/admin/progress?page=${page}&limit=20`);
+            setProgressData(res.data.students);
+            setPagination(res.data.pagination);
+        } catch (error) {
+            console.error('Error fetching progress:', error);
+            toast.error('Failed to load progress data');
+        } finally {
+            setProgressLoading(false);
+        }
+    };
+
+    // Generic refresh to stay backward compatible with existing calls
+    const fetchData = async () => {
+        try {
+            const [daysRes, sessionsRes] = await Promise.all([
+                api.get('/admin/days'),
+                api.get('/admin/sessions')
+            ]);
+
+            setDays(daysRes.data);
+            setSessions(sessionsRes.data);
+
+            // Only refresh progress if we are on a tab that shows it
+            if (activeTab === 'attendance' || activeTab === 'assignments') {
+                await fetchProgress(pagination.currentPage);
+            }
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        }
+    };
+
     const handleLogout = () => {
         clearAuth();
-        navigate('/');
+        window.location.href = '/';
     };
 
     const updateDayStatus = async (dayId, status) => {
@@ -100,21 +146,34 @@ function AdminDashboard() {
     };
 
     const startAttendance = async (sessionId) => {
+        // Optimistic update
+        const originalSessions = [...sessions];
+        setSessions(prev => prev.map(s => s._id === sessionId ?
+            { ...s, attendanceOpen: true, attendanceEndTime: new Date(Date.now() + 10 * 60 * 1000).toISOString() } : s
+        ));
+
         try {
             const response = await api.post(`/admin/sessions/${sessionId}/attendance/start`);
             toast.success(`Attendance started! Window closes at ${new Date(response.data.windowEndsAt).toLocaleTimeString()}`);
+            // Sync with actual server time/data
             fetchData();
         } catch (error) {
+            setSessions(originalSessions);
             toast.error('Error starting attendance: ' + (error.response?.data?.message || error.message));
         }
     };
 
     const stopAttendance = async (sessionId) => {
+        // Optimistic update
+        const originalSessions = [...sessions];
+        setSessions(prev => prev.map(s => s._id === sessionId ? { ...s, attendanceOpen: false } : s));
+
         try {
             await api.post(`/admin/sessions/${sessionId}/attendance/stop`);
             toast.success('Attendance stopped successfully');
             fetchData();
         } catch (error) {
+            setSessions(originalSessions);
             toast.error('Error stopping attendance: ' + (error.response?.data?.message || error.message));
         }
     };
@@ -208,6 +267,32 @@ function AdminDashboard() {
             }
             toast.error(errorMessage);
         }
+    };
+
+    const PaginationControls = () => {
+        if (pagination.pages <= 1) return null;
+
+        return (
+            <div className="flex items-center justify-center gap-4 mt-8">
+                <button
+                    onClick={() => fetchProgress(pagination.currentPage - 1)}
+                    disabled={pagination.currentPage === 1 || progressLoading}
+                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white disabled:opacity-30 transition-all hover:bg-white/10"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="text-white/60 text-sm font-medium">
+                    Page <span className="text-white">{pagination.currentPage}</span> of {pagination.pages}
+                </div>
+                <button
+                    onClick={() => fetchProgress(pagination.currentPage + 1)}
+                    disabled={pagination.currentPage === pagination.pages || progressLoading}
+                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-white disabled:opacity-30 transition-all hover:bg-white/10"
+                >
+                    <ChevronRight className="w-5 h-5" />
+                </button>
+            </div>
+        );
     };
 
     if (loading) {
@@ -455,57 +540,75 @@ function AdminDashboard() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
-                                                {progress.map(student => (
-                                                    <tr key={student.registerNumber} className="hover:bg-white/[0.02]">
-                                                        <td className="p-4 sticky left-0 bg-black/40 backdrop-blur-sm">
-                                                            <div className="text-white font-medium">{student.name}</div>
-                                                            <div className="text-white/40 text-xs">{student.registerNumber}</div>
+                                                {progressLoading ? (
+                                                    <tr>
+                                                        <td colSpan={sessions.length + 1} className="p-8 text-center bg-black/20">
+                                                            <div className="flex flex-col items-center gap-3">
+                                                                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                                                <p className="text-white/40 text-sm">Loading students...</p>
+                                                            </div>
                                                         </td>
-                                                        {student.sessions.map(session => {
-                                                            const hasAttendance = session.attendance?.status === 'PRESENT';
-                                                            const isOverride = session.attendance?.isOverride;
-                                                            const photoPath = session.attendance?.photoPath;
-                                                            const photoUrl = getPhotoUrl(photoPath);
-
-                                                            return (
-                                                                <td key={session.sessionId} className="p-4">
-                                                                    <div className="flex flex-col items-center gap-1">
-                                                                        {hasAttendance ? (
-                                                                            <button
-                                                                                onClick={() => photoUrl && setShowPhotoModal({ show: true, url: photoUrl, student: student.name })}
-                                                                                className={cn(
-                                                                                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                                                                                    isOverride ? "bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30" : "bg-green-500/20 text-green-500 hover:bg-green-500/30",
-                                                                                    photoUrl && "cursor-pointer hover:scale-110"
-                                                                                )}
-                                                                                title={photoUrl ? "Click to view photo" : (isOverride ? "Manual override" : "Present")}
-                                                                            >
-                                                                                <CheckCircle className="w-4 h-4" />
-                                                                            </button>
-                                                                        ) : (
-                                                                            <div className="flex flex-col items-center gap-2">
-                                                                                <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center" title="Absent">
-                                                                                    <XCircle className="w-4 h-4" />
-                                                                                </div>
-                                                                                <button
-                                                                                    onClick={() => openOverrideModal(student, session.sessionId)}
-                                                                                    className="text-xs px-2 py-1 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all"
-                                                                                    title="Override attendance for this session"
-                                                                                >
-                                                                                    Override
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
-                                                            );
-                                                        })}
                                                     </tr>
-                                                ))}
+                                                ) : progressData.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={sessions.length + 1} className="p-8 text-center text-white/40 bg-black/20">
+                                                            No students found
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    progressData.map(student => (
+                                                        <tr key={student.registerNumber} className="hover:bg-white/[0.02]">
+                                                            <td className="p-4 sticky left-0 bg-black/40 backdrop-blur-sm">
+                                                                <div className="text-white font-medium">{student.name}</div>
+                                                                <div className="text-white/40 text-xs">{student.registerNumber}</div>
+                                                            </td>
+                                                            {student.sessions.map(session => {
+                                                                const hasAttendance = session.attendance?.status === 'PRESENT';
+                                                                const isOverride = session.attendance?.isOverride;
+                                                                const photoPath = session.attendance?.photoPath;
+                                                                const photoUrl = getPhotoUrl(photoPath);
+
+                                                                return (
+                                                                    <td key={session.sessionId} className="p-4">
+                                                                        <div className="flex flex-col items-center gap-1">
+                                                                            {hasAttendance ? (
+                                                                                <button
+                                                                                    onClick={() => photoUrl && setShowPhotoModal({ show: true, url: photoUrl, student: student.name })}
+                                                                                    className={cn(
+                                                                                        "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                                                                                        isOverride ? "bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30" : "bg-green-500/20 text-green-500 hover:bg-green-500/30",
+                                                                                        photoUrl && "cursor-pointer hover:scale-110"
+                                                                                    )}
+                                                                                    title={photoUrl ? "Click to view photo" : (isOverride ? "Manual override" : "Present")}
+                                                                                >
+                                                                                    <CheckCircle className="w-4 h-4" />
+                                                                                </button>
+                                                                            ) : (
+                                                                                <div className="flex flex-col items-center gap-2">
+                                                                                    <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center" title="Absent">
+                                                                                        <XCircle className="w-4 h-4" />
+                                                                                    </div>
+                                                                                    <button
+                                                                                        onClick={() => openOverrideModal(student, session.sessionId)}
+                                                                                        className="text-xs px-2 py-1 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all"
+                                                                                        title="Override attendance for this session"
+                                                                                    >
+                                                                                        Override
+                                                                                    </button>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    ))
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
+                                <PaginationControls />
 
                                 {/* Photo Preview Modal */}
                                 <AnimatePresence>
@@ -653,52 +756,70 @@ function AdminDashboard() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
-                                                {progress.map(student => (
-                                                    <tr key={student.registerNumber} className="hover:bg-white/[0.02]">
-                                                        <td className="p-4 sticky left-0 bg-black/40 backdrop-blur-sm">
-                                                            <div className="text-white font-medium">{student.name}</div>
-                                                            <div className="text-white/40 text-xs">{student.registerNumber}</div>
+                                                {progressLoading ? (
+                                                    <tr>
+                                                        <td colSpan={sessions.length + 1} className="p-8 text-center bg-black/20">
+                                                            <div className="flex flex-col items-center gap-3">
+                                                                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                                                <p className="text-white/40 text-sm">Loading tasks...</p>
+                                                            </div>
                                                         </td>
-                                                        {student.sessions.map(session => {
-                                                            const completed = session.assignmentsCompleted || 0;
-                                                            const total = session.totalAssignments || 0;
-                                                            const percentage = total > 0 ? (completed / total) * 100 : 0;
-                                                            const isComplete = completed === total && total > 0;
-
-                                                            return (
-                                                                <td key={session.sessionId} className="p-4">
-                                                                    <div className="flex flex-col items-center gap-2">
-                                                                        {total > 0 ? (
-                                                                            <>
-                                                                                <div className={cn(
-                                                                                    "text-sm font-semibold",
-                                                                                    isComplete ? "text-green-400" : completed > 0 ? "text-yellow-400" : "text-white/40"
-                                                                                )}>
-                                                                                    {completed}/{total}
-                                                                                </div>
-                                                                                <div className="w-full max-w-[60px] h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                                                    <div
-                                                                                        className={cn(
-                                                                                            "h-full transition-all",
-                                                                                            isComplete ? "bg-green-500" : completed > 0 ? "bg-yellow-500" : "bg-transparent"
-                                                                                        )}
-                                                                                        style={{ width: `${percentage}%` }}
-                                                                                    />
-                                                                                </div>
-                                                                            </>
-                                                                        ) : (
-                                                                            <div className="text-xs text-white/30">No tasks</div>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
-                                                            );
-                                                        })}
                                                     </tr>
-                                                ))}
+                                                ) : progressData.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={sessions.length + 1} className="p-8 text-center text-white/40 bg-black/20">
+                                                            No student data found
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    progressData.map(student => (
+                                                        <tr key={student.registerNumber} className="hover:bg-white/[0.02]">
+                                                            <td className="p-4 sticky left-0 bg-black/40 backdrop-blur-sm">
+                                                                <div className="text-white font-medium">{student.name}</div>
+                                                                <div className="text-white/40 text-xs">{student.registerNumber}</div>
+                                                            </td>
+                                                            {student.sessions.map(session => {
+                                                                const completed = session.assignmentsCompleted || 0;
+                                                                const total = session.totalAssignments || 0;
+                                                                const percentage = total > 0 ? (completed / total) * 100 : 0;
+                                                                const isComplete = completed === total && total > 0;
+
+                                                                return (
+                                                                    <td key={session.sessionId} className="p-4">
+                                                                        <div className="flex flex-col items-center gap-2">
+                                                                            {total > 0 ? (
+                                                                                <>
+                                                                                    <div className={cn(
+                                                                                        "text-sm font-semibold",
+                                                                                        isComplete ? "text-green-400" : completed > 0 ? "text-yellow-400" : "text-white/40"
+                                                                                    )}>
+                                                                                        {completed}/{total}
+                                                                                    </div>
+                                                                                    <div className="w-full max-w-[60px] h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                                                        <div
+                                                                                            className={cn(
+                                                                                                "h-full transition-all",
+                                                                                                isComplete ? "bg-green-500" : completed > 0 ? "bg-yellow-500" : "bg-transparent"
+                                                                                            )}
+                                                                                            style={{ width: `${percentage}%` }}
+                                                                                        />
+                                                                                    </div>
+                                                                                </>
+                                                                            ) : (
+                                                                                <div className="text-xs text-white/30">No tasks</div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    ))
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
+                                <PaginationControls />
                             </>
                         )}
 

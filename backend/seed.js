@@ -16,19 +16,20 @@ const seedData = async () => {
         await User.deleteMany({ role: 'student' });
         console.log('🧹 Cleared existing student records');
 
-        // Create sample students
         const students = [
             {
                 registerNumber: '9924005056',
-                password: '07042007', // 7/4/2007
+                email: '9924005056@klu.ac.in',
+                password: '9924005056',
                 name: 'Gurru Ganesh S K',
-                yearOfStudy: '1', // Defaulting to 1 as not in image
-                department: 'CSE', // Defaulting to CSE
+                yearOfStudy: '1',
+                department: 'CSE',
                 role: 'student'
             },
             {
                 registerNumber: '9924005376',
-                password: '25122006', // 12/25/2006
+                email: '9924005376@klu.ac.in',
+                password: '9924005376',
                 name: 'Gokul B',
                 yearOfStudy: '1',
                 department: 'CSE',
@@ -36,7 +37,8 @@ const seedData = async () => {
             },
             {
                 registerNumber: '99240041000',
-                password: '06112006', // 11/6/2006
+                email: '99240041000@klu.ac.in',
+                password: '99240041000',
                 name: 'Lalithesh R V',
                 yearOfStudy: '1',
                 department: 'CSE',
@@ -44,7 +46,8 @@ const seedData = async () => {
             },
             {
                 registerNumber: '9924008091',
-                password: '14012007', // 1/14/2007
+                email: '9924008091@klu.ac.in',
+                password: '9924008091',
                 name: 'K. Surya Sai Teja',
                 yearOfStudy: '1',
                 department: 'CSE',
@@ -52,7 +55,8 @@ const seedData = async () => {
             },
             {
                 registerNumber: '99240041374',
-                password: '25062007', // 25/06/2007
+                email: '99240041374@klu.ac.in',
+                password: '99240041374',
                 name: 'Sanjai',
                 yearOfStudy: '2',
                 department: 'CSE',
@@ -133,8 +137,8 @@ const seedData = async () => {
         console.log(`   Days: ${days.length}`);
         console.log(`   Sessions per day: 2`);
         console.log('\n🔐 Login Credentials:');
-        console.log('   Admin: 99240041375 / 19012007');
-        console.log('   Student Example: 9924005056 / 07042007 (DDMMYYYY format)\n');
+        console.log('   Admin: 99240041375 / 19012007 (Reg No / DOB)');
+        console.log('   Student Example: 9924005056@klu.ac.in / 9924005056 (Email / Reg No)\n');
 
         process.exit(0);
     } catch (error) {

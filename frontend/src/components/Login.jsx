@@ -15,6 +15,14 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        // Basic validation for college email domain
+        const trimmedUsername = username.trim().toLowerCase();
+        if (trimmedUsername.includes('@') && !trimmedUsername.endsWith('@klu.ac.in')) {
+            setError('Please enter a proper college mail ID (ending with @klu.ac.in)');
+            return;
+        }
+
         setLoading(true);
 
         try {

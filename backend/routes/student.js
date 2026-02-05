@@ -48,7 +48,7 @@ router.use(protect, studentOnly);
 
 // Day and session routes (cached for faster loading)
 router.get('/days', cacheMiddleware('student-days', 30000), getEnabledDays); // Cache for 30s
-router.get('/sessions/:dayId', cacheMiddleware('student-sessions', 30000), getSessionsForDay); // Cache for 30s
+router.get('/sessions/:dayId', cacheMiddleware('student-sessions', 5000), getSessionsForDay); // Cache for 5s
 router.get('/session/:sessionId', getSession); // No cache - real-time data needed
 
 // Attendance route with photo upload (no cache - write operation)

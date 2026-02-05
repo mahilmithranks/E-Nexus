@@ -238,39 +238,44 @@ export function SignInCard({ username, password, onUsernameChange, onPasswordCha
                                     </div>
                                 )}
                                 <motion.div className="space-y-3">
-                                    {/* Register Number input */}
-                                    <motion.div
-                                        className={`relative ${focusedInput === "username" ? 'z-10' : ''}`}
-                                        whileFocus={{ scale: 1.02 }}
-                                        whileHover={{ scale: 1.01 }}
-                                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                    >
-                                        <div className="absolute -inset-[0.5px] bg-gradient-to-r from-white/10 via-white/5 to-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                                    {/* Email input */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] uppercase tracking-wider text-white/40 font-semibold pl-1">
+                                            Please enter your registered college email ID
+                                        </label>
+                                        <motion.div
+                                            className={`relative ${focusedInput === "username" ? 'z-10' : ''}`}
+                                            whileFocus={{ scale: 1.02 }}
+                                            whileHover={{ scale: 1.01 }}
+                                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                        >
+                                            <div className="absolute -inset-[0.5px] bg-gradient-to-r from-white/10 via-white/5 to-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300" />
 
-                                        <div className="relative flex items-center overflow-hidden rounded-lg">
-                                            <Mail className={`absolute left-3 w-4 h-4 transition-all duration-300 ${focusedInput === "username" ? 'text-white' : 'text-white/40'}`} />
+                                            <div className="relative flex items-center overflow-hidden rounded-lg">
+                                                <Mail className={`absolute left-3 w-4 h-4 transition-all duration-300 ${focusedInput === "username" ? 'text-white' : 'text-white/40'}`} />
 
-                                            <Input
-                                                type="text"
-                                                placeholder="Register Number"
-                                                value={username}
-                                                onChange={onUsernameChange}
-                                                onFocus={() => setFocusedInput("username")}
-                                                onBlur={() => setFocusedInput(null)}
-                                                className="w-full bg-white/5 border-transparent focus:border-white/20 text-white placeholder:text-white/30 h-10 transition-all duration-300 pl-10 pr-3 focus:bg-white/10"
-                                            />
-                                            {focusedInput === "username" && (
-                                                <motion.div
-                                                    layoutId="input-highlight"
-                                                    className="absolute inset-0 bg-white/5 -z-10"
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    exit={{ opacity: 0 }}
-                                                    transition={{ duration: 0.2 }}
+                                                <Input
+                                                    type="text"
+                                                    placeholder="Email"
+                                                    value={username}
+                                                    onChange={onUsernameChange}
+                                                    onFocus={() => setFocusedInput("username")}
+                                                    onBlur={() => setFocusedInput(null)}
+                                                    className="w-full bg-white/5 border-transparent focus:border-white/20 text-white placeholder:text-white/30 h-10 transition-all duration-300 pl-10 pr-3 focus:bg-white/10"
                                                 />
-                                            )}
-                                        </div>
-                                    </motion.div>
+                                                {focusedInput === "username" && (
+                                                    <motion.div
+                                                        layoutId="input-highlight"
+                                                        className="absolute inset-0 bg-white/5 -z-10"
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        exit={{ opacity: 0 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    />
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    </div>
 
                                     {/* Password input */}
                                     <motion.div
@@ -286,7 +291,7 @@ export function SignInCard({ username, password, onUsernameChange, onPasswordCha
 
                                             <Input
                                                 type={showPassword ? "text" : "password"}
-                                                placeholder="Password (DOB DDMMYYYY)"
+                                                placeholder="Register Number"
                                                 value={password}
                                                 onChange={onPasswordChange}
                                                 onFocus={() => setFocusedInput("password")}

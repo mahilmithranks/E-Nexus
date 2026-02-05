@@ -3,6 +3,7 @@ import Session from '../models/Session.js';
 import Attendance from '../models/Attendance.js';
 import AssignmentSubmission from '../models/AssignmentSubmission.js';
 import User from '../models/User.js';
+import { clearCache } from '../middleware/cache.js';
 
 // @desc    Get enabled days only
 // @route   GET /api/student/days
@@ -160,8 +161,8 @@ export const markAttendance = async (req, res) => {
             return res.status(403).json({ message: 'This day is not open for attendance' });
         }
 
-        // Check if attendance window is active
-        if (!session.isAttendanceActive()) {
+        // Check if attendance window is active (be permissive: allow if flag is true OR time is within window)
+        if (!session.attendanceOpen && !session.isAttendanceActive()) {
             return res.status(403).json({
                 message: 'Attendance window is not active for this session'
             });
@@ -219,6 +220,9 @@ export const markAttendance = async (req, res) => {
             timestamp: new Date()
         });
 
+        // Clear admin progress cache
+        clearCache('admin-progress');
+
         res.status(201).json({
             message: 'Attendance marked successfully',
             attendance
@@ -272,13 +276,28 @@ export const submitAssignment = async (req, res) => {
         let filePaths = [];
 
         if (assignmentType === 'file') {
-            if (req.files && req.files.length > 0) {
-                filePaths = req.files.map(file => file.path);
-                finalResponse = 'Multiple Files Submitted'; // Or just a placeholder
-            } else if (req.file) {
-                // Fallback for single file upload if route wasn't updated yet (safety)
-                filePaths = [req.file.path];
-                finalResponse = req.file.path;
+            const filesToUpload = req.files || (req.file ? [req.file] : []);
+
+            if (filesToUpload.length > 0) {
+                try {
+                    const cloudinary = (await import('../config/cloudinary.js')).default;
+
+                    for (const file of filesToUpload) {
+                        const b64 = Buffer.from(file.buffer).toString('base64');
+                        const dataURI = `data:${file.mimetype};base64,${b64}`;
+
+                        const result = await cloudinary.uploader.upload(dataURI, {
+                            folder: 'e-nexus/assignments',
+                            resource_type: 'auto'
+                        });
+
+                        filePaths.push(result.secure_url);
+                    }
+                    finalResponse = filePaths[0]; // Set first file as response for backward compatibility
+                } catch (cloudinaryError) {
+                    console.error('Cloudinary assignment upload failed:', cloudinaryError);
+                    return res.status(500).json({ message: 'Failed to upload assignment files' });
+                }
             }
         }
 
@@ -296,6 +315,9 @@ export const submitAssignment = async (req, res) => {
             files: filePaths,
             submittedAt: new Date()
         });
+
+        // Clear admin progress cache
+        clearCache('admin-progress');
 
         res.status(201).json({
             message: 'Assignment submitted successfully',

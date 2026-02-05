@@ -10,7 +10,7 @@ import { Toaster } from 'react-hot-toast';
 
 function App() {
     return (
-        <Router>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Toaster position="top-right" toastOptions={{
                 style: {
                     background: '#333',
@@ -18,16 +18,7 @@ function App() {
                 },
             }} />
             <Routes>
-                <Route
-                    path="/"
-                    element={
-                        isAuthenticated() ? (
-                            isAdmin() ? <Navigate to="/admin" replace /> : <Navigate to="/student" replace />
-                        ) : (
-                            <Login />
-                        )
-                    }
-                />
+                <Route path="/" element={<Login />} />
 
                 <Route
                     path="/admin"

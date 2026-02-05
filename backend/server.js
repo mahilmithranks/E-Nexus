@@ -12,6 +12,9 @@ import studentRoutes from './routes/student.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import User from './models/User.js';
 import compression from 'compression';
+import helmet from 'helmet';
+import cluster from 'cluster';
+import os from 'os';
 
 // Load environment variables
 dotenv.config();
@@ -47,8 +50,13 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Use helmet for security and headers
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // Compress all responses
 app.use(compression());
@@ -76,11 +84,15 @@ if (!process.env.VERCEL) {
 
             if (result.modifiedCount > 0) {
                 console.log(`Auto-closed ${result.modifiedCount} expired session(s).`);
+                // Clear relevant caches when sessions auto-close
+                clearCache('student-sessions');
+                clearCache('admin-sessions');
+                clearCache('admin-progress');
             }
         } catch (error) {
             console.error('Error in auto-close job:', error);
         }
-    }, 60 * 1000);
+    }, 10 * 1000); // Check every 10 seconds
 }
 
 
@@ -103,7 +115,11 @@ try {
 
 // Serve static files (uploaded photos and assignments)
 // Only works if files exist
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static files with caching headers for performance
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+    maxAge: '1d', // Cache uploads for 1 day
+    etag: true
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -158,15 +174,15 @@ const initializeAdmin = async () => {
         if (!adminExists) {
             const admin = await User.create({
                 registerNumber: process.env.ADMIN_REGISTER_NUMBER || '99240041375',
-                email: 'admin@workshop.edu', // Optional email for admin
-                password: process.env.ADMIN_PASSWORD || '19012007',
+                email: process.env.ADMIN_EMAIL || '99240041375@klu.ac.in',
+                password: process.env.ADMIN_PASSWORD || '99240041375',
                 name: 'System Administrator',
                 role: 'admin'
             });
 
             console.log('✅ Admin user created successfully');
-            console.log(`   Register Number: ${admin.registerNumber}`);
-            console.log(`   Password: ${process.env.ADMIN_PASSWORD || '19012007'}`);
+            console.log(`   Email: ${admin.email}`);
+            console.log(`   Password: ${process.env.ADMIN_PASSWORD || '99240041375'}`);
         }
     } catch (error) {
         console.error('Error initializing admin:', error);
@@ -174,22 +190,46 @@ const initializeAdmin = async () => {
 };
 
 // Start server (Only if not in Vercel/Serverless)
-const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+// Start server using cluster module to handle high load (500+ users)
+const startServer = () => {
+    const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
-        console.log(`\n🚀 Server running on port ${PORT}`);
+        console.log(`\n🚀 Server running on port ${PORT} (Process: ${process.pid})`);
         console.log(`📡 API available at http://localhost:${PORT}/api`);
-        console.log(`🏥 Health check: http://localhost:${PORT}/api/health\n`);
-
-        // Initialize admin user
         initializeAdmin();
     });
+};
+
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+    if (cluster.isPrimary) {
+        const numCPUs = os.cpus().length;
+        console.log(`\n🏁 Production Master process ${process.pid} is starting...`);
+        console.log(`💪 Spawning ${numCPUs} workers for high load optimization...`);
+
+        // Fork workers
+        for (let i = 0; i < numCPUs; i++) {
+            cluster.fork();
+        }
+
+        cluster.on('exit', (worker, code, signal) => {
+            console.log(`⚠️ Worker ${worker.process.pid} died. Spawning a replacement...`);
+            cluster.fork();
+        });
+    } else {
+        startServer();
+    }
 } else {
-    // In Vercel, wait for DB connection before initializing admin
-    (async () => {
-        await connectDB();
-        await initializeAdmin();
-    })();
+    // Single process for development or serverless environments
+    if (!process.env.VERCEL) {
+        console.log('🛠 Starting server in development mode (single-threaded)...');
+        startServer();
+    } else {
+        // In Vercel, just export the app
+        (async () => {
+            await connectDB();
+            await initializeAdmin();
+        })();
+    }
 }
 
 export default app;

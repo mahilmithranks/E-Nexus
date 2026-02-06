@@ -208,18 +208,44 @@ function StudentDashboard() {
                 </motion.div>
             </div>
 
-            {/* Guidelines */}
+            {/* Guidelines & Breakdown */}
             <div className="relative z-10 max-w-7xl mx-auto w-full px-4 md:px-6 mt-6">
-                <div className="p-4 rounded-xl bg-purple-900/10 border border-purple-500/20 backdrop-blur-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                    <div className="flex gap-3">
-                        <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400 h-fit">
-                            <AlertCircle className="w-5 h-5" />
+                <div className="p-6 rounded-xl bg-purple-900/10 border border-purple-500/20 backdrop-blur-sm grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    {/* Quick Rules */}
+                    <div className="flex gap-4">
+                        <div className="p-3 rounded-xl bg-purple-500/20 text-purple-400 h-fit shrink-0">
+                            <AlertCircle className="w-6 h-6" />
                         </div>
-                        <div className="space-y-1">
-                            <h3 className="font-semibold text-purple-100">Quick Rules</h3>
-                            <div className="text-sm text-purple-200/60">
-                                <p>• Mark attendance within 15 minutes of the start.</p>
-                                <p>• Complete assessments to earn credits.</p>
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-purple-100">Quick Rules</h3>
+                                <div className="text-sm text-purple-200/60 mt-2 space-y-1">
+                                    <p>• Mark attendance within 15 minutes of the start.</p>
+                                    <p>• Complete assessments to earn credits.</p>
+                                    <p>• Ensure all 60 hours are accounted for.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Breakdown Table - Compact */}
+                    <div className="bg-black/20 rounded-lg p-4 border border-white/5">
+                        <h3 className="text-xs font-bold text-white/50 uppercase tracking-wider mb-3 flex justify-between">
+                            <span>Experiential Elective – 2 Credits</span>
+                            <span>Total: 60 Hours</span>
+                        </h3>
+                        <div className="text-sm">
+                            <div className="flex justify-between py-2 border-b border-white/5">
+                                <span className="text-white/70">Infosys Spring Board Course</span>
+                                <span className="font-mono text-white/90">30 hrs</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-white/5">
+                                <span className="text-white/70">Hands-on Training & Assessment</span>
+                                <span className="font-mono text-white/90">30 hrs</span>
+                            </div>
+                            <div className="flex justify-between pt-2">
+                                <span className="font-bold text-purple-300">Total Duration</span>
+                                <span className="font-bold font-mono text-green-400">60 hrs</span>
                             </div>
                         </div>
                     </div>
@@ -235,41 +261,7 @@ function StudentDashboard() {
                     </div>
                 ) : (
                     <div className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 flex flex-col md:flex-row gap-6 overflow-hidden">
-                        {/* Course Breakdown Card */}
-                        <div className="relative group overflow-hidden p-6 rounded-2xl bg-white/[0.03] border border-white/5 pb-8 mb-8">
-                            {/* Glow on Hover */}
-                            <div className="absolute -inset-px bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                            <div className="relative z-10">
-                                <h3 className="text-xl font-bold text-white mb-2">Total Duration: 60 Hours | Experiential Elective – 2 Credits</h3>
-                                <h4 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-6">Final Breakdown of Hours</h4>
-
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="border-b border-white/10 text-white/40 text-xs uppercase tracking-wider">
-                                                <th className="py-3 px-4 font-medium">Component</th>
-                                                <th className="py-3 px-4 font-medium text-right">Total Hours</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="text-sm text-white/70">
-                                            <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                                <td className="py-3 px-4">Infosys Spring Board Course</td>
-                                                <td className="py-3 px-4 text-right font-mono">30 hours</td>
-                                            </tr>
-                                            <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                                <td className="py-3 px-4">Hands-on Training with assessment</td>
-                                                <td className="py-3 px-4 text-right font-mono">30 hours</td>
-                                            </tr>
-                                            <tr className="font-bold text-white bg-white/5">
-                                                <td className="py-3 px-4">Total</td>
-                                                <td className="py-3 px-4 text-right font-mono text-green-400">60 hours</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Days Selection with Auto-Scroll */}
                         <div className="w-full md:w-64 flex-shrink-0 flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto pb-2 scrollbar-hide">

@@ -15,12 +15,20 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        const cleanedUsername = username.trim();
+        const cleanedPassword = password.trim();
+
         setLoading(true);
 
         try {
+            // Clear any existing auth before trying to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
             const response = await api.post('/auth/login', {
-                username,
-                password
+                username: cleanedUsername,
+                password: cleanedPassword
             });
 
             const { token, user } = response.data;

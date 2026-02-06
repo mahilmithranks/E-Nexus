@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
     },
     email: {
         type: String,
-        sparse: true, // Only admin has email
+        sparse: true,
         lowercase: true,
         trim: true
     },
@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+// Add indexes for fast retrieval
+userSchema.index({ email: 1 });
+userSchema.index({ role: 1 });
+userSchema.index({ department: 1 });
+userSchema.index({ yearOfStudy: 1 });
+userSchema.index({ role: 1, department: 1, yearOfStudy: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

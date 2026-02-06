@@ -4,7 +4,7 @@ import User from '../models/User.js';
 // Generate JWT Token
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE || '1h'
+        expiresIn: process.env.JWT_EXPIRE || '24h'
     });
 };
 
@@ -19,17 +19,24 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: 'Please provide username and password' });
         }
 
-        // Find user by registerNumber or email
+        const normalizedUsername = username.trim().toLowerCase();
+
+        console.log(`[Login] Attempt for: ${username} (normalized: ${normalizedUsername})`);
+
+        // Find user by registerNumber (always stored uppercase) or email (lowercase)
         const user = await User.findOne({
             $or: [
-                { registerNumber: username.toUpperCase() },
-                { email: username.toLowerCase() }
+                { registerNumber: normalizedUsername.toUpperCase() },
+                { email: normalizedUsername }
             ]
         });
 
         if (!user) {
+            console.log(`[Login] User not found: ${normalizedUsername}`);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
+
+        console.log(`[Login] Found user: ${user.registerNumber} (${user.role})`);
 
         // Check if account is locked
         if (user.isLocked) {
@@ -81,7 +88,7 @@ export const getMe = async (req, res) => {
         const user = await User.findById(req.user.id).select('-password');
         res.json(user);
     } catch (error) {
-        console.error('Get user error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Get me error:', error);
+        res.status(500).json({ message: 'Server error fetching user profile' });
     }
 };

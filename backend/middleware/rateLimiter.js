@@ -14,7 +14,7 @@ export const loginLimiter = rateLimit({
 // Increased for 150+ concurrent users
 export const apiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 5000, // Allow 5000 requests per minute (~33 req/sec from same IP)
+    max: 10000, // Allow 10000 requests per minute (~166 req/sec from same IP)
     message: 'Too many requests from this network, please try again later',
     standardHeaders: true,
     legacyHeaders: false,

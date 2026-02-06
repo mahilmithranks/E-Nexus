@@ -4,6 +4,7 @@ import Session from '../models/Session.js';
 import Attendance from '../models/Attendance.js';
 import AssignmentSubmission from '../models/AssignmentSubmission.js';
 import ExcelJS from 'exceljs';
+import { clearCache } from '../middleware/cache.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,7 +12,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// @desc    Preload student data
+// @desc    Preload students from JSON array
 // @route   POST /api/admin/students/preload
 // @access  Private/Admin
 export const preloadStudents = async (req, res) => {
@@ -19,76 +20,45 @@ export const preloadStudents = async (req, res) => {
         const { students } = req.body;
 
         if (!students || !Array.isArray(students)) {
-            return res.status(400).json({ message: 'Please provide an array of students' });
+            return res.status(400).json({ message: 'Invalid students data' });
         }
 
-        const createdStudents = [];
-        const errors = [];
+        let createdCount = 0;
+        let skippedCount = 0;
 
         for (const studentData of students) {
-            try {
-                // Check if student already exists
-                const existingStudent = await User.findOne({
-                    registerNumber: studentData.registerNumber.toUpperCase()
-                });
+            const { registerNumber, name, email, yearOfStudy, department } = studentData;
 
-                if (existingStudent) {
-                    errors.push({
-                        registerNumber: studentData.registerNumber,
-                        error: 'Student already exists'
-                    });
-                    continue;
-                }
+            // Check if student already exists
+            const studentExists = await User.findOne({ registerNumber: registerNumber.toUpperCase() });
 
-                const student = await User.create({
-                    registerNumber: studentData.registerNumber.toUpperCase(),
-                    password: studentData.dateOfBirth, // Will be hashed by pre-save hook
-                    name: studentData.name,
-                    yearOfStudy: studentData.yearOfStudy,
-                    department: studentData.department || '',
-                    role: 'student'
-                });
-
-                createdStudents.push(student.registerNumber);
-            } catch (error) {
-                errors.push({
-                    registerNumber: studentData.registerNumber,
-                    error: error.message
-                });
+            if (studentExists) {
+                skippedCount++;
+                continue;
             }
+
+            // Create new student - password is registerNumber by default
+            await User.create({
+                registerNumber,
+                name,
+                email: email || `${registerNumber.toLowerCase()}@klu.ac.in`,
+                password: registerNumber,
+                yearOfStudy: yearOfStudy || '1',
+                department: department || 'General',
+                role: 'student'
+            });
+
+            createdCount++;
         }
 
-        res.status(201).json({
-            message: 'Student preload completed',
-            created: createdStudents.length,
-            errors: errors.length,
-            createdStudents,
-            errors
+        res.json({
+            message: `Successfully processed ${students.length} students`,
+            created: createdCount,
+            skipped: skippedCount
         });
     } catch (error) {
         console.error('Preload students error:', error);
-        res.status(500).json({ message: 'Server error during student preload' });
-    }
-};
-
-// @desc    Create a new day
-// @route   POST /api/admin/days
-// @access  Private/Admin
-export const createDay = async (req, res) => {
-    try {
-        const { dayNumber, title, date } = req.body;
-
-        const day = await Day.create({
-            dayNumber,
-            title,
-            date: date || new Date(),
-            status: 'LOCKED'
-        });
-
-        res.status(201).json(day);
-    } catch (error) {
-        console.error('Create day error:', error);
-        res.status(500).json({ message: 'Server error creating day' });
+        res.status(500).json({ message: 'Server error preloading students' });
     }
 };
 
@@ -97,11 +67,44 @@ export const createDay = async (req, res) => {
 // @access  Private/Admin
 export const getAllDays = async (req, res) => {
     try {
-        const days = await Day.find().sort({ dayNumber: 1 }).lean();
+        const days = await Day.find().sort({ dayNumber: 1 });
         res.json(days);
     } catch (error) {
         console.error('Get days error:', error);
         res.status(500).json({ message: 'Server error fetching days' });
+    }
+};
+
+// Alias for getAllDays if needed
+export const getDays = getAllDays;
+
+// @desc    Create a day
+// @route   POST /api/admin/days
+// @access  Private/Admin
+export const createDay = async (req, res) => {
+    try {
+        const { title, dayNumber, date } = req.body;
+
+        const dayExists = await Day.findOne({ dayNumber });
+        if (dayExists) {
+            return res.status(400).json({ message: 'Day number already exists' });
+        }
+
+        const day = await Day.create({
+            title,
+            dayNumber,
+            date,
+            status: 'LOCKED'
+        });
+
+        // Clear cache
+        clearCache('admin-days');
+        clearCache('student-days');
+
+        res.status(201).json(day);
+    } catch (error) {
+        console.error('Create day error:', error);
+        res.status(500).json({ message: 'Server error creating day' });
     }
 };
 
@@ -111,53 +114,35 @@ export const getAllDays = async (req, res) => {
 export const updateDayStatus = async (req, res) => {
     try {
         const { status } = req.body;
-
-        if (!['LOCKED', 'OPEN', 'CLOSED'].includes(status)) {
-            return res.status(400).json({ message: 'Invalid status' });
-        }
-
-        const day = await Day.findByIdAndUpdate(
-            req.params.id,
-            { status },
-            { new: true }
-        );
+        const day = await Day.findById(req.params.id);
 
         if (!day) {
             return res.status(404).json({ message: 'Day not found' });
         }
+
+        day.status = status;
+        await day.save();
+
+        // Clear cache
+        clearCache('admin-days');
+        clearCache('admin-sessions');
+        clearCache('student-days');
+        clearCache('student-sessions');
+        clearCache('admin-progress');
 
         res.json(day);
     } catch (error) {
         console.error('Update day status error:', error);
-        res.status(500).json({ message: 'Server error updating day status' });
-    }
-};
 
-// @desc    Create a session
-// @route   POST /api/admin/sessions
-// @access  Private/Admin
-export const createSession = async (req, res) => {
-    try {
-        const { dayId, title, description, assignments } = req.body;
-
-        // Verify day exists
-        const day = await Day.findById(dayId);
-        if (!day) {
-            return res.status(404).json({ message: 'Day not found' });
+        // Return 404 if it's a cast error (invalid ID format)
+        if (error.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'Invalid Day ID' });
         }
 
-        const session = await Session.create({
-            dayId,
-            title,
-            description,
-            assignments: assignments || [],
-            attendanceOpen: false
+        res.status(500).json({
+            message: 'Server error updating day status',
+            error: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
-
-        res.status(201).json(session);
-    } catch (error) {
-        console.error('Create session error:', error);
-        res.status(500).json({ message: 'Server error creating session' });
     }
 };
 
@@ -171,6 +156,86 @@ export const getAllSessions = async (req, res) => {
     } catch (error) {
         console.error('Get sessions error:', error);
         res.status(500).json({ message: 'Server error fetching sessions' });
+    }
+};
+
+// Alias for getAllSessions
+export const getSessions = getAllSessions;
+
+// @desc    Create a session
+// @route   POST /api/admin/sessions
+// @access  Private/Admin
+export const createSession = async (req, res) => {
+    try {
+        const { dayId, title, description, assignments } = req.body;
+
+        const session = await Session.create({
+            dayId,
+            title,
+            description,
+            assignments: assignments || []
+        });
+
+        // Clear cache
+        clearCache('admin-sessions');
+        clearCache('student-sessions');
+
+        res.status(201).json(session);
+    } catch (error) {
+        console.error('Create session error:', error);
+        res.status(500).json({ message: 'Server error creating session' });
+    }
+};
+
+// @desc    Update a session
+// @route   PUT /api/admin/sessions/:id
+// @access  Private/Admin
+export const updateSession = async (req, res) => {
+    try {
+        const { title, description, assignments } = req.body;
+        const session = await Session.findById(req.params.id);
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        session.title = title || session.title;
+        session.description = description || session.description;
+        if (assignments) session.assignments = assignments;
+
+        await session.save();
+
+        // Clear cache
+        clearCache('admin-sessions');
+        clearCache('student-sessions');
+
+        res.json(session);
+    } catch (error) {
+        console.error('Update session error:', error);
+        res.status(500).json({ message: 'Server error updating session' });
+    }
+};
+
+// @desc    Delete a session
+// @route   DELETE /api/admin/sessions/:id
+// @access  Private/Admin
+export const deleteSession = async (req, res) => {
+    try {
+        const session = await Session.findById(req.params.id);
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        await session.deleteOne();
+
+        // Clear cache
+        clearCache('admin-sessions');
+        clearCache('student-sessions');
+
+        res.json({ message: 'Session removed' });
+    } catch (error) {
+        console.error('Delete session error:', error);
+        res.status(500).json({ message: 'Server error deleting session' });
     }
 };
 
@@ -191,13 +256,18 @@ export const startAttendance = async (req, res) => {
         }
 
         const now = new Date();
-        const endTime = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes from now
+        const endTime = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes window
 
         session.attendanceOpen = true;
         session.attendanceStartTime = now;
         session.attendanceEndTime = endTime;
 
         await session.save();
+
+        // Clear caches so everyone sees the update immediately
+        clearCache('admin-sessions');
+        clearCache('student-sessions');
+        clearCache('admin-progress');
 
         res.json({
             message: 'Attendance started',
@@ -224,6 +294,11 @@ export const stopAttendance = async (req, res) => {
         session.attendanceOpen = false;
         await session.save();
 
+        // Clear caches
+        clearCache('admin-sessions');
+        clearCache('student-sessions');
+        clearCache('admin-progress');
+
         res.json({
             message: 'Attendance stopped',
             session
@@ -247,42 +322,41 @@ export const overrideAttendance = async (req, res) => {
             });
         }
 
-        // Check if student exists
         const student = await User.findOne({ registerNumber: registerNumber.toUpperCase() });
         if (!student) {
             return res.status(404).json({ message: 'Student not found' });
         }
 
-        // Check if session exists
         const session = await Session.findById(sessionId);
         if (!session) {
             return res.status(404).json({ message: 'Session not found' });
         }
 
-        // Check if attendance already exists
         let attendance = await Attendance.findOne({
             registerNumber: registerNumber.toUpperCase(),
             sessionId
         });
 
         if (attendance) {
-            // Update existing attendance
             attendance.status = 'PRESENT';
             attendance.isOverride = true;
             attendance.overrideComment = comment;
             attendance.overrideBy = req.user.email;
             await attendance.save();
         } else {
-            // Create new attendance record
             attendance = await Attendance.create({
                 registerNumber: registerNumber.toUpperCase(),
                 sessionId,
                 status: 'PRESENT',
                 isOverride: true,
                 overrideComment: comment,
-                overrideBy: req.user.email
+                overrideBy: req.user.email,
+                timestamp: new Date()
             });
         }
+
+        // Clear progress cache
+        clearCache('admin-progress');
 
         res.status(201).json({
             message: 'Attendance override successful',
@@ -290,7 +364,7 @@ export const overrideAttendance = async (req, res) => {
         });
     } catch (error) {
         console.error('Override attendance error:', error);
-        res.status(500).json({ message: 'Server error during attendance override' });
+        res.status(500).json({ message: 'Server error override attendance' });
     }
 };
 
@@ -299,41 +373,73 @@ export const overrideAttendance = async (req, res) => {
 // @access  Private/Admin
 export const getProgress = async (req, res) => {
     try {
-        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 }).lean();
-        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const search = req.query.search || '';
+        const skip = (page - 1) * limit;
 
-        const progressData = [];
+        const query = { role: 'student' };
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { registerNumber: { $regex: search, $options: 'i' } }
+            ];
+        }
 
-        for (const student of students) {
-            const studentProgress = {
-                registerNumber: student.registerNumber,
-                name: student.name,
-                yearOfStudy: student.yearOfStudy,
-                department: student.department,
-                sessions: []
-            };
+        const totalStudents = await User.countDocuments(query);
+        const students = await User.find(query)
+            .select('registerNumber name yearOfStudy department')
+            .sort({ registerNumber: 1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
 
-            for (const session of sessions) {
-                // Get attendance
-                const attendance = await Attendance.findOne({
-                    registerNumber: student.registerNumber,
-                    sessionId: session._id
-                });
+        const sessions = await Session.find()
+            .populate({ path: 'dayId', select: 'dayNumber title' })
+            .select('title dayId assignments')
+            .sort({ createdAt: 1 })
+            .lean();
+        const studentRegNums = students.map(s => s.registerNumber);
 
-                // Get assignment submissions
-                const submissions = await AssignmentSubmission.find({
-                    registerNumber: student.registerNumber,
-                    sessionId: session._id
-                });
+        const allAttendance = await Attendance.find({
+            registerNumber: { $in: studentRegNums }
+        })
+            .select('registerNumber sessionId status isOverride timestamp photoPath')
+            .lean();
 
-                // Get unique submitted assignment titles
-                const uniqueTitles = new Set(submissions.map(s => s.assignmentTitle));
+        const allSubmissions = await AssignmentSubmission.find({
+            registerNumber: { $in: studentRegNums }
+        })
+            .select('registerNumber sessionId assignmentTitle')
+            .lean();
 
-                studentProgress.sessions.push({
+        const attendanceMap = new Map();
+        allAttendance.forEach(a => {
+            attendanceMap.set(`${a.registerNumber}|${a.sessionId.toString()}`, a);
+        });
+
+        const submissionMap = new Map();
+        allSubmissions.forEach(s => {
+            const key = `${s.registerNumber}|${s.sessionId.toString()}`;
+            if (!submissionMap.has(key)) submissionMap.set(key, []);
+            submissionMap.get(key).push(s);
+        });
+
+        const progressData = students.map(student => ({
+            registerNumber: student.registerNumber,
+            name: student.name,
+            yearOfStudy: student.yearOfStudy,
+            department: student.department,
+            sessions: sessions.map(session => {
+                const attendance = attendanceMap.get(`${student.registerNumber}|${session._id.toString()}`);
+                const subs = submissionMap.get(`${student.registerNumber}|${session._id.toString()}`) || [];
+                const uniqueTitles = new Set(subs.map(s => s.assignmentTitle));
+
+                return {
                     sessionId: session._id,
                     sessionTitle: session.title,
-                    dayNumber: session.dayId.dayNumber,
-                    dayTitle: session.dayId.title,
+                    dayNumber: session.dayId?.dayNumber,
+                    dayTitle: session.dayId?.title,
                     attendance: attendance ? {
                         status: attendance.status,
                         isOverride: attendance.isOverride,
@@ -341,14 +447,20 @@ export const getProgress = async (req, res) => {
                         photoPath: attendance.photoPath
                     } : null,
                     assignmentsCompleted: uniqueTitles.size,
-                    totalAssignments: session.assignments.length
-                });
+                    totalAssignments: session.assignments ? session.assignments.length : 0
+                };
+            })
+        }));
+
+        res.json({
+            students: progressData,
+            pagination: {
+                total: totalStudents,
+                pages: Math.ceil(totalStudents / limit),
+                currentPage: page,
+                limit
             }
-
-            progressData.push(studentProgress);
-        }
-
-        res.json(progressData);
+        });
     } catch (error) {
         console.error('Get progress error:', error);
         res.status(500).json({ message: 'Server error fetching progress' });
@@ -360,462 +472,177 @@ export const getProgress = async (req, res) => {
 // @access  Private/Admin
 export const exportAttendance = async (req, res) => {
     try {
+        const { dayId, sessionId } = req.query;
+
         const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
         const days = await Day.find().sort({ dayNumber: 1 });
-        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 });
+
+        let sessionQuery = {};
+        if (sessionId) {
+            sessionQuery._id = sessionId;
+        } else if (dayId) {
+            sessionQuery.dayId = dayId;
+        }
+
+        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+        const sessionIds = sessions.map(s => s._id);
+
+        const allAttendance = await Attendance.find({
+            sessionId: { $in: sessionIds }
+        }).lean();
+
+        const attendanceMap = new Map();
+        allAttendance.forEach(a => attendanceMap.set(`${a.registerNumber}|${a.sessionId.toString()}`, a));
 
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Attendance Report');
+        const worksheet = workbook.addWorksheet('Attendance');
 
-        // Title row
-        worksheet.mergeCells('A1:F1');
-        const titleCell = worksheet.getCell('A1');
-        titleCell.value = 'Workshop Attendance Report';
-        titleCell.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-        titleCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF2C3E50' }
-        };
-        titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-        worksheet.getRow(1).height = 30;
+        // Simple table structure for export
+        worksheet.columns = [
+            { header: 'Reg Number', key: 'reg', width: 15 },
+            { header: 'Student Name', key: 'name', width: 25 },
+            { header: 'Day', key: 'day', width: 10 },
+            { header: 'Session', key: 'session', width: 20 },
+            { header: 'Status', key: 'status', width: 12 },
+            { header: 'Timestamp', key: 'time', width: 20 },
+            { header: 'Override', key: 'override', width: 10 }
+        ];
 
-        // Generated date
-        worksheet.mergeCells('A2:F2');
-        const dateCell = worksheet.getCell('A2');
-        dateCell.value = `Generated on: ${new Date().toLocaleString()}`;
-        dateCell.font = { italic: true };
-        dateCell.alignment = { horizontal: 'center' };
-
-        let currentRow = 4;
-
-        // Group by Day
-        for (const day of days) {
-            const daySessions = sessions.filter(s => s.dayId._id.toString() === day._id.toString());
-
-            if (daySessions.length === 0) continue;
-
-            // Day Header
-            worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-            const dayHeader = worksheet.getCell(`A${currentRow}`);
-            dayHeader.value = `Day ${day.dayNumber}`;
-            dayHeader.font = { size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
-            dayHeader.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF3498DB' }
-            };
-            dayHeader.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-            worksheet.getRow(currentRow).height = 25;
-            currentRow++;
-
-            // Process each session in this day
-            for (const session of daySessions) {
-                // Session Header
-                worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-                const sessionHeader = worksheet.getCell(`A${currentRow}`);
-                sessionHeader.value = `  📍 ${session.title}`;
-                sessionHeader.font = { size: 12, bold: true };
-                sessionHeader.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFECF0F1' }
-                };
-                sessionHeader.alignment = { vertical: 'middle', horizontal: 'left', indent: 2 };
-                worksheet.getRow(currentRow).height = 20;
-                currentRow++;
-
-                // Column headers for this session
-                const headerRow = worksheet.getRow(currentRow);
-                headerRow.values = ['Register Number', 'Student Name', 'Status', 'Override', 'Timestamp', 'Comment'];
-                headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                headerRow.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FF34495E' }
-                };
-                headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-                headerRow.height = 20;
-
-                // Set column widths
-                worksheet.getColumn(1).width = 20;
-                worksheet.getColumn(2).width = 30;
-                worksheet.getColumn(3).width = 15;
-                worksheet.getColumn(4).width = 12;
-                worksheet.getColumn(5).width = 20;
-                worksheet.getColumn(6).width = 40;
-
-                currentRow++;
-
-                // Add student data for this session
-                for (const student of students) {
-                    const attendance = await Attendance.findOne({
-                        registerNumber: student.registerNumber,
-                        sessionId: session._id
-                    });
-
-                    const row = worksheet.getRow(currentRow);
-                    row.values = [
-                        student.registerNumber,
-                        student.name,
-                        attendance ? 'PRESENT' : 'ABSENT',
-                        attendance?.isOverride ? 'YES' : 'NO',
-                        attendance ? attendance.timestamp.toLocaleString() : '-',
-                        attendance?.overrideComment || '-'
-                    ];
-
-                    // Color coding
-                    if (attendance) {
-                        if (attendance.isOverride) {
-                            // Yellow for override
-                            row.getCell(3).fill = {
-                                type: 'pattern',
-                                pattern: 'solid',
-                                fgColor: { argb: 'FFFFF3CD' }
-                            };
-                            row.getCell(3).font = { color: { argb: 'FF856404' }, bold: true };
-                        } else {
-                            // Green for present
-                            row.getCell(3).fill = {
-                                type: 'pattern',
-                                pattern: 'solid',
-                                fgColor: { argb: 'FFD4EDDA' }
-                            };
-                            row.getCell(3).font = { color: { argb: 'FF155724' }, bold: true };
-                        }
-                    } else {
-                        // Red for absent
-                        row.getCell(3).fill = {
-                            type: 'pattern',
-                            pattern: 'solid',
-                            fgColor: { argb: 'FFF8D7DA' }
-                        };
-                        row.getCell(3).font = { color: { argb: 'FF721C24' }, bold: true };
-                    }
-
-                    row.alignment = { vertical: 'middle' };
-                    row.getCell(1).alignment = { horizontal: 'left' };
-                    row.getCell(2).alignment = { horizontal: 'left' };
-                    row.getCell(3).alignment = { horizontal: 'center' };
-                    row.getCell(4).alignment = { horizontal: 'center' };
-                    row.getCell(5).alignment = { horizontal: 'center' };
-                    row.getCell(6).alignment = { horizontal: 'left' };
-
-                    currentRow++;
-                }
-
-                // Add spacing after each session
-                currentRow++;
-            }
-
-            // Add spacing after each day
-            currentRow++;
-        }
-
-        // Add borders to all cells
-        for (let i = 1; i <= currentRow; i++) {
-            const row = worksheet.getRow(i);
-            for (let j = 1; j <= 6; j++) {
-                const cell = row.getCell(j);
-                cell.border = {
-                    top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                    left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                    bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                    right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
-                };
+        for (const student of students) {
+            for (const session of sessions) {
+                const att = attendanceMap.get(`${student.registerNumber}|${session._id.toString()}`);
+                worksheet.addRow({
+                    reg: student.registerNumber,
+                    name: student.name,
+                    day: session.dayId?.dayNumber || '-',
+                    session: session.title,
+                    status: att ? 'PRESENT' : 'ABSENT',
+                    time: att ? new Date(att.timestamp).toLocaleString() : '-',
+                    override: att?.isOverride ? 'YES' : 'NO'
+                });
             }
         }
 
-        // Set response headers
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename=attendance_report_${Date.now()}.xlsx`
-        );
+        let filename = 'attendance_report';
+        if (sessionId && sessions.length > 0) {
+            filename = `attendance_${sessions[0].title.replace(/\s+/g, '_')}`;
+        } else if (dayId) {
+            const day = days.find(d => d._id.toString() === dayId);
+            filename = `attendance_day_${day ? day.dayNumber : 'selected'}`;
+        }
 
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}_${Date.now()}.xlsx`);
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
-        console.error('Export attendance error:', error);
-        res.status(500).json({ message: 'Server error exporting attendance' });
+        console.error('Export error:', error);
+        res.status(500).json({ message: 'Export failed' });
     }
 };
 
-// @desc    Export assignment responses to Excel
+// @desc    Export assignments to Excel
 // @route   GET /api/admin/export/assignments
 // @access  Private/Admin
 export const exportAssignments = async (req, res) => {
     try {
+        const { dayId, sessionId } = req.query;
+
         const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
-        const days = await Day.find().sort({ dayNumber: 1 });
-        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 });
 
-        // OPTIMIZATION: Pre-fetch ALL submissions at once for performance (instead of querying in loops)
-        const allSubmissions = await AssignmentSubmission.find();
+        // Filter sessions based on parameters
+        let sessionQuery = {};
+        if (sessionId) {
+            sessionQuery._id = sessionId;
+        } else if (dayId) {
+            sessionQuery.dayId = dayId;
+        }
 
-        // Create a Map for O(1) lookup: key = "registerNumber|sessionId|assignmentTitle"
-        const submissionMap = new Map();
-        allSubmissions.forEach(sub => {
-            const key = `${sub.registerNumber}|${sub.sessionId}|${sub.assignmentTitle}`;
-            submissionMap.set(key, sub);
-        });
+        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+
+        if (sessions.length === 0) {
+            return res.status(404).json({ message: 'No sessions found for the specified criteria' });
+        }
+
+        const sessionIds = sessions.map(s => s._id);
+        const allSubmissions = await AssignmentSubmission.find({
+            sessionId: { $in: sessionIds }
+        }).lean();
+
+        const subMap = new Map();
+        allSubmissions.forEach(s => subMap.set(`${s.registerNumber}|${s.sessionId.toString()}|${s.assignmentTitle}`, s));
 
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Assignment Report');
+        const worksheet = workbook.addWorksheet('Assignments');
 
-        // Title row
-        worksheet.mergeCells('A1:F1');
-        const titleCell = worksheet.getCell('A1');
-        titleCell.value = 'Workshop Assignment Report';
-        titleCell.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-        titleCell.fill = {
+        worksheet.columns = [
+            { header: 'Reg Number', key: 'reg', width: 15 },
+            { header: 'Student Name', key: 'name', width: 25 },
+            { header: 'Day', key: 'day', width: 10 },
+            { header: 'Session', key: 'session', width: 25 },
+            { header: 'Assignment', key: 'title', width: 30 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'Response Type', key: 'type', width: 15 },
+            { header: 'Response', key: 'response', width: 40 },
+            { header: 'Submitted At', key: 'submittedAt', width: 20 }
+        ];
+
+        for (const student of students) {
+            for (const session of sessions) {
+                for (const assignment of session.assignments) {
+                    const sub = subMap.get(`${student.registerNumber}|${session._id.toString()}|${assignment.title}`);
+                    worksheet.addRow({
+                        reg: student.registerNumber,
+                        name: student.name,
+                        day: session.dayId?.dayNumber || '-',
+                        session: session.title,
+                        title: assignment.title,
+                        status: sub ? 'SUBMITTED' : 'PENDING',
+                        type: sub ? sub.assignmentType : '-',
+                        response: sub ? (sub.assignmentType === 'file' ? (sub.files?.[0] || sub.response) : sub.response) : '-',
+                        submittedAt: sub ? new Date(sub.submittedAt).toLocaleString() : '-'
+                    });
+                }
+            }
+        }
+
+        // Apply formatting
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FF27AE60' }
+            fgColor: { argb: 'FFE0E0E0' }
         };
-        titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-        worksheet.getRow(1).height = 30;
 
-        // Generated date
-        worksheet.mergeCells('A2:F2');
-        const dateCell = worksheet.getCell('A2');
-        dateCell.value = `Generated on: ${new Date().toLocaleString()}`;
-        dateCell.font = { italic: true };
-        dateCell.alignment = { horizontal: 'center' };
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-        let currentRow = 4;
-
-        // Group by Day
-        for (const day of days) {
-            const daySessions = sessions.filter(s => s.dayId._id.toString() === day._id.toString());
-
-            if (daySessions.length === 0) continue;
-
-            // Day Header
-            worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-            const dayHeader = worksheet.getCell(`A${currentRow}`);
-            dayHeader.value = `Day ${day.dayNumber}`;
-            dayHeader.font = { size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
-            dayHeader.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF16A085' }
-            };
-            dayHeader.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-            worksheet.getRow(currentRow).height = 25;
-            currentRow++;
-
-            // Process each session in this day
-            for (const session of daySessions) {
-                if (session.assignments.length === 0) continue;
-
-                // Session Header
-                worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-                const sessionHeader = worksheet.getCell(`A${currentRow}`);
-                sessionHeader.value = `  📝 ${session.title}`;
-                sessionHeader.font = { size: 12, bold: true };
-                sessionHeader.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFD5F4E6' }
-                };
-                sessionHeader.alignment = { vertical: 'middle', horizontal: 'left', indent: 2 };
-                worksheet.getRow(currentRow).height = 20;
-                currentRow++;
-
-                // Process each assignment in this session
-                for (const assignment of session.assignments) {
-                    // Assignment Title Header
-                    worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
-                    const assignmentHeader = worksheet.getCell(`A${currentRow}`);
-                    assignmentHeader.value = `    ▸ ${assignment.title}`;
-                    assignmentHeader.font = { size: 11, bold: true, italic: true };
-                    assignmentHeader.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FFF0F0F0' }
-                    };
-                    assignmentHeader.alignment = { vertical: 'middle', horizontal: 'left', indent: 3 };
-                    currentRow++;
-
-                    // Column headers for this assignment
-                    const headerRow = worksheet.getRow(currentRow);
-                    headerRow.values = ['Register Number', 'Student Name', 'Status', 'Response Type', 'Response', 'Submitted At'];
-                    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                    headerRow.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FF34495E' }
-                    };
-                    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-                    headerRow.height = 20;
-
-                    // Set column widths
-                    worksheet.getColumn(1).width = 20;
-                    worksheet.getColumn(2).width = 30;
-                    worksheet.getColumn(3).width = 15;
-                    worksheet.getColumn(4).width = 15;
-                    worksheet.getColumn(5).width = 50;
-                    worksheet.getColumn(6).width = 20;
-
-                    currentRow++;
-
-                    // Add student data for this assignment (optimized with Map lookup)
-                    for (const student of students) {
-                        // O(1) lookup instead of database query
-                        const lookupKey = `${student.registerNumber}|${session._id}|${assignment.title}`;
-                        const submission = submissionMap.get(lookupKey);
-
-                        const row = worksheet.getRow(currentRow);
-                        row.values = [
-                            student.registerNumber,
-                            student.name,
-                            submission ? 'SUBMITTED' : 'NOT SUBMITTED',
-                            submission && submission.responseType ? submission.responseType.toUpperCase() : '-',
-                            submission ? (submission.responseType === 'file' ? 'Image Attached' : (submission.response || '-')) : '-',
-                            submission && submission.submittedAt ? submission.submittedAt.toLocaleString() : '-'
-                        ];
-
-                        // Color coding
-                        if (submission) {
-                            // Green for submitted
-                            row.getCell(3).fill = {
-                                type: 'pattern',
-                                pattern: 'solid',
-                                fgColor: { argb: 'FFD4EDDA' }
-                            };
-                            row.getCell(3).font = { color: { argb: 'FF155724' }, bold: true };
-
-                            // Embed image if it's a file submission
-                            if (submission.responseType === 'file' && submission.response) {
-                                try {
-                                    // Handle both absolute and relative paths
-                                    const imagePath = submission.response.startsWith('http')
-                                        ? null // Skip cloud URLs for now (complex to download in Excel)
-                                        : path.join(__dirname, '..', submission.response.startsWith('/') ? submission.response.substring(1) : submission.response);
-
-                                    if (imagePath && fs.existsSync(imagePath)) {
-                                        const imageBuffer = fs.readFileSync(imagePath);
-                                        let extension = path.extname(imagePath).substring(1).toLowerCase();
-                                        if (extension === 'jpg') extension = 'jpeg';
-
-                                        const imageId = workbook.addImage({
-                                            buffer: imageBuffer,
-                                            extension: extension,
-                                        });
-
-                                        worksheet.addImage(imageId, {
-                                            tl: { col: 6, row: currentRow - 1 }, // Column G (which is index 6)
-                                            ext: { width: 100, height: 100 },
-                                            editAs: 'oneCell'
-                                        });
-                                        row.height = 80;
-                                    } else if (imagePath) {
-                                        row.getCell(5).value = `Image Missing`;
-                                    }
-                                } catch (imgError) {
-                                    console.error('Error embedding image:', imgError);
-                                }
-                            }
-                        } else {
-                            // Red for not submitted
-                            row.getCell(3).fill = {
-                                type: 'pattern',
-                                pattern: 'solid',
-                                fgColor: { argb: 'FFF8D7DA' }
-                            };
-                            row.getCell(3).font = { color: { argb: 'FF721C24' }, bold: true };
-                        }
-
-                        row.alignment = { vertical: 'middle' };
-                        row.getCell(1).alignment = { horizontal: 'left' };
-                        row.getCell(2).alignment = { horizontal: 'left' };
-                        row.getCell(3).alignment = { horizontal: 'center' };
-                        row.getCell(4).alignment = { horizontal: 'center' };
-                        row.getCell(5).alignment = { horizontal: 'left' };
-                        row.getCell(6).alignment = { horizontal: 'center' };
-
-                        currentRow++;
-                    }
-
-                    // Add spacing after each assignment
-                    currentRow++;
-                }
-
-                // Add spacing after each session
-                currentRow++;
-            }
-
-            // Add spacing after each day
-            currentRow++;
+        let filename = 'assignments_all';
+        if (sessionId) {
+            filename = `assignments_${sessions[0].title.replace(/\s+/g, '_')}`;
+        } else if (dayId) {
+            filename = `assignments_day_${sessions[0].dayId?.dayNumber || 'filtered'}`;
         }
 
-        // Add borders to all cells
-        for (let i = 1; i <= currentRow; i++) {
-            const row = worksheet.getRow(i);
-            for (let j = 1; j <= 6; j++) {
-                const cell = row.getCell(j);
-                cell.border = {
-                    top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                    left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                    bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                    right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
-                };
-            }
-        }
-
-        // Set response headers
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename=assignment_report_${Date.now()}.xlsx`
-        );
-
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}_${Date.now()}.xlsx`);
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
-        console.error('Export assignments error:', error);
-        res.status(500).json({ message: 'Server error exporting assignments' });
+        console.error('Export error:', error);
+        res.status(500).json({ message: 'Export failed' });
     }
 };
 
-// @desc    Run auto-close job (Cron/Manual)
-// @route   GET /api/admin/cron/auto-close
-// @access  Public (protected by secret in Vercel) or Admin
+// @desc    Cron job logic
+// @access  Public/Admin
 export const runAutoCloseJob = async (req, res) => {
     try {
         const now = new Date();
         const result = await Session.updateMany(
-            {
-                attendanceOpen: true,
-                attendanceEndTime: { $lt: now }
-            },
-            {
-                $set: { attendanceOpen: false }
-            }
+            { attendanceOpen: true, attendanceEndTime: { $lt: now } },
+            { $set: { attendanceOpen: false } }
         );
-
-        const message = result.modifiedCount > 0
-            ? `Auto-closed ${result.modifiedCount} expired session(s).`
-            : 'No expired sessions found.';
-
-        console.log(`[Cron] ${message}`);
-
-        if (res) {
-            res.status(200).json({ message, modified: result.modifiedCount });
-        } else {
-            return result;
-        }
+        if (res) res.json({ message: `Closed ${result.modifiedCount} sessions` });
     } catch (error) {
-        console.error('Error in auto-close job:', error);
-        if (res) {
-            res.status(500).json({ message: 'Error running auto-close job' });
-        }
+        if (res) res.status(500).json({ message: 'Cron job failed' });
     }
 };

@@ -1,18 +1,42 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Camera, RefreshCw } from 'lucide-react';
+import { X, Camera, RefreshCw, AlertCircle } from 'lucide-react';
+import * as faceapi from 'face-api.js';
 import { cn } from '../lib/utils';
-import './CameraCapture.css'; // We'll empty this file next
+
+// Global cache for model loading state to avoid redundant re-loading
+let modelsLoaded = false;
 
 function CameraCapture({ onCapture, onCancel }) {
     const [stream, setStream] = useState(null);
     const [error, setError] = useState('');
+    const [isModelLoading, setIsModelLoading] = useState(!modelsLoaded);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [captured, setCaptured] = useState(false);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
 
     useEffect(() => {
-        startCamera();
+        const loadModelsAndStartCamera = async () => {
+            try {
+                if (!modelsLoaded) {
+                    console.log('📡 Loading face detection models...');
+                    // Models are in /public/models
+                    await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+                    modelsLoaded = true;
+                    console.log('✅ Models loaded successfully');
+                }
+                setIsModelLoading(false);
+                await startCamera();
+            } catch (err) {
+                console.error('Initialization error:', err);
+                setError('Failed to initialize face detection: ' + err.message);
+                setIsModelLoading(false);
+            }
+        };
+
+        loadModelsAndStartCamera();
+
         return () => {
             stopCamera();
         };
@@ -21,7 +45,11 @@ function CameraCapture({ onCapture, onCancel }) {
     const startCamera = async () => {
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' },
+                video: {
+                    facingMode: 'user',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                },
                 audio: false
             });
 
@@ -42,24 +70,68 @@ function CameraCapture({ onCapture, onCancel }) {
         }
     };
 
-    const capturePhoto = () => {
+    const capturePhoto = async () => {
         const video = videoRef.current;
         const canvas = canvasRef.current;
 
-        if (video && canvas) {
+        if (!video || !canvas || isProcessing) return;
+
+        // Ensure video is playing and has frames
+        if (video.readyState < 2) {
+            setError('Camera is still warming up. Please wait...');
+            return;
+        }
+
+        setIsProcessing(true);
+        setError('');
+
+        try {
+            // Options: Large inputSize (224) is generally more accurate than 128/160
+            const detectorOptions = new faceapi.TinyFaceDetectorOptions({
+                inputSize: 224,
+                scoreThreshold: 0.25 // More permissive
+            });
+
+            // Try to detect face with a small retry logic (3 attempts over 1.5s)
+            // This handles cases where the first frame might be blurry or eyes are closed
+            let detection = null;
+            for (let i = 0; i < 3; i++) {
+                detection = await faceapi.detectSingleFace(video, detectorOptions);
+                if (detection) break;
+                // Wait 300ms before next attempt
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
+            if (!detection) {
+                console.warn('Face detection failed after 3 attempts');
+                setError('Face not detected. Please ensure you are in a well-lit area and face the camera directly.');
+                setIsProcessing(false);
+                return;
+            }
+
+            console.log('✅ Face detected! Confidence:', detection.score.toFixed(2));
+
+            // Capture the image
             const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+
+            // Mirror back for the actual file if desired, or keep as is. 
+            // Most systems prefer a natural (non-mirrored) view for records.
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             canvas.toBlob((blob) => {
                 const file = new File([blob], `attendance-${Date.now()}.jpg`, {
                     type: 'image/jpeg'
                 });
-                onCapture(file);
                 setCaptured(true);
                 stopCamera();
-            }, 'image/jpeg', 0.9);
+                onCapture(file);
+            }, 'image/jpeg', 0.85);
+        } catch (err) {
+            console.error('Face detection error:', err);
+            setError('Face analysis error. Please try again or refresh the page.');
+            setIsProcessing(false);
         }
     };
 
@@ -92,9 +164,10 @@ function CameraCapture({ onCapture, onCancel }) {
                 </div>
 
                 <div className="p-6">
-                    {error ? (
-                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-center text-sm">
-                            {error}
+                    {isModelLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                            <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                            <p className="text-white/60 text-sm">Initializing AI Face Detector...</p>
                         </div>
                     ) : (
                         <div className="space-y-6">
@@ -112,19 +185,34 @@ function CameraCapture({ onCapture, onCancel }) {
                                             <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto mb-3 border border-green-500/30">
                                                 <RefreshCw className="w-8 h-8 animate-spin" />
                                             </div>
-                                            <p className="text-green-400 font-medium">Processing...</p>
+                                            <p className="text-green-400 font-medium">Submitting...</p>
                                         </div>
                                     </div>
                                 )}
+
+                                {isProcessing && !captured && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span className="text-white text-xs font-medium">Checking face...</span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <canvas ref={canvasRef} className="hidden" />
 
                                 {/* Overlay Rulers/Frame for professional look */}
-                                <div className="absolute inset-4 border-2 border-dashed border-white/20 rounded-lg pointer-events-none" />
-                                <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-white/40 rounded-tl pointer-events-none" />
-                                <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-white/40 rounded-tr pointer-events-none" />
-                                <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-white/40 rounded-bl pointer-events-none" />
-                                <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-white/40 rounded-br pointer-events-none" />
+                                <div className="absolute inset-x-0 top-[20%] bottom-[20%] border-y border-white/10 pointer-events-none" />
+                                <div className="absolute inset-y-0 left-[25%] right-[25%] border-x border-white/10 pointer-events-none" />
+                                <div className="absolute inset-4 border-2 border-dashed border-white/10 rounded-lg pointer-events-none" />
                             </div>
+
+                            {error && (
+                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-start gap-3 text-sm animate-in fade-in slide-in-from-top-1">
+                                    <AlertCircle className="w-5 h-5 shrink-0" />
+                                    <span>{error}</span>
+                                </div>
+                            )}
 
                             <div className="flex justify-center gap-4">
                                 <button
@@ -135,11 +223,11 @@ function CameraCapture({ onCapture, onCancel }) {
                                 </button>
                                 <button
                                     onClick={capturePhoto}
-                                    disabled={captured}
+                                    disabled={captured || isProcessing}
                                     className="px-8 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-900/20 hover:shadow-purple-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Camera className="w-5 h-5" />
-                                    Take Photo
+                                    {isProcessing ? 'Processing...' : 'Take Photo'}
                                 </button>
                             </div>
                         </div>
@@ -151,3 +239,4 @@ function CameraCapture({ onCapture, onCancel }) {
 }
 
 export default CameraCapture;
+

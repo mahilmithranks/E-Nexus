@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Users, Calendar, Clock, BarChart2, Download, LogOut,
     CheckCircle, AlertCircle, XCircle, Lock, Unlock, Play, Square,
-    FileText, ChevronLeft, ChevronRight
+    FileText, ChevronLeft, ChevronRight, RefreshCw
 } from 'lucide-react';
 import api from '../services/api';
 import { getUser, clearAuth } from '../utils/auth';
@@ -19,10 +19,12 @@ function AdminDashboard() {
     const [sessions, setSessions] = useState([]);
     const [progressData, setProgressData] = useState([]);
     const [pagination, setPagination] = useState({ total: 0, pages: 1, currentPage: 1, limit: 20 });
+    const [selectedSessionDay, setSelectedSessionDay] = useState(null);
     const [loading, setLoading] = useState(true);
     const [progressLoading, setProgressLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('days');
-    const [showOverrideForm, setShowOverrideForm] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [exportFilters, setExportFilters] = useState({ dayId: '', sessionId: '' });
     const [showPhotoModal, setShowPhotoModal] = useState({ show: false, url: '', student: '' });
     const [showOverrideModal, setShowOverrideModal] = useState({
         show: false,
@@ -34,21 +36,50 @@ function AdminDashboard() {
     const user = getUser();
     const navigate = useNavigate();
 
+    // Default selectedSessionDay to the first OPEN day
+    useEffect(() => {
+        if (days.length > 0 && !selectedSessionDay) {
+            const openDay = days.find(d => d.status === 'OPEN');
+            setSelectedSessionDay(openDay ? openDay._id : days[0]._id);
+        }
+    }, [days]);
+
+    // Debounce search
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            if (activeTab === 'attendance' || activeTab === 'assignments') {
+                fetchProgress(1, searchTerm);
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
 
     // Auto-close polling: Check every 30s for expired sessions
     useEffect(() => {
         const checkAndCloseExpiredSessions = async () => {
             try {
                 const now = new Date();
-                const expiredSessions = sessions.filter(session =>
-                    session.attendanceOpen &&
-                    session.attendanceEndTime &&
-                    new Date(session.attendanceEndTime) < now
+                const expiredSessions = sessions.filter(s =>
+                    s.attendanceOpen &&
+                    s.attendanceEndTime &&
+                    new Date(s.attendanceEndTime) < now
                 );
 
                 for (const session of expiredSessions) {
-                    await api.post(`/admin/sessions/${session._id}/attendance/stop`);
-                    toast.info(`Auto-closed attendance for: ${session.title}`);
+                    try {
+                        await api.post(`/admin/sessions/${session._id}/attendance/stop`);
+                        toast(`Auto-closed attendance for: ${session.title}`, {
+                            icon: '🕒',
+                        });
+                    } catch (err) {
+                        if (err.response?.status === 404) {
+                            console.warn('Session not found during auto-close, refreshing list...');
+                            fetchData();
+                            break;
+                        }
+                        throw err;
+                    }
                 }
 
                 if (expiredSessions.length > 0) {
@@ -72,7 +103,7 @@ function AdminDashboard() {
 
     useEffect(() => {
         if (activeTab === 'attendance' || activeTab === 'assignments') {
-            fetchProgress(pagination.currentPage);
+            fetchProgress(1, searchTerm);
         }
     }, [activeTab]);
 
@@ -87,8 +118,10 @@ function AdminDashboard() {
             setDays(daysRes.data);
             setSessions(sessionsRes.data);
 
-            // Only fetch progress if we are on those tabs or initially
-            await fetchProgress(1);
+            // Fetch progress initially if we are already on a progress tab
+            if (activeTab === 'attendance' || activeTab === 'assignments') {
+                await fetchProgress(1, searchTerm);
+            }
         } catch (error) {
             console.error('Error fetching initial data:', error);
             toast.error('Failed to load dashboard data');
@@ -97,10 +130,10 @@ function AdminDashboard() {
         }
     };
 
-    const fetchProgress = async (page = 1) => {
+    const fetchProgress = async (page = 1, search = '') => {
         try {
             setProgressLoading(true);
-            const res = await api.get(`/admin/progress?page=${page}&limit=20`);
+            const res = await api.get(`/admin/progress?page=${page}&limit=20&search=${search}`);
             setProgressData(res.data.students);
             setPagination(res.data.pagination);
         } catch (error) {
@@ -141,7 +174,12 @@ function AdminDashboard() {
             await api.put(`/admin/days/${dayId}/status`, { status });
             fetchData();
         } catch (error) {
-            toast.error('Error updating day status: ' + (error.response?.data?.message || error.message));
+            if (error.response?.status === 404) {
+                toast.error('Data state is stale. Refreshing dashboard...');
+                fetchData();
+            } else {
+                toast.error('Error updating day status: ' + (error.response?.data?.message || error.message));
+            }
         }
     };
 
@@ -205,18 +243,36 @@ function AdminDashboard() {
 
     const exportAttendance = async () => {
         try {
-            const response = await api.get('/admin/export/attendance', { responseType: 'blob' });
+            let url = '/admin/export/attendance?';
+            if (exportFilters.sessionId) {
+                url += `sessionId=${exportFilters.sessionId}`;
+            } else if (exportFilters.dayId) {
+                url += `dayId=${exportFilters.dayId}`;
+            }
+
+            const response = await api.get(url, { responseType: 'blob' });
             // Explicitly set the MIME type for Excel
             const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
+            const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `attendance_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+            link.href = downloadUrl;
+
+            // Generate descriptive filename
+            let filename = 'attendance_report';
+            if (exportFilters.sessionId) {
+                const session = sessions.find(s => s._id === exportFilters.sessionId);
+                filename = `attendance_${session ? session.title.replace(/\s+/g, '_') : 'session'}`;
+            } else if (exportFilters.dayId) {
+                const day = days.find(d => d._id === exportFilters.dayId);
+                filename = `attendance_day_${day ? day.dayNumber : 'filtered'}`;
+            }
+
+            link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
             document.body.appendChild(link);
             link.click();
             // Cleanup
             document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.URL.revokeObjectURL(downloadUrl);
         } catch (error) {
             console.error('Export error:', error);
             let errorMessage = 'Error exporting attendance';
@@ -238,18 +294,36 @@ function AdminDashboard() {
 
     const exportAssignments = async () => {
         try {
-            const response = await api.get('/admin/export/assignments', { responseType: 'blob' });
+            let url = '/admin/export/assignments?';
+            if (exportFilters.sessionId) {
+                url += `sessionId=${exportFilters.sessionId}`;
+            } else if (exportFilters.dayId) {
+                url += `dayId=${exportFilters.dayId}`;
+            }
+
+            const response = await api.get(url, { responseType: 'blob' });
             // Explicitly set the MIME type for Excel
             const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
+            const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `assignment_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+            link.href = downloadUrl;
+
+            // Generate descriptive filename
+            let filename = 'assignment_report';
+            if (exportFilters.sessionId) {
+                const session = sessions.find(s => s._id === exportFilters.sessionId);
+                filename = `assignments_${session ? session.title.replace(/\s+/g, '_') : 'session'}`;
+            } else if (exportFilters.dayId) {
+                const day = days.find(d => d._id === exportFilters.dayId);
+                filename = `assignments_day_${day ? day.dayNumber : 'filtered'}`;
+            }
+
+            link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
             document.body.appendChild(link);
             link.click();
             // Cleanup
             document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.URL.revokeObjectURL(downloadUrl);
         } catch (error) {
             console.error('Export error:', error);
             let errorMessage = 'Error exporting assignments';
@@ -275,7 +349,7 @@ function AdminDashboard() {
         return (
             <div className="flex items-center justify-center gap-4 mt-8">
                 <button
-                    onClick={() => fetchProgress(pagination.currentPage - 1)}
+                    onClick={() => fetchProgress(pagination.currentPage - 1, searchTerm)}
                     disabled={pagination.currentPage === 1 || progressLoading}
                     className="p-2 rounded-lg bg-white/5 border border-white/10 text-white disabled:opacity-30 transition-all hover:bg-white/10"
                 >
@@ -320,10 +394,8 @@ function AdminDashboard() {
             return photoPath;
         }
 
-        // If it's a local path, construct the backend URL
-        // Remove leading slash if present
         const cleanPath = photoPath.startsWith('/') ? photoPath.substring(1) : photoPath;
-        return `http://localhost:5000/${cleanPath}`;
+        return `/${cleanPath}`;
     };
 
     return (
@@ -370,22 +442,31 @@ function AdminDashboard() {
 
             {/* Navigation Tabs */}
             <div className="relative z-10 max-w-7xl mx-auto w-full px-4 md:px-6 mb-8">
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
-                                activeTab === tab.id
-                                    ? "bg-blue-500 text-white shadow-lg shadow-blue-500/25"
-                                    : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-                            )}
-                        >
-                            <tab.icon className="w-4 h-4" />
-                            {tab.label}
-                        </button>
-                    ))}
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={cn(
+                                    "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
+                                    activeTab === tab.id
+                                        ? "bg-blue-500 text-white shadow-lg shadow-blue-500/25"
+                                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                                )}
+                            >
+                                <tab.icon className="w-4 h-4" />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={fetchData}
+                        className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white transition-all mb-2"
+                        title="Refresh Data"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
                 </div>
             </div>
 
@@ -415,7 +496,9 @@ function AdminDashboard() {
                                         <div className="relative z-10">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div>
-                                                    <h3 className="text-xl font-bold text-white">Day {day.dayNumber}</h3>
+                                                    <h3 className="text-xl font-bold text-white">
+                                                        Day {day.dayNumber} {day.date && <span className="text-sm font-normal text-white/40 ml-2">({new Date(day.date).toLocaleDateString('en-GB')})</span>}
+                                                    </h3>
                                                     <p className="text-white/60 text-sm">{day.title}</p>
                                                 </div>
                                                 <span className={cn(
@@ -458,58 +541,107 @@ function AdminDashboard() {
 
                         {activeTab === 'sessions' && (
                             <div className="space-y-6">
+                                {/* Day Selector for Sessions */}
+                                <div className="flex flex-wrap gap-2 p-4 bg-white/[0.02] rounded-xl border border-white/5">
+                                    <div className="w-full text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Filter by Day</div>
+                                    {days.map(day => (
+                                        <button
+                                            key={day._id}
+                                            onClick={() => setSelectedSessionDay(day._id)}
+                                            className={cn(
+                                                "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
+                                                selectedSessionDay === day._id
+                                                    ? "bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-500/20"
+                                                    : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                Day {day.dayNumber}
+                                                {day.status === 'OPEN' && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+
                                 <div className="space-y-4">
-                                    {sessions.map(session => (
-                                        <div key={session._id} className="group relative overflow-hidden p-6 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all">
-                                            {/* Glow on Hover */}
-                                            <div className="absolute -inset-px bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                                    {sessions
+                                        .filter(session => !selectedSessionDay || session.dayId?._id === selectedSessionDay || session.dayId === selectedSessionDay)
+                                        .map(session => (
+                                            <div key={session._id} className="group relative overflow-hidden p-6 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all">
+                                                {/* Glow on Hover */}
+                                                <div className="absolute -inset-px bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                                            <div className="relative z-10 flex flex-col md:flex-row justify-between gap-6">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <h3 className="text-xl font-bold text-white">{session.title}</h3>
-                                                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-white/10 text-white/60 border border-white/5">
-                                                            Day {session.dayId?.dayNumber}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {session.attendanceOpen ? (
-                                                            <span className="flex items-center gap-2 text-green-400 text-sm font-medium">
-                                                                <span className="relative flex h-2 w-2">
-                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                                <div className="relative z-10 flex flex-col md:flex-row justify-between gap-6">
+                                                    <div className="flex-1">
+                                                        <div className="flex flex-col gap-2 mb-2">
+                                                            <div className="flex flex-wrap items-center gap-3">
+                                                                <h3 className="text-xl font-bold text-white">{session.title}</h3>
+                                                                <span className="px-2 py-0.5 rounded text-xs font-medium bg-white/10 text-white/60 border border-white/5">
+                                                                    Day {session.dayId?.dayNumber}
                                                                 </span>
-                                                                Attendance Open
-                                                                {session.attendanceEndTime && <Timer targetDate={session.attendanceEndTime} />}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="flex items-center gap-2 text-red-400 text-sm font-medium">
-                                                                <div className="w-2 h-2 rounded-full bg-red-500" />
-                                                                Attendance Closed
-                                                            </span>
-                                                        )}
+                                                                <span className={cn(
+                                                                    "px-2 py-0.5 rounded text-xs font-bold uppercase border",
+                                                                    session.mode === 'OFFLINE'
+                                                                        ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                                                                        : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                                                )}>
+                                                                    {session.mode || 'ONLINE'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                                {session.startTime && (
+                                                                    <div className="flex items-center gap-1.5 text-purple-400 text-xs font-medium bg-purple-500/10 px-2 py-1 rounded-md border border-purple-500/20">
+                                                                        <Clock className="w-3.5 h-3.5" />
+                                                                        {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                    </div>
+                                                                )}
+                                                                <p className="text-white/50 text-sm italic">{session.description}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            {session.attendanceOpen ? (
+                                                                <span className="flex items-center gap-2 text-green-400 text-sm font-medium">
+                                                                    <span className="relative flex h-2 w-2">
+                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                                                    </span>
+                                                                    Attendance Open
+                                                                    {session.attendanceEndTime && <Timer targetDate={session.attendanceEndTime} />}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="flex items-center gap-2 text-red-400 text-sm font-medium">
+                                                                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                                                                    Attendance Closed
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
 
-                                                <div className="flex items-center gap-3">
-                                                    <button
-                                                        onClick={() => startAttendance(session._id)}
-                                                        disabled={session.attendanceOpen || session.dayId?.status !== 'OPEN'}
-                                                        className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                                                    >
-                                                        <Play className="w-4 h-4" /> Start
-                                                    </button>
-                                                    <button
-                                                        onClick={() => stopAttendance(session._id)}
-                                                        disabled={!session.attendanceOpen}
-                                                        className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                                                    >
-                                                        <Square className="w-4 h-4" /> Stop
-                                                    </button>
+                                                    {session.type === 'BREAK' ? (
+                                                        <div className="flex items-center px-4 py-2 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 text-sm font-medium gap-2">
+                                                            <Clock className="w-4 h-4" /> Break Time
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-3">
+                                                            <button
+                                                                onClick={() => startAttendance(session._id)}
+                                                                disabled={session.attendanceOpen || session.dayId?.status !== 'OPEN'}
+                                                                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                                            >
+                                                                <Play className="w-4 h-4" /> Start
+                                                            </button>
+                                                            <button
+                                                                onClick={() => stopAttendance(session._id)}
+                                                                disabled={!session.attendanceOpen}
+                                                                className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                                            >
+                                                                <Square className="w-4 h-4" /> Stop
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
                                 </div>
 
                                 {/* Manual Override Toggle */}
@@ -520,9 +652,21 @@ function AdminDashboard() {
                         {/* Attendance Tracking Tab */}
                         {activeTab === 'attendance' && (
                             <>
-                                <div className="mb-6">
-                                    <h2 className="text-2xl font-bold text-white mb-2">Attendance Tracking</h2>
-                                    <p className="text-white/60">View all student attendance records. Click on green checkmarks to view attendance photos.</p>
+                                <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white mb-1">Attendance Tracking</h2>
+                                        <p className="text-white/60 text-sm">View and manage student attendance records.</p>
+                                    </div>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Search student or reg number..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full md:w-80 px-4 py-2 pl-10 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all"
+                                        />
+                                        <Users className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
+                                    </div>
                                 </div>
 
                                 <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/[0.02]">
@@ -530,7 +674,8 @@ function AdminDashboard() {
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="bg-white/5 border-b border-white/10">
-                                                    <th className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider sticky left-0 bg-white/5">Student</th>
+                                                    <th className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider w-12 text-center border-r border-white/5 bg-white/5 sticky left-0 z-20">#</th>
+                                                    <th className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider sticky left-12 bg-white/5 z-20">Student</th>
                                                     {sessions.map(s => (
                                                         <th key={s._id} className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider whitespace-nowrap text-center">
                                                             <div>{s.title}</div>
@@ -556,9 +701,12 @@ function AdminDashboard() {
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    progressData.map(student => (
+                                                    progressData.map((student, index) => (
                                                         <tr key={student.registerNumber} className="hover:bg-white/[0.02]">
-                                                            <td className="p-4 sticky left-0 bg-black/40 backdrop-blur-sm">
+                                                            <td className="p-4 text-center text-white/40 text-xs border-r border-white/5 bg-black/40 backdrop-blur-sm sticky left-0 z-10 w-12">
+                                                                {(pagination.currentPage - 1) * pagination.limit + index + 1}
+                                                            </td>
+                                                            <td className="p-4 sticky left-12 bg-black/40 backdrop-blur-sm z-10 border-r border-white/5">
                                                                 <div className="text-white font-medium">{student.name}</div>
                                                                 <div className="text-white/40 text-xs">{student.registerNumber}</div>
                                                             </td>
@@ -824,40 +972,84 @@ function AdminDashboard() {
                         )}
 
                         {activeTab === 'export' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20">
-                                    <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-blue-400">
-                                        <FileText className="w-6 h-6" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-white mb-2">Attendance Report</h3>
-                                    <p className="text-white/60 mb-6">Type: .xlsx • Includes: Photos, Timestamps, Overrides</p>
-                                    <button
-                                        onClick={exportAttendance}
-                                        className="w-full py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Download className="w-4 h-4" /> Download Report
-                                    </button>
+                            <div className="space-y-6">
+                                <div className="mb-6">
+                                    <h2 className="text-2xl font-bold text-white mb-2">Export Data</h2>
+                                    <p className="text-white/60">Generate and download reports in Excel format.</p>
                                 </div>
 
-                                <div className="p-8 rounded-2xl bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20">
-                                    <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center mb-4 text-green-400">
-                                        <FileText className="w-6 h-6" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Attendance Export */}
+                                    <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-blue-400">
+                                            <FileText className="w-6 h-6" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-2">Attendance Report</h3>
+                                        <p className="text-white/60 mb-6 text-sm">Download comprehensive or filtered attendance data.</p>
+
+                                        <div className="space-y-4 mb-8">
+                                            <div className="space-y-2">
+                                                <label className="text-xs text-white/40 uppercase font-semibold">Filter by Day (Optional)</label>
+                                                <select
+                                                    value={exportFilters.dayId}
+                                                    onChange={(e) => setExportFilters({ dayId: e.target.value, sessionId: '' })}
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all"
+                                                >
+                                                    <option value="">All Days</option>
+                                                    {days.map(d => (
+                                                        <option key={d._id} value={d._id}>Day {d.dayNumber} - {d.title}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs text-white/40 uppercase font-semibold">Filter by Session (Optional)</label>
+                                                <select
+                                                    value={exportFilters.sessionId}
+                                                    onChange={(e) => setExportFilters({ ...exportFilters, sessionId: e.target.value })}
+                                                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all"
+                                                >
+                                                    <option value="">All Sessions</option>
+                                                    {sessions
+                                                        .filter(s => !exportFilters.dayId || s.dayId?._id === exportFilters.dayId || s.dayId === exportFilters.dayId)
+                                                        .map(s => (
+                                                            <option key={s._id} value={s._id}>{s.title}</option>
+                                                        ))}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={exportAttendance}
+                                            className="w-full py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Download className="w-4 h-4" /> Download Attendance
+                                        </button>
                                     </div>
-                                    <h3 className="text-xl font-bold text-white mb-2">Assignment Data</h3>
-                                    <p className="text-white/60 mb-6">Type: .xlsx • Includes: Responses, Links, Timestamps</p>
-                                    <button
-                                        onClick={exportAssignments}
-                                        className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium shadow-lg shadow-green-500/20 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Download className="w-4 h-4" /> Download Data
-                                    </button>
+
+                                    {/* Assignment Export */}
+                                    <div className="p-8 rounded-2xl bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 flex flex-col justify-between">
+                                        <div>
+                                            <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center mb-4 text-green-400">
+                                                <FileText className="w-6 h-6" />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white mb-2">Assignment Data</h3>
+                                            <p className="text-white/60 mb-8 text-sm">Download all student assignment submissions across all sessions.</p>
+                                        </div>
+                                        <button
+                                            onClick={exportAssignments}
+                                            className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium shadow-lg shadow-green-500/20 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Download className="w-4 h-4" /> Download Assignments
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
                     </motion.div>
                 </AnimatePresence>
             </div>
-        </div>
+        </div >
     );
 }
 

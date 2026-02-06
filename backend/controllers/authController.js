@@ -4,7 +4,7 @@ import User from '../models/User.js';
 // Generate JWT Token
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE || '1h'
+        expiresIn: process.env.JWT_EXPIRE || '24h'
     });
 };
 
@@ -19,13 +19,11 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: 'Please provide username and password' });
         }
 
-        // Validate college email domain if an email is provided
         const normalizedUsername = username.trim().toLowerCase();
-        if (normalizedUsername.includes('@') && !normalizedUsername.endsWith('@klu.ac.in')) {
-            return res.status(400).json({ message: 'Please enter a proper college mail ID (ending with @klu.ac.in)' });
-        }
 
-        // Find user by registerNumber or email using the normalized (trimmed, lowercase) username
+        console.log(`[Login] Attempt for: ${username} (normalized: ${normalizedUsername})`);
+
+        // Find user by registerNumber (always stored uppercase) or email (lowercase)
         const user = await User.findOne({
             $or: [
                 { registerNumber: normalizedUsername.toUpperCase() },
@@ -34,8 +32,11 @@ export const login = async (req, res) => {
         });
 
         if (!user) {
+            console.log(`[Login] User not found: ${normalizedUsername}`);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
+
+        console.log(`[Login] Found user: ${user.registerNumber} (${user.role})`);
 
         // Check if account is locked
         if (user.isLocked) {

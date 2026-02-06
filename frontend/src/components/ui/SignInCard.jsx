@@ -296,6 +296,9 @@ export function SignInCard({ username, password, onUsernameChange, onPasswordCha
                                                 onChange={onPasswordChange}
                                                 onFocus={() => setFocusedInput("password")}
                                                 onBlur={() => setFocusedInput(null)}
+                                                autoComplete="off"
+                                                name={`pass_${Math.random().toString(36).slice(2, 7)}`}
+                                                data-lpignore="true"
                                                 className="w-full bg-white/5 border-transparent focus:border-white/20 text-white placeholder:text-white/30 h-10 transition-all duration-300 pl-10 pr-10 focus:bg-white/10"
                                             />
 

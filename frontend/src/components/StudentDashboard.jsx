@@ -16,7 +16,7 @@ function StudentDashboard() {
     const [loading, setLoading] = useState(true);
     const [showCamera, setShowCamera] = useState(false);
     const [selectedSession, setSelectedSession] = useState(null);
-    const [assignmentData, setAssignmentData] = useState({});
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const user = getUser();
     const navigate = useNavigate();
@@ -25,42 +25,67 @@ function StudentDashboard() {
         fetchDays();
     }, []);
 
-    // Auto-refresh sessions every 5 seconds to update attendance status
+    // Auto-refresh sessions every 15 seconds to update attendance status
     useEffect(() => {
         if (!selectedDay) return;
 
         const interval = setInterval(() => {
-            selectDay(selectedDay);
-        }, 5000); // 5 second polling
+            if (!isRefreshing) {
+                refreshSessions(selectedDay);
+            }
+        }, 5000); // Reduced to 5 seconds for more "immediate" updates
 
         return () => clearInterval(interval);
-    }, [selectedDay]);
+    }, [selectedDay, isRefreshing]);
 
     const fetchDays = async () => {
         try {
             const response = await api.get('/student/days');
-            setDays(response.data);
+            const daysData = Array.isArray(response.data) ? response.data : [];
+            setDays(daysData);
+
             // Select the first OPEN day by default
-            const openDay = response.data.find(d => d.status === 'OPEN');
+            const openDay = daysData.find(d => d.status === 'OPEN');
             if (openDay) {
                 setSelectedDay(openDay._id);
                 const sessionRes = await api.get(`/student/sessions/${openDay._id}`);
-                setSessions(sessionRes.data);
+                setSessions(Array.isArray(sessionRes.data) ? sessionRes.data : []);
             }
         } catch (error) {
             console.error('Error fetching days:', error);
+            toast.error('Failed to load dashboard data');
+            setDays([]);
+            setSessions([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const refreshSessions = async (dayId) => {
+        try {
+            setIsRefreshing(true);
+            const response = await api.get(`/student/sessions/${dayId}`);
+            setSessions(Array.isArray(response.data) ? response.data : []);
+        } catch (error) {
+            console.error('Error refreshing sessions:', error);
+            // Don't toast on auto-refresh to avoid spam, but clear sessions if needed
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
     const selectDay = async (dayId) => {
         try {
             setSelectedDay(dayId);
+            setIsRefreshing(true);
             const response = await api.get(`/student/sessions/${dayId}`);
-            setSessions(response.data);
+            setSessions(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Error fetching sessions:', error);
+            toast.error(error.response?.data?.message || 'Error fetching sessions');
+            setSessions([]);
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
@@ -232,7 +257,7 @@ function StudentDashboard() {
                                     >
                                         <div className="relative z-10">
                                             <div className={cn("text-xs font-semibold mb-1 uppercase tracking-wider", isActive ? "text-purple-400" : "text-white/40")}>
-                                                Day {day.dayNumber}
+                                                Day {day.dayNumber} {day.date && `(${new Date(day.date).toLocaleDateString('en-GB')})`}
                                             </div>
                                             <div className={cn("text-sm font-medium truncate", isActive ? "text-white" : "text-white/70")}>
                                                 {day.title}
@@ -262,7 +287,25 @@ function StudentDashboard() {
                                             <div className="flex justify-between items-start mb-4">
                                                 <div>
                                                     <h3 className="text-xl font-medium text-white/90">{session.title}</h3>
-                                                    <p className="text-white/50 text-sm mt-1">{session.description}</p>
+                                                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                                        <div className="flex items-center gap-3">
+                                                            {session.startTime && (
+                                                                <div className="flex items-center gap-1.5 text-purple-300/80 text-xs font-medium">
+                                                                    <Clock className="w-3.5 h-3.5" />
+                                                                    {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </div>
+                                                            )}
+                                                            <span className={cn(
+                                                                "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
+                                                                session.mode === 'OFFLINE'
+                                                                    ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                                                                    : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                                            )}>
+                                                                {session.mode || 'ONLINE'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-white/50 text-sm">{session.description}</p>
+                                                    </div>
                                                 </div>
                                                 {session.hasAttendance && (
                                                     <div className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium flex items-center gap-1.5">
@@ -272,67 +315,71 @@ function StudentDashboard() {
                                                 )}
                                             </div>
 
-                                            {!session.hasAttendance && (
-                                                <div className="mb-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                                    {session.isAttendanceActive ? (
-                                                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                                            <div className="flex items-center gap-2 text-purple-300 text-sm">
-                                                                <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                                                                Live Attendance
-                                                            </div>
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="text-xs text-white/40 font-mono">
-                                                                    <Timer targetDate={session.attendanceEndTime} />
+                                            {session.type !== 'BREAK' && (
+                                                <>
+                                                    {!session.hasAttendance && (
+                                                        <div className="mb-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                                            {session.isAttendanceActive ? (
+                                                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                                    <div className="flex items-center gap-2 text-purple-300 text-sm">
+                                                                        <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                                                                        Live Attendance
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="text-xs text-white/40 font-mono">
+                                                                            <Timer targetDate={session.attendanceEndTime} />
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={() => openCamera(session)}
+                                                                            className="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 font-medium text-white text-sm flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+                                                                        >
+                                                                            <Camera className="w-4 h-4" />
+                                                                            Mark Attendance
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
-                                                                <button
-                                                                    onClick={() => openCamera(session)}
-                                                                    className="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 font-medium text-white text-sm flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
-                                                                >
-                                                                    <Camera className="w-4 h-4" />
-                                                                    Mark Attendance
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ) : session.attendanceStatus === 'closed' ? (
-                                                        <div className="flex items-center justify-between text-red-400 text-sm">
-                                                            <span>Attendance Window Closed</span>
-                                                            <span className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-xs">Absent</span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-2 text-white/30 text-sm">
-                                                            <Lock className="w-4 h-4" /> Not Started
+                                                            ) : session.attendanceStatus === 'closed' ? (
+                                                                <div className="flex items-center justify-between text-red-400 text-sm">
+                                                                    <span>Attendance Window Closed</span>
+                                                                    <span className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-xs">Absent</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2 text-white/30 text-sm">
+                                                                    <Lock className="w-4 h-4" /> Not Started
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
-                                                </div>
-                                            )}
 
-                                            {session.assignments && session.assignments.length > 0 && (
-                                                <div className="mt-4 pt-4 border-t border-white/5">
-                                                    {!session.hasAttendance ? (
-                                                        <div className="text-yellow-500/70 text-sm flex items-center gap-2">
-                                                            <AlertCircle className="w-4 h-4" /> Mark attendance to unlock assessment
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center justify-between">
-                                                            <div>
-                                                                <div className="text-white font-medium">Assignment</div>
-                                                                <div className="text-white/40 text-sm">{session.assignmentsSubmitted}/{session.totalAssignments} completed</div>
-                                                            </div>
-                                                            <button
-                                                                disabled={session.assignmentsSubmitted === session.totalAssignments}
-                                                                onClick={() => navigate(`/student/assessment/${session._id}`)}
-                                                                className={cn(
-                                                                    "px-4 py-2 rounded-lg font-medium text-sm transition-all",
-                                                                    session.assignmentsSubmitted === session.totalAssignments
-                                                                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                                                        : "bg-white text-black hover:bg-gray-200"
-                                                                )}
-                                                            >
-                                                                {session.assignmentsSubmitted === session.totalAssignments ? 'Completed' : 'Go to Assessment'}
-                                                            </button>
+                                                    {session.assignments && session.assignments.length > 0 && (
+                                                        <div className="mt-4 pt-4 border-t border-white/5">
+                                                            {!session.hasAttendance ? (
+                                                                <div className="text-yellow-500/70 text-sm flex items-center gap-2">
+                                                                    <AlertCircle className="w-4 h-4" /> Mark attendance to unlock assessment
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center justify-between">
+                                                                    <div>
+                                                                        <div className="text-white font-medium">Assignment</div>
+                                                                        <div className="text-white/40 text-sm">{session.assignmentsSubmitted}/{session.totalAssignments} completed</div>
+                                                                    </div>
+                                                                    <button
+                                                                        disabled={session.assignmentsSubmitted === session.totalAssignments}
+                                                                        onClick={() => navigate(`/student/assessment/${session._id}`)}
+                                                                        className={cn(
+                                                                            "px-4 py-2 rounded-lg font-medium text-sm transition-all",
+                                                                            session.assignmentsSubmitted === session.totalAssignments
+                                                                                ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                                                                                : "bg-white text-black hover:bg-gray-200"
+                                                                        )}
+                                                                    >
+                                                                        {session.assignmentsSubmitted === session.totalAssignments ? 'Completed' : 'Go to Assessment'}
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
-                                                </div>
+                                                </>
                                             )}
                                         </motion.div>
                                     ))

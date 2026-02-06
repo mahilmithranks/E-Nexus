@@ -133,7 +133,16 @@ export const updateDayStatus = async (req, res) => {
         res.json(day);
     } catch (error) {
         console.error('Update day status error:', error);
-        res.status(500).json({ message: 'Server error updating day status' });
+
+        // Return 404 if it's a cast error (invalid ID format)
+        if (error.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'Invalid Day ID' });
+        }
+
+        res.status(500).json({
+            message: 'Server error updating day status',
+            error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
 
@@ -366,26 +375,43 @@ export const getProgress = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
+        const search = req.query.search || '';
         const skip = (page - 1) * limit;
 
-        const totalStudents = await User.countDocuments({ role: 'student' });
-        const students = await User.find({ role: 'student' })
-            .select('-password')
+        const query = { role: 'student' };
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { registerNumber: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const totalStudents = await User.countDocuments(query);
+        const students = await User.find(query)
+            .select('registerNumber name yearOfStudy department')
             .sort({ registerNumber: 1 })
             .skip(skip)
             .limit(limit)
             .lean();
 
-        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 }).lean();
+        const sessions = await Session.find()
+            .populate({ path: 'dayId', select: 'dayNumber title' })
+            .select('title dayId assignments')
+            .sort({ createdAt: 1 })
+            .lean();
         const studentRegNums = students.map(s => s.registerNumber);
 
         const allAttendance = await Attendance.find({
             registerNumber: { $in: studentRegNums }
-        }).lean();
+        })
+            .select('registerNumber sessionId status isOverride timestamp photoPath')
+            .lean();
 
         const allSubmissions = await AssignmentSubmission.find({
             registerNumber: { $in: studentRegNums }
-        }).lean();
+        })
+            .select('registerNumber sessionId assignmentTitle')
+            .lean();
 
         const attendanceMap = new Map();
         allAttendance.forEach(a => {
@@ -421,7 +447,7 @@ export const getProgress = async (req, res) => {
                         photoPath: attendance.photoPath
                     } : null,
                     assignmentsCompleted: uniqueTitles.size,
-                    totalAssignments: session.assignments.length
+                    totalAssignments: session.assignments ? session.assignments.length : 0
                 };
             })
         }));
@@ -446,10 +472,24 @@ export const getProgress = async (req, res) => {
 // @access  Private/Admin
 export const exportAttendance = async (req, res) => {
     try {
+        const { dayId, sessionId } = req.query;
+
         const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
         const days = await Day.find().sort({ dayNumber: 1 });
-        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 });
-        const allAttendance = await Attendance.find().lean();
+
+        let sessionQuery = {};
+        if (sessionId) {
+            sessionQuery._id = sessionId;
+        } else if (dayId) {
+            sessionQuery.dayId = dayId;
+        }
+
+        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+        const sessionIds = sessions.map(s => s._id);
+
+        const allAttendance = await Attendance.find({
+            sessionId: { $in: sessionIds }
+        }).lean();
 
         const attendanceMap = new Map();
         allAttendance.forEach(a => attendanceMap.set(`${a.registerNumber}|${a.sessionId.toString()}`, a));
@@ -483,8 +523,16 @@ export const exportAttendance = async (req, res) => {
             }
         }
 
+        let filename = 'attendance_report';
+        if (sessionId && sessions.length > 0) {
+            filename = `attendance_${sessions[0].title.replace(/\s+/g, '_')}`;
+        } else if (dayId) {
+            const day = days.find(d => d._id.toString() === dayId);
+            filename = `attendance_day_${day ? day.dayNumber : 'selected'}`;
+        }
+
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=attendance_${Date.now()}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}_${Date.now()}.xlsx`);
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
@@ -498,9 +546,28 @@ export const exportAttendance = async (req, res) => {
 // @access  Private/Admin
 export const exportAssignments = async (req, res) => {
     try {
+        const { dayId, sessionId } = req.query;
+
         const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
-        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 });
-        const allSubmissions = await AssignmentSubmission.find().lean();
+
+        // Filter sessions based on parameters
+        let sessionQuery = {};
+        if (sessionId) {
+            sessionQuery._id = sessionId;
+        } else if (dayId) {
+            sessionQuery.dayId = dayId;
+        }
+
+        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+
+        if (sessions.length === 0) {
+            return res.status(404).json({ message: 'No sessions found for the specified criteria' });
+        }
+
+        const sessionIds = sessions.map(s => s._id);
+        const allSubmissions = await AssignmentSubmission.find({
+            sessionId: { $in: sessionIds }
+        }).lean();
 
         const subMap = new Map();
         allSubmissions.forEach(s => subMap.set(`${s.registerNumber}|${s.sessionId.toString()}|${s.assignmentTitle}`, s));
@@ -511,10 +578,13 @@ export const exportAssignments = async (req, res) => {
         worksheet.columns = [
             { header: 'Reg Number', key: 'reg', width: 15 },
             { header: 'Student Name', key: 'name', width: 25 },
-            { header: 'Session', key: 'session', width: 20 },
+            { header: 'Day', key: 'day', width: 10 },
+            { header: 'Session', key: 'session', width: 25 },
             { header: 'Assignment', key: 'title', width: 30 },
             { header: 'Status', key: 'status', width: 15 },
-            { header: 'Response', key: 'response', width: 40 }
+            { header: 'Response Type', key: 'type', width: 15 },
+            { header: 'Response', key: 'response', width: 40 },
+            { header: 'Submitted At', key: 'submittedAt', width: 20 }
         ];
 
         for (const student of students) {
@@ -524,17 +594,36 @@ export const exportAssignments = async (req, res) => {
                     worksheet.addRow({
                         reg: student.registerNumber,
                         name: student.name,
+                        day: session.dayId?.dayNumber || '-',
                         session: session.title,
                         title: assignment.title,
                         status: sub ? 'SUBMITTED' : 'PENDING',
-                        response: sub ? (sub.responseType === 'file' ? 'File Attached' : sub.response) : '-'
+                        type: sub ? sub.assignmentType : '-',
+                        response: sub ? (sub.assignmentType === 'file' ? (sub.files?.[0] || sub.response) : sub.response) : '-',
+                        submittedAt: sub ? new Date(sub.submittedAt).toLocaleString() : '-'
                     });
                 }
             }
         }
 
+        // Apply formatting
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+        };
+
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=assignments_${Date.now()}.xlsx`);
+
+        let filename = 'assignments_all';
+        if (sessionId) {
+            filename = `assignments_${sessions[0].title.replace(/\s+/g, '_')}`;
+        } else if (dayId) {
+            filename = `assignments_day_${sessions[0].dayId?.dayNumber || 'filtered'}`;
+        }
+
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}_${Date.now()}.xlsx`);
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {

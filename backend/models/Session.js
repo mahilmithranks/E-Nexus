@@ -36,11 +36,27 @@ const sessionSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    startTime: {
+        type: Date
+    },
+    endTime: {
+        type: Date
+    },
     attendanceStartTime: {
         type: Date
     },
     attendanceEndTime: {
         type: Date
+    },
+    mode: {
+        type: String,
+        enum: ['ONLINE', 'OFFLINE'],
+        default: 'ONLINE'
+    },
+    type: {
+        type: String,
+        enum: ['SESSION', 'BREAK'],
+        default: 'SESSION'
     },
     assignments: [assignmentSchema]
 }, {

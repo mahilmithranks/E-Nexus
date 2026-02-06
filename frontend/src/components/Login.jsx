@@ -16,19 +16,19 @@ function Login() {
         e.preventDefault();
         setError('');
 
-        // Basic validation for college email domain
-        const trimmedUsername = username.trim().toLowerCase();
-        if (trimmedUsername.includes('@') && !trimmedUsername.endsWith('@klu.ac.in')) {
-            setError('Please enter a proper college mail ID (ending with @klu.ac.in)');
-            return;
-        }
+        const cleanedUsername = username.trim();
+        const cleanedPassword = password.trim();
 
         setLoading(true);
 
         try {
+            // Clear any existing auth before trying to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
             const response = await api.post('/auth/login', {
-                username,
-                password
+                username: cleanedUsername,
+                password: cleanedPassword
             });
 
             const { token, user } = response.data;

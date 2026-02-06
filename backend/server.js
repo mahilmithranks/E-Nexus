@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import studentRoutes from './routes/student.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
+import { clearCache } from './middleware/cache.js';
 import User from './models/User.js';
 import compression from 'compression';
 import helmet from 'helmet';
@@ -25,8 +26,8 @@ const __dirname = path.dirname(__filename);
 // Initialize Express app
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Trust proxy for accurate IP detection (needed for rate limiting behind NAT/Vercel)
+app.set('trust proxy', 1);
 
 // Middleware
 // Explicit CORS headers for Vercel serverless compatibility
@@ -173,31 +174,36 @@ const initializeAdmin = async () => {
 
         if (!adminExists) {
             const admin = await User.create({
-                registerNumber: process.env.ADMIN_REGISTER_NUMBER || '99240041375',
-                email: process.env.ADMIN_EMAIL || '99240041375@klu.ac.in',
-                password: process.env.ADMIN_PASSWORD || '99240041375',
+                registerNumber: process.env.ADMIN_REGISTER_NUMBER || 'ADMIN',
+                email: process.env.ADMIN_EMAIL || 'admin@e-nexus.com',
+                password: process.env.ADMIN_PASSWORD || 'admin123',
                 name: 'System Administrator',
                 role: 'admin'
             });
 
             console.log('✅ Admin user created successfully');
             console.log(`   Email: ${admin.email}`);
-            console.log(`   Password: ${process.env.ADMIN_PASSWORD || '99240041375'}`);
+            console.log(`   Password: [REDACTED]`);
         }
     } catch (error) {
         console.error('Error initializing admin:', error);
     }
 };
 
-// Start server (Only if not in Vercel/Serverless)
-// Start server using cluster module to handle high load (500+ users)
-const startServer = () => {
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-        console.log(`\n🚀 Server running on port ${PORT} (Process: ${process.pid})`);
-        console.log(`📡 API available at http://localhost:${PORT}/api`);
-        initializeAdmin();
-    });
+// Start server
+const startServer = async () => {
+    try {
+        await connectDB();
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => {
+            console.log(`\n🚀 Server running on port ${PORT} (Process: ${process.pid})`);
+            console.log(`📡 API available at http://127.0.0.1:${PORT}/api`);
+            initializeAdmin();
+        });
+    } catch (error) {
+        console.error('❌ Server failed to start:', error);
+        process.exit(1);
+    }
 };
 
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
@@ -227,7 +233,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
         // In Vercel, just export the app
         (async () => {
             await connectDB();
-            await initializeAdmin();
+            initializeAdmin(); // No await needed for the return of the function itself
         })();
     }
 }

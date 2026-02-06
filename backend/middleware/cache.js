@@ -4,11 +4,13 @@ const CACHE_TTL = 30000; // 30 seconds
 
 export const cacheMiddleware = (key, ttl = CACHE_TTL) => {
     return (req, res, next) => {
-        const cacheKey = key + JSON.stringify(req.params) + JSON.stringify(req.query);
+        // Include user identification in cache key if authenticated
+        // This is critical for routes that return user-specific data (like sessions)
+        const userPart = req.user ? `_user_${req.user.registerNumber}` : '';
+        const cacheKey = key + userPart + JSON.stringify(req.params) + JSON.stringify(req.query);
         const cached = cache.get(cacheKey);
 
         if (cached && Date.now() - cached.timestamp < ttl) {
-            console.log(`✅ Cache HIT: ${cacheKey}`);
             return res.json(cached.data);
         }
 

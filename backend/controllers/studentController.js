@@ -37,7 +37,7 @@ export const getSessionsForDay = async (req, res) => {
         }
 
         // Fetch all sessions for determination
-        const sessions = await Session.find({ dayId }).sort({ createdAt: 1 });
+        const sessions = await Session.find({ dayId }).sort({ createdAt: 1 }).lean();
         const sessionIds = sessions.map(s => s._id);
 
         // Batch fetch attendance and submissions
@@ -65,33 +65,57 @@ export const getSessionsForDay = async (req, res) => {
         });
 
         const sessionsWithStatus = sessions.map((session) => {
-            const sessId = session._id.toString();
-            const attendance = attendanceMap.get(sessId);
-            const submittedTitles = submissionMap.get(sessId) || new Set();
+            try {
+                const sessId = session._id.toString();
+                const attendance = attendanceMap.get(sessId);
+                const submittedTitles = submissionMap.get(sessId) || new Set();
 
-            // Determine attendance window status
-            let attendanceWindowStatus = 'not_started';
-            if (session.attendanceOpen) {
-                attendanceWindowStatus = 'active';
-            } else if (session.attendanceEndTime && new Date() > new Date(session.attendanceEndTime)) {
-                attendanceWindowStatus = 'closed';
+                // Determine attendance window status
+                let attendanceWindowStatus = 'not_started';
+                if (session.attendanceOpen) {
+                    attendanceWindowStatus = 'active';
+                } else if (session.attendanceEndTime && new Date() > new Date(session.attendanceEndTime)) {
+                    attendanceWindowStatus = 'closed';
+                }
+
+                // Safety checks for methods and properties
+                // For lean objects, we use the property directly if the method was pre-calculated or not available
+                const isAttendanceActive = !!(session.attendanceOpen &&
+                    session.attendanceStartTime &&
+                    session.attendanceEndTime &&
+                    new Date() >= new Date(session.attendanceStartTime) &&
+                    new Date() <= new Date(session.attendanceEndTime));
+
+                const assignmentsCount = Array.isArray(session.assignments)
+                    ? session.assignments.length
+                    : 0;
+
+                return {
+                    ...session,
+                    hasAttendance: !!attendance,
+                    attendanceStatus: attendanceWindowStatus,
+                    isAttendanceActive: isAttendanceActive,
+                    attendanceEndTime: session.attendanceEndTime,
+                    assignmentsSubmitted: submittedTitles.size,
+                    totalAssignments: assignmentsCount
+                };
+            } catch (err) {
+                console.error(`Error processing session ${session._id}:`, err);
+                return {
+                    ...session,
+                    hasAttendance: false,
+                    attendanceStatus: 'error',
+                    isAttendanceActive: false,
+                    assignmentsSubmitted: 0,
+                    totalAssignments: 0
+                };
             }
-
-            return {
-                ...session.toObject(),
-                hasAttendance: !!attendance,
-                attendanceStatus: attendanceWindowStatus,
-                isAttendanceActive: session.isAttendanceActive(),
-                attendanceEndTime: session.attendanceEndTime,
-                assignmentsSubmitted: submittedTitles.size,
-                totalAssignments: session.assignments.length
-            };
         });
 
         res.json(sessionsWithStatus);
     } catch (error) {
         console.error('Get sessions error:', error);
-        res.status(500).json({ message: 'Server error fetching sessions' });
+        res.status(500).json({ message: 'Server error fetching sessions', error: error.message });
     }
 };
 
@@ -228,14 +252,19 @@ export const markAttendance = async (req, res) => {
             attendance
         });
     } catch (error) {
-        console.error('Mark attendance error:', error);
+        console.error('Mark attendance error stack:', error.stack);
+        console.error('Mark attendance full error:', error);
 
         // Handle duplicate key error
         if (error.code === 11000) {
             return res.status(400).json({ message: 'Attendance already marked for this session' });
         }
 
-        res.status(500).json({ message: 'Server error marking attendance' });
+        res.status(500).json({
+            message: 'Server error marking attendance',
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
 

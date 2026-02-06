@@ -218,7 +218,7 @@ export function SignInCard({ username, password, onUsernameChange, onPasswordCha
                                     transition={{ delay: 0.2 }}
                                     className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/80"
                                 >
-                                    Welcome Back
+                                    Tech Sprint Boot Camp on GEN AI for All Domains
                                 </motion.h1>
 
                                 <motion.p

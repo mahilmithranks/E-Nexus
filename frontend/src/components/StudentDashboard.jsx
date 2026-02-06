@@ -235,7 +235,43 @@ function StudentDashboard() {
                     </div>
                 ) : (
                     <div className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 flex flex-col md:flex-row gap-6 overflow-hidden">
-                        {/* Days Sidebar */}
+                        {/* Course Breakdown Card */}
+                        <div className="relative group overflow-hidden p-6 rounded-2xl bg-white/[0.03] border border-white/5 pb-8 mb-8">
+                            {/* Glow on Hover */}
+                            <div className="absolute -inset-px bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                            <div className="relative z-10">
+                                <h3 className="text-xl font-bold text-white mb-2">Total Duration: 60 Hours | Experiential Elective – 2 Credits</h3>
+                                <h4 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-6">Final Breakdown of Hours</h4>
+
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="border-b border-white/10 text-white/40 text-xs uppercase tracking-wider">
+                                                <th className="py-3 px-4 font-medium">Component</th>
+                                                <th className="py-3 px-4 font-medium text-right">Total Hours</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-sm text-white/70">
+                                            <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                                <td className="py-3 px-4">Infosys Spring Board Course</td>
+                                                <td className="py-3 px-4 text-right font-mono">30 hours</td>
+                                            </tr>
+                                            <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                                <td className="py-3 px-4">Hands-on Training with assessment</td>
+                                                <td className="py-3 px-4 text-right font-mono">30 hours</td>
+                                            </tr>
+                                            <tr className="font-bold text-white bg-white/5">
+                                                <td className="py-3 px-4">Total</td>
+                                                <td className="py-3 px-4 text-right font-mono text-green-400">60 hours</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Days Selection with Auto-Scroll */}
                         <div className="w-full md:w-64 flex-shrink-0 flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto pb-2 scrollbar-hide">
                             {days.map(day => {
                                 const isLocked = day.status !== 'OPEN';
@@ -345,7 +381,7 @@ function StudentDashboard() {
                                                                 </div>
                                                             ) : (
                                                                 <div className="flex items-center gap-2 text-white/30 text-sm">
-                                                                    <Lock className="w-4 h-4" /> Not Started
+                                                                    <Lock className="w-4 h-4" /> Attendance Not Started
                                                                 </div>
                                                             )}
                                                         </div>

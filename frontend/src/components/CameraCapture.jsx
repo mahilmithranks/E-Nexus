@@ -145,93 +145,116 @@ function CameraCapture({ onCapture, onCancel }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/90 backdrop-blur-xl p-4"
         >
             <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="w-full max-w-lg bg-black/40 border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl"
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="w-full max-w-xl bg-gradient-to-br from-[#111111] to-[#0d0d0d] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] relative"
             >
-                <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
-                    <h3 className="text-lg font-semibold text-white">Capture Attendance</h3>
-                    <button
-                        onClick={handleCancel}
-                        className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+                {/* Decorative glow */}
+                <div className="absolute -top-20 -left-20 size-64 bg-[#f05423]/10 blur-[100px] rounded-full pointer-events-none" />
 
-                <div className="p-6">
-                    {isModelLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                            <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                            <p className="text-white/60 text-sm">Initializing AI Face Detector...</p>
+                <div className="relative z-10">
+                    <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                        <div>
+                            <h3 className="text-sm font-black text-white uppercase tracking-[0.3em]">Identity Authentication</h3>
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Biometric Verification Stream</p>
                         </div>
-                    ) : (
-                        <div className="space-y-6">
-                            <div className="relative aspect-video bg-black/50 rounded-xl overflow-hidden border border-white/10 shadow-inner">
-                                {!captured ? (
-                                    <video
-                                        ref={videoRef}
-                                        autoPlay
-                                        playsInline
-                                        className="w-full h-full object-cover transform scale-x-[-1]" // Mirror effect
-                                    />
-                                ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                                        <div className="text-center">
-                                            <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto mb-3 border border-green-500/30">
-                                                <RefreshCw className="w-8 h-8 animate-spin" />
-                                            </div>
-                                            <p className="text-green-400 font-medium">Submitting...</p>
-                                        </div>
-                                    </div>
-                                )}
+                        <button
+                            onClick={handleCancel}
+                            className="size-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-red-500/10 hover:text-red-400 transition-all text-zinc-500"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
 
-                                {isProcessing && !captured && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            <span className="text-white text-xs font-medium">Checking face...</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <canvas ref={canvasRef} className="hidden" />
-
-                                {/* Overlay Rulers/Frame for professional look */}
-                                <div className="absolute inset-x-0 top-[20%] bottom-[20%] border-y border-white/10 pointer-events-none" />
-                                <div className="absolute inset-y-0 left-[25%] right-[25%] border-x border-white/10 pointer-events-none" />
-                                <div className="absolute inset-4 border-2 border-dashed border-white/10 rounded-lg pointer-events-none" />
-                            </div>
-
-                            {error && (
-                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-start gap-3 text-sm animate-in fade-in slide-in-from-top-1">
-                                    <AlertCircle className="w-5 h-5 shrink-0" />
-                                    <span>{error}</span>
+                    <div className="p-10">
+                        {isModelLoading ? (
+                            <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                                <div className="size-12 border-2 border-[#f05423] border-t-transparent rounded-full animate-spin shadow-lg shadow-[#f05423]/20" />
+                                <div className="text-center">
+                                    <p className="text-white font-bold text-sm">Initializing Neural Engine</p>
+                                    <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mt-2">Loading face-api weights...</p>
                                 </div>
-                            )}
-
-                            <div className="flex justify-center gap-4">
-                                <button
-                                    onClick={handleCancel}
-                                    className="px-6 py-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-white/70 hover:text-white transition-all font-medium"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={capturePhoto}
-                                    disabled={captured || isProcessing}
-                                    className="px-8 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-900/20 hover:shadow-purple-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Camera className="w-5 h-5" />
-                                    {isProcessing ? 'Processing...' : 'Take Photo'}
-                                </button>
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="space-y-8">
+                                <div className="relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl group">
+                                    {!captured ? (
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            className="w-full h-full object-cover transform scale-x-[-1]"
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a]/80 backdrop-blur-md">
+                                            <div className="text-center space-y-4">
+                                                <div className="size-16 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+                                                    <RefreshCw className="w-8 h-8 animate-spin" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em]">Authenticating</p>
+                                                    <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest mt-1">Updating Records...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {isProcessing && !captured && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="size-10 border-2 border-white/10 border-t-[#f05423] rounded-full animate-spin" />
+                                                <span className="text-white text-[10px] font-black uppercase tracking-widest">Scanning Bio-Markers</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <canvas ref={canvasRef} className="hidden" />
+
+                                    {/* Advanced Viewfinder */}
+                                    <div className="absolute inset-0 pointer-events-none opacity-40">
+                                        <div className="absolute top-8 left-8 size-12 border-t-2 border-l-2 border-white/20 rounded-tl-xl" />
+                                        <div className="absolute top-8 right-8 size-12 border-t-2 border-r-2 border-white/20 rounded-tr-xl" />
+                                        <div className="absolute bottom-8 left-8 size-12 border-b-2 border-l-2 border-white/20 rounded-bl-xl" />
+                                        <div className="absolute bottom-8 right-8 size-12 border-b-2 border-r-2 border-white/20 rounded-br-xl" />
+
+                                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/5" />
+                                        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-white/5" />
+                                    </div>
+                                </div>
+
+                                {error && (
+                                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-5 rounded-2xl flex items-start gap-4 text-xs font-medium animate-in fade-in slide-in-from-top-2">
+                                        <AlertCircle className="w-5 h-5 shrink-0" />
+                                        <div className="space-y-1">
+                                            <p className="font-black uppercase tracking-widest text-[10px]">Transmission Failure</p>
+                                            <p>{error}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                                    <button
+                                        onClick={handleCancel}
+                                        className="flex-1 px-8 py-4 rounded-2xl border border-white/10 hover:bg-white/5 text-zinc-500 hover:text-white transition-all font-black text-[10px] uppercase tracking-widest"
+                                    >
+                                        Abandon
+                                    </button>
+                                    <button
+                                        onClick={capturePhoto}
+                                        disabled={captured || isProcessing}
+                                        className="flex-[2] px-10 py-4 rounded-2xl bg-gradient-to-r from-[#f05423] to-[#ff9d00] text-white shadow-xl shadow-[#f05423]/20 hover:shadow-[#f05423]/40 hover:scale-[1.02] active:scale-[0.98] transition-all font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
+                                    >
+                                        <Camera className="w-5 h-5" />
+                                        {isProcessing ? 'Processing' : 'Commit Authentication'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </motion.div>
         </motion.div>

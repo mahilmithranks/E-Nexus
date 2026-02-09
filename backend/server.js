@@ -9,6 +9,7 @@ import connectDB from './config/db.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import studentRoutes from './routes/student.js';
+import syncRoutes from './routes/sync.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { clearCache } from './middleware/cache.js';
 import User from './models/User.js';
@@ -16,6 +17,7 @@ import compression from 'compression';
 import helmet from 'helmet';
 import cluster from 'cluster';
 import os from 'os';
+import mongoose from 'mongoose';
 
 // Load environment variables
 dotenv.config();
@@ -31,22 +33,34 @@ app.set('trust proxy', 1);
 
 // Middleware
 // Explicit CORS headers for Vercel serverless compatibility
+// Middleware
+// Robust CORS configuration for Vercel/Local with Credentials support
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+
+    // Set explicit allowed origin based on request origin to support credentials
+    // (Wildcard '*' with credentials is not allowed by browsers)
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        // Fallback for tools like Postman/cURL
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
 
-    // Handle preflight
+    // Handle preflight immediately
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
     next();
 });
 
-// Allow requests from anywhere (CORS fix for Vercel)
+// Use cors middleware as backup/complement (configured to align with manual headers)
 app.use(cors({
-    origin: '*',
+    origin: true, // Auto-reflect origin
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
@@ -71,6 +85,9 @@ import Session from './models/Session.js';
 
 if (!process.env.VERCEL) {
     setInterval(async () => {
+        // Guard: Only run if DB is connected
+        if (mongoose.connection.readyState !== 1) return;
+
         try {
             const now = new Date();
             const result = await Session.updateMany(
@@ -126,6 +143,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/student', studentRoutes);
+app.use('/api/sync', syncRoutes);
 
 // Root route (for browser check)
 app.get('/', (req, res) => {

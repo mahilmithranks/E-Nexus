@@ -10,151 +10,31 @@ dotenv.config();
 
 const studentsData = [
     {
-        "name": "99220041554@kly.ac.in",
-        "registerNumber": "99220041554",
-        "email": "99220041554@kly.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Atteppagari Hareesh Kumar",
-        "registerNumber": "99230040076",
-        "email": "99230040076@klu.ac.in",
-        "department": "CSE(AIML)",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "B Charantej",
-        "registerNumber": "9922005088",
-        "email": "9922005088@klu.ac.in",
+        "name": "Dasaraiahgari Bhavya",
+        "registerNumber": "9823005001",
+        "email": "9823005001@klu.ac.in",
         "department": "ECE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "B.Vishnu Vardhan Reddy",
-        "registerNumber": "99230040090",
-        "email": "99230040090@klu.ac.in",
-        "department": "CSE(AIML)",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "Balasubramaniyaraja C",
-        "registerNumber": "9922008363",
-        "email": "9922008363@klu.ac.in",
-        "department": "Information Technology",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "BANDARUPALLI SESHA GIRI RAO",
-        "registerNumber": "9922005173",
-        "email": "9922005173@klu.ac.in",
+        "name": "Kovvur Priyanka",
+        "registerNumber": "9823005005",
+        "email": "9823005005@klu.ac.in",
         "department": "ECE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "BATTULA VASANTH",
-        "registerNumber": "9922008407",
-        "email": "9922008407@klu.ac.in",
-        "department": "IT",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "BEENAPATI MADHUSUDHAN REDDY",
-        "registerNumber": "99220040452",
-        "email": "99220040452@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Billy Daniel W",
-        "registerNumber": "9922008346",
-        "email": "9922008346@klu.ac.in",
-        "department": "Information Technology",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Boobalan M",
-        "registerNumber": "9922008023",
-        "email": "9922008023@klu.ac.in",
-        "department": "BTech IT",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Chamarthi Venkata Sai Pavan Kumar",
-        "registerNumber": "9922005179",
-        "email": "9922005179@klu.ac.in",
-        "department": "Electronics and communication Engineering",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "CHEBOLU GANESH PAVAN SAI",
-        "registerNumber": "99220040469",
-        "email": "99220040469@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "D Ajay dheeraj",
-        "registerNumber": "9922005275",
-        "email": "9922005275@klu.ac.in",
+        "name": "M. Surya Teja",
+        "registerNumber": "9921005093",
+        "email": "9921005093@klu.ac.in",
         "department": "ECE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Devi BLM",
-        "registerNumber": "9922008364",
-        "email": "9922008364@klu.ac.in",
-        "department": "Information Technology",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "DEVIREDDY JITHENDRA REDDY",
-        "registerNumber": "99220040489",
-        "email": "99220040489@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "GALAM HARISH",
-        "registerNumber": "99230040224",
-        "email": "99230040224@klu.ac.in",
-        "department": "CES-AIML",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "Ganaparthi Manish",
-        "registerNumber": "99220041878",
-        "email": "99220041878@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Ganta Dheemanth Chowdary",
-        "registerNumber": "9922005100",
-        "email": "9922005100@klu.ac.in",
-        "department": "ECE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "GAVINI RAMAKRISHNA",
+        "name": "Gavini Ramakrishna",
         "registerNumber": "99220040057",
         "email": "99220040057@klu.ac.in",
         "department": "CSE",
@@ -162,15 +42,7 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "Gokulraj E",
-        "registerNumber": "9922008322",
-        "email": "9922008322@klu.ac.in",
-        "department": "IT",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "GOPAL KUMAR",
+        "name": "Gopal Kumar",
         "registerNumber": "99220040063",
         "email": "99220040063@klu.ac.in",
         "department": "CSE",
@@ -178,130 +50,186 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "Gopireddy Venkata Bhuvana Chandra reddy",
-        "registerNumber": "99220041857",
-        "email": "99220041857@klu.ac.in",
+        "name": "Gudapati Charan Saikumar",
+        "registerNumber": "99220040066",
+        "email": "99220040066@gmail.com",
         "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Goutham balaji",
-        "registerNumber": "9922008366",
-        "email": "9922008366@klu.ac.in",
-        "department": "Btech IT",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "HARI PRASATH RK",
-        "registerNumber": "99220042005",
-        "email": "99220042005@klu.ac.in",
-        "department": "Cse",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Hari Sankar T U",
-        "registerNumber": "99220041778",
-        "email": "99220041778@klu.ac.in",
+        "name": "Narupalli Harinath Reddy",
+        "registerNumber": "99220040145",
+        "email": "99220040145@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Harish Kumar S",
-        "registerNumber": "9922008367",
-        "email": "9922008367@klu.ac.in",
-        "department": "Information Technology",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Jothi Manikandan M",
-        "registerNumber": "9922008214",
-        "email": "9922008214@klu.ac.in",
-        "department": "B. Tec IT",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "K Ghandeev raj",
-        "registerNumber": "99230041228",
-        "email": "99230041228@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "K Shankar Reddy",
-        "registerNumber": "99220041233",
-        "email": "99220041233@klu.ac.in",
+        "name": "Shaik Saleem",
+        "registerNumber": "99220040198",
+        "email": "99220040198@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "K.Bala Gopiraju",
-        "registerNumber": "9922005046",
-        "email": "9922005046@klu.ac.in",
-        "department": "ECE",
+        "name": "Udayaprakash B",
+        "registerNumber": "99220040215",
+        "email": "99220040215@klu.ac.in",
+        "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "K.Jaya Shree",
-        "registerNumber": "99220041493",
-        "email": "99220041493@klu.ac.in",
+        "name": "Vijayaragavan",
+        "registerNumber": "99220040229",
+        "email": "99220040229@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Lakshin Prabhu S",
+        "registerNumber": "99220040296",
+        "email": "99220040296@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Madasu Jyothi Sri Venkata Siva Charan",
+        "registerNumber": "99220040299",
+        "email": "99220040299@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Monfort Joel J",
+        "registerNumber": "99220040308",
+        "email": "99220040308@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Namburi Ajay",
+        "registerNumber": "99220040315",
+        "email": "99220040315@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Nandigam Soundarya",
+        "registerNumber": "99220040316",
+        "email": "99220040316@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Pandi Veer Viswa",
+        "registerNumber": "99220040342",
+        "email": "99220040342@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Seelam Harshitha",
+        "registerNumber": "99220040350",
+        "email": "99220040350@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Sumanth Reddy Yadapalli",
+        "registerNumber": "99220040377",
+        "email": "99220040377@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Devarla Sai Snathosh",
+        "registerNumber": "99220040389",
+        "email": "99220040389@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Kondraju Maneesh",
+        "registerNumber": "99220040400",
+        "email": "99220040400@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Mohamed Musthafa S",
+        "registerNumber": "99220040402",
+        "email": "99220040402@klu.ac.in",
         "department": "CSE(AIML)",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "K.Roshini",
-        "registerNumber": "9923005297",
-        "email": "9923005297@klu.ac.in",
-        "department": "Electronics and communication engineering",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "K.Sai Prakash Reddy",
-        "registerNumber": "99220041216",
-        "email": "99220041216@klu.ac.in",
+        "name": "Badhri Meghana",
+        "registerNumber": "99220040444",
+        "email": "99220040444@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Kaleeswaran M",
-        "registerNumber": "9922008040",
-        "email": "9922008040@klu.ac.in",
-        "department": "B.tech IT",
+        "name": "Beenapati Madhusudhan Reddy",
+        "registerNumber": "99220040452",
+        "email": "99220040452@klu.ac.in",
+        "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Kalva Gunasree",
-        "registerNumber": "99230040973",
-        "email": "99230040973@klu.ac.in",
-        "department": "Cse",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "KARTHICK S",
-        "registerNumber": "9922008044",
-        "email": "9922008044@klu.ac.in",
-        "department": "B.Tech Information Technology",
+        "name": "Chebolu Ganesh Pavan Sai",
+        "registerNumber": "99220040469",
+        "email": "99220040469@klu.ac.in",
+        "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Kedareswar T",
-        "registerNumber": "9922005072",
-        "email": "9922005072@klu.ac.in",
-        "department": "Ece",
+        "name": "Devireddy Jithendra Reddy",
+        "registerNumber": "99220040489",
+        "email": "99220040489@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "D L Durga Prasad",
+        "registerNumber": "99220040495",
+        "email": "99220040495@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Meghana Jayaram",
+        "registerNumber": "99220040549",
+        "email": "99220040549@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Koka Kowshik",
+        "registerNumber": "99220040576",
+        "email": "99220040576@klu.ac.in",
+        "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
@@ -314,113 +242,185 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "Konasani Mourya",
-        "registerNumber": "9922008348",
-        "email": "9922008348@klu.ac.in",
-        "department": "IT",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "KONDRAJU MANEESH",
-        "registerNumber": "99220040400",
-        "email": "99220040400@klu.ac.in",
+        "name": "K. Nagalinga",
+        "registerNumber": "99220040590",
+        "email": "99220040590@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Kotapati Naveen",
-        "registerNumber": "99230040202",
-        "email": "99230040202@klu.ac.in",
-        "department": "CSE (DS)",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "Kovvur Priyanka",
-        "registerNumber": "9823005005",
-        "email": "9823005005@klu.ac.in",
-        "department": "Electronics and Communication Engineering",
+        "name": "Kuduthur Pradeep",
+        "registerNumber": "99220040591",
+        "email": "99220040591@klu.ac.in",
+        "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "KUDUMULA VAMSHI KRISHNA REDDY",
-        "registerNumber": "99230040237",
-        "email": "99230040237@klu.ac.in",
+        "name": "Madugonda Pandu Ranga",
+        "registerNumber": "99220040614",
+        "email": "99220040614@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Mandepudi Sri Ram Sai",
+        "registerNumber": "99220040623",
+        "email": "99220040623@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Thottempudi Sruthi",
+        "registerNumber": "99220040755",
+        "email": "99220040755@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Varigi Charaneswar Reddy",
+        "registerNumber": "99220040765",
+        "email": "9922040765@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Kamatam Lokesh",
+        "registerNumber": "99220040876",
+        "email": "99220040876@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Nagapuri Yashwanth",
+        "registerNumber": "99220040937",
+        "email": "99220040937@klu.ac.in",
         "department": "CSE(AIML)",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "KUNCHEPU LOKESH",
-        "registerNumber": "9922005045",
-        "email": "9922005045@klu.ac.in",
-        "department": "ECE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "L.Mohana Satya Priya",
-        "registerNumber": "9922005048",
-        "email": "9922005048@klu.ac.in",
-        "department": "ECE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Lakshin prabhu S",
-        "registerNumber": "99220040296",
-        "email": "99220040296@klu.ac.in",
-        "department": "Cse",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Lakshmipriya D",
-        "registerNumber": "9922008047",
-        "email": "9922008047@klu.ac.in",
-        "department": "Information Technology",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Logesh G",
-        "registerNumber": "9922008335",
-        "email": "9922008335@klu.ac.in",
-        "department": "Information technology",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "M. Mohasin",
-        "registerNumber": "99230040038",
-        "email": "99230040038@klu.ac.in",
+        "name": "Nagulapati Harshavardhan Reddy",
+        "registerNumber": "99220040940",
+        "email": "99220040940@klu.ac.in",
         "department": "CSE",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "M.Bhanu teja reddy",
-        "registerNumber": "99230041181",
-        "email": "99230041181@klu.ac.in",
-        "department": "Cse(AIML)",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "M.Surya Teja",
-        "registerNumber": "9921005093",
-        "email": "9921005093@klu.ac.in",
-        "department": "ECE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Madasu Jyothi Sri Venkata Siva Charan",
-        "registerNumber": "99220040299",
-        "email": "99220040299@klu.ac.in",
+        "name": "Naidu Lokesh Chowdary",
+        "registerNumber": "99220040941",
+        "email": "99220040941@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Namala Naga Harshitha",
+        "registerNumber": "99220040946",
+        "email": "99220040946@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Rapuru Hareen Reddy",
+        "registerNumber": "99220040980",
+        "email": "99220040980@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Vijayaragavan G",
+        "registerNumber": "99220041057",
+        "email": "99220041057@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Alluri Venkata Lakshman",
+        "registerNumber": "99220041098",
+        "email": "99220041098@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Bapatla Venkata Gangadhar",
+        "registerNumber": "99220041123",
+        "email": "99220041123@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "K Sai Prakash Reddy",
+        "registerNumber": "99220041216",
+        "email": "99220041216@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "K Shankar Reddy",
+        "registerNumber": "99220041233",
+        "email": "99220041233@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Nandyala Peddireddy",
+        "registerNumber": "99220041273",
+        "email": "99220041273@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Gade Bhumika",
+        "registerNumber": "99220041472",
+        "email": "99220041472@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Girinath G",
+        "registerNumber": "99220041478",
+        "email": "99220041478@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "K. Jaya Shree",
+        "registerNumber": "99220041493",
+        "email": "99220041493@klu.ac.in",
+        "department": "CSE(AIML)",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Kalari Hanusha",
+        "registerNumber": "99220041497",
+        "email": "99220041497@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Kolluru Hemanth",
+        "registerNumber": "99220041514",
+        "email": "99220041514@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
@@ -434,31 +434,119 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "MANDALURU BABJI",
-        "registerNumber": "99230040229",
-        "email": "99230040229@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "Mandepudi Sri Ram Sai",
-        "registerNumber": "99220040623",
-        "email": "99220040623@klu.ac.in",
+        "name": "Munaga Venkata Rakesh",
+        "registerNumber": "99220041533",
+        "email": "99220041533@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Manikandan M",
-        "registerNumber": "9922008418",
-        "email": "9922008418@klu.ac.in",
-        "department": "Information Technology",
+        "name": "99220041554@klu.ac.in",
+        "registerNumber": "99220041554",
+        "email": "99220041554@klu.ac.in",
+        "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "manikanta",
+        "name": "R Venkata Narayana",
+        "registerNumber": "99220041559",
+        "email": "99220041559@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Sanjay Uppalapati",
+        "registerNumber": "99220041569",
+        "email": "99220041569@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Dasari Sushmanth",
+        "registerNumber": "99220041626",
+        "email": "99220041626@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Gangala Deepchend",
+        "registerNumber": "99220041654",
+        "email": "99220041654@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Hari Sankar T U",
+        "registerNumber": "99220041778",
+        "email": "99220041778@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Kavin Loyola S",
+        "registerNumber": "99220041806",
+        "email": "99220041806@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Thota Durga Prasad",
+        "registerNumber": "99220041818",
+        "email": "99220041818@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Gopireddy Venkata Bhuvana Chandra Reddy",
+        "registerNumber": "99220041857",
+        "email": "99220041857@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Ganaparthi Manish",
+        "registerNumber": "99220041878",
+        "email": "99220041878@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Hari Prasath RK",
+        "registerNumber": "99220042005",
+        "email": "99220042005@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "N. Sanjeeva Saikumar",
+        "registerNumber": "99220042088",
+        "email": "99220042088@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "P. Charan Kumar",
+        "registerNumber": "99220042089",
+        "email": "99220042089@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Manikanta",
         "registerNumber": "9922005027",
         "email": "9922005027@klu.ac.in",
         "department": "ECE",
@@ -466,10 +554,42 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "MEGHANA JAYARAM",
-        "registerNumber": "99220040549",
-        "email": "99220040549@klu.ac.in",
-        "department": "CSE",
+        "name": "Gangapalli Harathi",
+        "registerNumber": "9922005034",
+        "email": "9922005034@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Jeyaharikaran DJ",
+        "registerNumber": "9922005038",
+        "email": "9922005038@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Kunchepu Lokesh",
+        "registerNumber": "9922005045",
+        "email": "9922005045@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "K. Bala Gopiraju",
+        "registerNumber": "9922005046",
+        "email": "9922005046@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "L. Mohana Satya Priya",
+        "registerNumber": "9922005048",
+        "email": "9922005048@klu.ac.in",
+        "department": "ECE",
         "yearOfStudy": "4",
         "role": "student"
     },
@@ -482,49 +602,265 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "Miruthula Priya S",
-        "registerNumber": "9922008228",
-        "email": "9922008228@klu.ac.in",
+        "name": "Shailesh N S",
+        "registerNumber": "9922005068",
+        "email": "9922005068@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Kedareswar T",
+        "registerNumber": "9922005072",
+        "email": "9922005072@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "B Charantej",
+        "registerNumber": "9922005088",
+        "email": "9922005088@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Ganta Dheemanth Chowdary",
+        "registerNumber": "9922005100",
+        "email": "9922005100@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "N Pavan Kumar Reddy",
+        "registerNumber": "9922005134",
+        "email": "9922005134@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "P. Sreenath Reddy",
+        "registerNumber": "9922005138",
+        "email": "9922005138@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Bandarupalli Sesha Giri Rao",
+        "registerNumber": "9922005173",
+        "email": "9922005173@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Chamarthi Venkata Sai Pavan Kumar",
+        "registerNumber": "9922005179",
+        "email": "9922005179@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Tarun Teja Kolamala",
+        "registerNumber": "9922005199",
+        "email": "9922005199@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "N Tharun Keshav Reddy",
+        "registerNumber": "9922005224",
+        "email": "9922005224@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "T Govardhan Reddy",
+        "registerNumber": "9922005250",
+        "email": "9922005250@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Theegala Narendra",
+        "registerNumber": "9922005252",
+        "email": "9922005252@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "D Ajay Dheeraj",
+        "registerNumber": "9922005275",
+        "email": "9922005275@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Vadra Anji Reddy",
+        "registerNumber": "9922005294",
+        "email": "9922005294@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Y.M.V. Vardhan",
+        "registerNumber": "9922005295",
+        "email": "9922005295@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Thoka Gopi",
+        "registerNumber": "9922005410",
+        "email": "9922005410@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Boobalan M",
+        "registerNumber": "9922008023",
+        "email": "9922008023@klu.ac.in",
         "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Mohamed Musthafa S",
-        "registerNumber": "99220040402",
-        "email": "99220040402@klu.ac.in",
-        "department": "Btech CSE(Aiml)",
+        "name": "Kaleeswaran M",
+        "registerNumber": "9922008040",
+        "email": "9922008040@klu.ac.in",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Mohamed Najeeb N",
-        "registerNumber": "9922008370",
-        "email": "9922008370@klu.ac.in",
-        "department": "B.tech information technology",
+        "name": "Karthick S",
+        "registerNumber": "9922008044",
+        "email": "9922008044@klu.ac.in",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Mohammad Sajid",
-        "registerNumber": "99230040214",
-        "email": "99230040214@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "Monfort Joel J",
-        "registerNumber": "99220040308",
-        "email": "99220040308@klu.ac.in",
-        "department": "CSE",
+        "name": "Lakshmipriya D",
+        "registerNumber": "9922008047",
+        "email": "9922008047@klu.ac.in",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "MOOHAMED SAMEER M",
-        "registerNumber": "9922008338",
-        "email": "9922008338@klu.ac.in",
+        "name": "Rishikumar P",
+        "registerNumber": "9922008061",
+        "email": "9922008061@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Sonith S",
+        "registerNumber": "9922008072",
+        "email": "9922008072@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "P. Thanush Kumar",
+        "registerNumber": "9922008073",
+        "email": "9922008073@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "T. Naga Chandra Shekar Reddy",
+        "registerNumber": "9922008074",
+        "email": "9922008074@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Vishnu Chandran N D",
+        "registerNumber": "9922008077",
+        "email": "9922008077@klu.ac.in",
+        "department": "IT-A",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Purushotham Chakali",
+        "registerNumber": "9922008102",
+        "email": "9922008102@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Hemachandravijay M",
+        "registerNumber": "9922008112",
+        "email": "9922008112@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Revanth V",
+        "registerNumber": "9922008153",
+        "email": "9922008153@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Sanjeev Kumar P K",
+        "registerNumber": "9922008158",
+        "email": "9922008158@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Mohan Varshith",
+        "registerNumber": "9922008163",
+        "email": "9922008163@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Indlamuri Yamini Sri",
+        "registerNumber": "9922008211",
+        "email": "9922008211@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Jothi Manikandan M",
+        "registerNumber": "9922008214",
+        "email": "9922008214@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Miruthula Priya S",
+        "registerNumber": "9922008228",
+        "email": "9922008228@klu.ac.in",
         "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
@@ -538,154 +874,82 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "N.pavan kumar reddy",
-        "registerNumber": "9922005134",
-        "email": "9922005134@klu.ac.in",
-        "department": "ECE",
+        "name": "Raja Mohit Venkata Sai Saketh",
+        "registerNumber": "9922008249",
+        "email": "9922008249@klu.ac.in",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "N.Sanjeeva Saikumar",
-        "registerNumber": "99220042088",
-        "email": "99220042088@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "N.Tharun keshav reddy",
-        "registerNumber": "9922005224",
-        "email": "9922005224@klu.ac.in",
-        "department": "ECE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Nag ulapati Harshavardhan Reddy",
-        "registerNumber": "99220040940",
-        "email": "99220040940@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "NAGAPURI YASHWANTH",
-        "registerNumber": "99220040937",
-        "email": "99220040937@klu.ac.in",
-        "department": "CSE(AIML)",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "NAIDU LOKESH CHOWDARY",
-        "registerNumber": "99220040941",
-        "email": "99220040941@klu.ac.in",
-        "department": "Cse",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Namala Naga Harshitha",
-        "registerNumber": "99220040946",
-        "email": "99220040946@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "NAMBURI AJAY",
-        "registerNumber": "99220040315",
-        "email": "99220040315@klu.ac.in",
-        "department": "Cse",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "NANDIGAM SOUNDARYA",
-        "registerNumber": "99220040316",
-        "email": "99220040316@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "NANDYALA PEDDIREDDY",
-        "registerNumber": "99220041273",
-        "email": "99220041273@klu.ac.in",
-        "department": "Cse",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "P Varsha",
-        "registerNumber": "99230040726",
-        "email": "99230040726@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "P.Charan Kumar",
-        "registerNumber": "99220042089",
-        "email": "99220042089@klu.ac.in",
-        "department": "Cse",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "P.Sreenath Reddy",
-        "registerNumber": "9922005138",
-        "email": "9922005138@klu.ac.in",
-        "department": "ECE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "P.Thanush kumar",
-        "registerNumber": "9922008073",
-        "email": "9922008073@klu.ac.in",
-        "department": "Information technology",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "R Sanjay raju",
-        "registerNumber": "99230040743",
-        "email": "99230040743@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "3",
-        "role": "student"
-    },
-    {
-        "name": "Rapuru Hareen Reddy",
-        "registerNumber": "99220040980",
-        "email": "99220040980@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Rishikumar P",
-        "registerNumber": "9922008061",
-        "email": "9922008061@klu.ac.in",
-        "department": "B tech IT",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Sanjay kumar k",
+        "name": "Sanjay Kumar K",
         "registerNumber": "9922008257",
         "email": "9922008257@klu.ac.in",
-        "department": "B-tech information technology",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Santhanakumar M",
-        "registerNumber": "9922008437",
-        "email": "9922008437@klu.ac.in",
-        "department": "B.Tech IT",
+        "name": "Yogesh M",
+        "registerNumber": "9922008278",
+        "email": "9922008278@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "S. Madhesh Kumar",
+        "registerNumber": "9922008313",
+        "email": "9922008313@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Gokulraj E",
+        "registerNumber": "9922008322",
+        "email": "9922008322@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Surya V",
+        "registerNumber": "9922008328",
+        "email": "9922008328@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Logesh G",
+        "registerNumber": "9922008335",
+        "email": "9922008335@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Moohamed Sameer M",
+        "registerNumber": "9922008338",
+        "email": "9922008338@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Billy Daniel W",
+        "registerNumber": "9922008346",
+        "email": "9922008346@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Konasani Mourya",
+        "registerNumber": "9922008348",
+        "email": "9922008348@klu.ac.in",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
@@ -693,15 +957,103 @@ const studentsData = [
         "name": "Sarathi SA",
         "registerNumber": "9922008353",
         "email": "9922008353@klu.ac.in",
-        "department": "B Tech IT",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "Seelam Harshitha",
-        "registerNumber": "99220040350",
-        "email": "99220040350@klu.ac.in",
-        "department": "CSE",
+        "name": "Balasubramaniyaraja C",
+        "registerNumber": "9922008363",
+        "email": "9922008363@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Devi BLM",
+        "registerNumber": "9922008364",
+        "email": "9922008364@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Goutham Balaji",
+        "registerNumber": "9922008366",
+        "email": "9922008366@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Harish Kumar S",
+        "registerNumber": "9922008367",
+        "email": "9922008367@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Mohamed Najeeb N",
+        "registerNumber": "9922008370",
+        "email": "9922008370@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Piyush Kumar",
+        "registerNumber": "9922008371",
+        "email": "9922008371@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Battula Vasanth",
+        "registerNumber": "9922008407",
+        "email": "9922008407@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "T. Mathankumar",
+        "registerNumber": "9922008414",
+        "email": "9922008414@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Manikandan M",
+        "registerNumber": "9922008418",
+        "email": "9922008418@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Sundara Pandian P",
+        "registerNumber": "9922008431",
+        "email": "9922008431@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Santhanakumar M",
+        "registerNumber": "9922008437",
+        "email": "9922008437@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Dharshan Kumar",
+        "registerNumber": "9922008448",
+        "email": "9922008448@klu.ac.in",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
@@ -709,23 +1061,7 @@ const studentsData = [
         "name": "Sivamonish N",
         "registerNumber": "9922008451",
         "email": "9922008451@klu.ac.in",
-        "department": "B.tech IT",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Sumanth reddy Yadapalli",
-        "registerNumber": "99220040377",
-        "email": "99220040377@klu.ac.in",
-        "department": "Cse",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Surya.V",
-        "registerNumber": "9922008328",
-        "email": "9922008328@klu.ac.in",
-        "department": "B.Tech IT",
+        "department": "IT",
         "yearOfStudy": "4",
         "role": "student"
     },
@@ -738,91 +1074,507 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "T GOVARDHAN REDDY",
-        "registerNumber": "9922005250",
-        "email": "9922005250@klu.ac.in",
-        "department": "ECE",
+        "name": "Sakshi Thakur",
+        "registerNumber": "9922020005",
+        "email": "9922020005@klu.ac.in",
+        "department": "Biomedical",
         "yearOfStudy": "4",
         "role": "student"
     },
     {
-        "name": "T.Mathankumar",
-        "registerNumber": "9922008414",
-        "email": "9922008414@klu.ac.in",
-        "department": "Btech it",
-        "yearOfStudy": "4",
+        "name": "M. Mohasin",
+        "registerNumber": "99230040038",
+        "email": "99230040038@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
         "role": "student"
     },
     {
-        "name": "T.naga chandra shekar reddy",
-        "registerNumber": "9922008074",
-        "email": "9922008074@klu.ac.in",
-        "department": "IT",
-        "yearOfStudy": "4",
+        "name": "P. Manasa",
+        "registerNumber": "99230040048",
+        "email": "99230040048@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Atteppagari Hareesh Kumar",
+        "registerNumber": "99230040076",
+        "email": "99230040076@klu.ac.in",
+        "department": "CSE(AIML)",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Bethapudi Rupesh",
+        "registerNumber": "99230040082",
+        "email": "99230040082@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "B. Vishnu Vardhan Reddy",
+        "registerNumber": "99230040090",
+        "email": "99230040090@klu.ac.in",
+        "department": "CSE(AIML)",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "G. Venkata Gopi",
+        "registerNumber": "99230040102",
+        "email": "99230040102@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "T Mohan Reddy",
+        "registerNumber": "99230040178",
+        "email": "99230040178@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Kotapati Naveen",
+        "registerNumber": "99230040202",
+        "email": "99230040202@klu.ac.in",
+        "department": "CSE(DS)",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Mohammad Sajid",
+        "registerNumber": "99230040214",
+        "email": "99230040214@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Galam Harish",
+        "registerNumber": "99230040224",
+        "email": "99230040224@klu.ac.in",
+        "department": "CES-AIML",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Mandaluru Babji",
+        "registerNumber": "99230040229",
+        "email": "99230040229@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Kudumula Vamshi Krishna Reddy",
+        "registerNumber": "99230040237",
+        "email": "99230040237@klu.ac.in",
+        "department": "CSE(AIML)",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Bhavya",
+        "registerNumber": "99230040274",
+        "email": "99230040274@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Dasari Jyothi Venkata Sai Srinivas",
+        "registerNumber": "99230040290",
+        "email": "99230040290@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Chandrasen K",
+        "registerNumber": "99230040333",
+        "email": "99230040333@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Charan",
+        "registerNumber": "99230040358",
+        "email": "99230040358@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "R Vamsi Krishna",
+        "registerNumber": "99230040415",
+        "email": "99230040415@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Sanda Saibalaji",
+        "registerNumber": "99230040417",
+        "email": "99230040417@klu.ac.in",
+        "department": "CSE(AIML)",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "G. Hari Prasad",
+        "registerNumber": "99230040542",
+        "email": "99230040542@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Jampani Chandramouli",
+        "registerNumber": "99230040573",
+        "email": "99230040573@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "J Sri Vishnu",
+        "registerNumber": "99230040575",
+        "email": "99230040575@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "P Varsha",
+        "registerNumber": "99230040726",
+        "email": "99230040726@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "R Sanjay Raju",
+        "registerNumber": "99230040743",
+        "email": "99230040743@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "K. Chandra Sekhar",
+        "registerNumber": "99230040840",
+        "email": "99230040840@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Unregistered Student",
+        "registerNumber": "99230040850",
+        "email": "99230040850@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Kalva Gunasree",
+        "registerNumber": "99230040973",
+        "email": "99230040973@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Sabari Kumar V G",
+        "registerNumber": "99230041142",
+        "email": "99230041142@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Kamalaa Sri M",
+        "registerNumber": "99230041180",
+        "email": "99230041180@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "M. Bhanu Teja Reddy",
+        "registerNumber": "99230041181",
+        "email": "99230041181@klu.ac.in",
+        "department": "CSE(AIML)",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "K Ghandeev Raj",
+        "registerNumber": "99230041228",
+        "email": "99230041228@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "3",
         "role": "student"
     },
     {
         "name": "T.V. Harshavardhan",
         "registerNumber": "99230041270",
         "email": "99230041270@klu.ac.in",
-        "department": "Cse",
+        "department": "CSE",
         "yearOfStudy": "3",
         "role": "student"
     },
     {
-        "name": "TARUN TEJA KOLAMALA",
-        "registerNumber": "9922005199",
-        "email": "9922005199@klu.ac.in",
+        "name": "Golla Mahesh",
+        "registerNumber": "9923005082",
+        "email": "9923005082@klu.ac.in",
         "department": "ECE",
-        "yearOfStudy": "4",
+        "yearOfStudy": "3",
         "role": "student"
     },
     {
-        "name": "UDAYAPRAKASH B",
-        "registerNumber": "99220040215",
-        "email": "99220040215@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Vadra Anji Reddy",
-        "registerNumber": "9922005294",
-        "email": "9922005294@klu.ac.in",
+        "name": "Papisetty Anushka",
+        "registerNumber": "9923005116",
+        "email": "9923005116@klu.ac.in",
         "department": "ECE",
-        "yearOfStudy": "4",
+        "yearOfStudy": "3",
         "role": "student"
     },
     {
-        "name": "Varigi Charaneswar Reddy",
-        "registerNumber": "99220040765",
-        "email": "9922040765@klu.ac.in",
-        "department": "CSE",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Vishnu Chandran N D",
-        "registerNumber": "9922008077",
-        "email": "9922008077@klu.ac.in",
-        "department": "Information Technology",
-        "yearOfStudy": "4",
-        "role": "student"
-    },
-    {
-        "name": "Y.M.V.VARDHAN",
-        "registerNumber": "9922005295",
-        "email": "9922005295@klu.ac.in",
+        "name": "Aarthika S",
+        "registerNumber": "9923005269",
+        "email": "9923005269@klu.ac.in",
         "department": "ECE",
-        "yearOfStudy": "4",
+        "yearOfStudy": "3",
         "role": "student"
     },
     {
-        "name": "Yogesh M",
-        "registerNumber": "9922008278",
-        "email": "9922008278@klu.ac.in",
-        "department": "Information technology",
-        "yearOfStudy": "4",
+        "name": "J. Jeyanitha",
+        "registerNumber": "9923005271",
+        "email": "9923005271@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Kanniga M",
+        "registerNumber": "9923005272",
+        "email": "9923005272@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Karthika G",
+        "registerNumber": "9923005273",
+        "email": "9923005273@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "R. Bhuvaneshwari",
+        "registerNumber": "9923005283",
+        "email": "9923005283@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "K. Roshini",
+        "registerNumber": "9923005297",
+        "email": "9923005297@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Chitra Manoj Kumar",
+        "registerNumber": "9923005313",
+        "email": "9923005313@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Vijaya Vasan V",
+        "registerNumber": "9923008081",
+        "email": "9923008081@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Ahsan Najeeba M",
+        "registerNumber": "9923008122",
+        "email": "9923008122@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Srinithi D",
+        "registerNumber": "9923008138",
+        "email": "9923008138@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "3",
+        "role": "student"
+    },
+    {
+        "name": "Varshitha M",
+        "registerNumber": "9924001022",
+        "email": "9924001022@klu.ac.in",
+        "department": "Biotech",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Gurru Ganesh S K",
+        "registerNumber": "9924005056",
+        "email": "9924005056@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "P. Joban",
+        "registerNumber": "9924005076",
+        "email": "9924005076@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "R. Prasanna",
+        "registerNumber": "9924005136",
+        "email": "9924005136@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Ragu Balan A",
+        "registerNumber": "9924005137",
+        "email": "9924005137@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Arun Indhu M",
+        "registerNumber": "9924005183",
+        "email": "9924005183@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Gokul B",
+        "registerNumber": "9924005376",
+        "email": "9924005376@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "R Sridharan",
+        "registerNumber": "9924005460",
+        "email": "9924005460@klu.ac.in",
+        "department": "ECE",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Yashwanth Gunasekaran",
+        "registerNumber": "9924008040",
+        "email": "9924008040@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Devagiri Jeevan Reddy",
+        "registerNumber": "9924008077",
+        "email": "9924008077@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Rayala Vamsi",
+        "registerNumber": "9924008083",
+        "email": "9924008083@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Thepireddy Vishnuvardhan Reddy",
+        "registerNumber": "9924008086",
+        "email": "9924008086@gmail.com",
+        "department": "IT",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Kancherla Surya Sai Teja",
+        "registerNumber": "9924008091",
+        "email": "9924008091@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Medida Phanindra Reddy",
+        "registerNumber": "9924008102",
+        "email": "9924008102@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Vemula Chenchu Naga Venkata Tharun Sai",
+        "registerNumber": "9924008127",
+        "email": "9924008127@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "V. Yashvanth Kumar Reddy",
+        "registerNumber": "9924008129",
+        "email": "9924008129@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Ashmi Narayana Perumal",
+        "registerNumber": "9924011001",
+        "email": "9924011001@klu.ac.in",
+        "department": "Food Technology",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Kishore Kumar S",
+        "registerNumber": "9924011035",
+        "email": "9924011035@klu.ac.in",
+        "department": "Food Technology",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
+        "name": "Shakunth C",
+        "registerNumber": "9924011056",
+        "email": "9924011056@klu.ac.in",
+        "department": "Food Technology",
+        "yearOfStudy": "2",
         "role": "student"
     },
     {
@@ -831,7 +1583,7 @@ const studentsData = [
         "email": "9988776655@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "2",
-        "role": "student"
+        "role": "teacher"
     }
 ];
 
@@ -841,585 +1593,65 @@ const seedData = async () => {
 
         console.log('🌱 Starting database seeding...\n');
 
-        // Clear existing students only (Keep admins)
-        await User.deleteMany({ role: 'student' });
-        console.log('🧹 Cleared existing student records');
+        // 1. Admin Logic (Additive)
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const existingAdmin = await User.findOne({ email: adminEmail });
+        if (!existingAdmin) {
+            console.log('\nCreating new admin...');
+            await User.create({
+                registerNumber: process.env.ADMIN_REGISTER_NUMBER,
+                email: adminEmail,
+                password: process.env.ADMIN_PASSWORD,
+                name: 'System Administrator',
+                role: 'admin'
+            });
+            console.log(`✅ Admin created: ${adminEmail}`);
+        } else {
+            console.log(`✅ Admin already exists: ${adminEmail}`);
+        }
 
-        // Clear existing students and admins (to refresh with latest from .env)
-        console.log('🧹 Clearing existing users...');
-        await User.deleteMany({}); // Delete ALL users for a truly clean slate
-        console.log('✅ All existing users removed');
+        // 2. Student Logic (Additive & Unique)
+        console.log('\nProcessing students...');
 
-        // Create new admin from .env
-        console.log('\nCreating new admin...');
-        await User.create({
-            registerNumber: process.env.ADMIN_REGISTER_NUMBER,
-            email: process.env.ADMIN_EMAIL,
-            password: process.env.ADMIN_PASSWORD,
-            name: 'System Administrator',
-            role: 'admin'
+        // Deduplicate source array based on registerNumber
+        const uniqueSourceStudents = new Map();
+        studentsData.forEach(s => {
+            if (s.registerNumber) uniqueSourceStudents.set(s.registerNumber, s);
         });
-        console.log(`✅ Admin created: ${process.env.ADMIN_EMAIL}`);
 
-        // Create students
-        console.log('\nCreating students...');
-        for (const studentData of studentsData) {
-            // Password is set to registerNumber as per requirements
+        let added = 0;
+        let skipped = 0;
+
+        for (const studentData of uniqueSourceStudents.values()) {
+            const exists = await User.findOne({ registerNumber: studentData.registerNumber });
+            if (exists) {
+                skipped++;
+                continue;
+            }
+
             const student = {
                 ...studentData,
                 password: studentData.registerNumber
             };
 
             await User.create(student);
-            console.log(`✓ Created student: ${student.registerNumber} - ${student.name}`);
+            console.log(`✓ Added student: ${student.registerNumber} - ${student.name}`);
+            added++;
         }
+        console.log(`\nUser Sync Complete: Added ${added}, Skipped ${skipped}`);
 
-        // Clear existing days and sessions to start fresh with original data
-        await Day.deleteMany({});
-        await Session.deleteMany({});
-        await Attendance.deleteMany({});
-        await AssignmentSubmission.deleteMany({});
-        console.log('🧹 Cleared existing days, sessions, attendance, and assignment records');
+        // 3. preserve existing days and sessions
+        console.log('\nℹ️  Skipping Day/Session reset to preserve existing data.');
+        console.log('   (To reset sessions/attendance, use a separate cleanup script or revert this change in seed.js)');
 
-        // Create workshop days
-        const days = [
-            {
-                dayNumber: 1,
-                title: 'Git & GitHub (Version Control), Infosys: AI for Data Analytics (30 Hours)',
-                status: 'LOCKED',
-                date: new Date('2026-02-10')
-            },
-            { dayNumber: 2, title: 'MongoDB Connection & Integration (Hands-on)', status: 'LOCKED', date: new Date('2026-02-11') },
-            { dayNumber: 3, title: 'Prompt Frameworks & Edge AI', status: 'LOCKED', date: new Date('2026-02-12') },
-            { dayNumber: 4, title: 'No-Code AI Tools', status: 'LOCKED', date: new Date('2026-02-13') },
-            { dayNumber: 5, title: 'Software Design & Development (SDD)', status: 'LOCKED', date: new Date('2026-02-17') },
-            { dayNumber: 6, title: 'MERN Stacks', status: 'LOCKED', date: new Date('2026-02-18') },
-            { dayNumber: 7, title: 'GEN AI', status: 'LOCKED', date: new Date('2026-02-19') },
-            { dayNumber: 8, title: 'Workflow Automation (n8n) & Linux Foundations', status: 'LOCKED', date: new Date('2026-02-21') }
-        ];
-
-        console.log('\nCreating workshop days...');
-        const createdDays = [];
-        for (const dayData of days) {
-            const day = await Day.create(dayData);
-            createdDays.push(day);
-            console.log(`✓ Created Day ${day.dayNumber}: ${day.title}`);
-        }
-
-        // Create sessions for Day 1
-        const day1 = createdDays[0];
-        const sessionsForDay1 = [
-            {
-                dayId: day1._id,
-                title: 'Infosys Certified Course',
-                description: 'Online (Self-paced) | AI for Data Analytics & Business Intelligence | 30 Hours (Complete before live sessions)',
-                attendanceOpen: false,
-                mode: 'ONLINE',
-                startTime: new Date('2026-02-10T00:00:00'),
-                endTime: new Date('2026-02-10T23:59:59'),
-                attendanceEndTime: new Date('2026-02-11T23:59:59'),
-                assignments: [
-                    {
-                        title: 'Course Completion Certificate',
-                        type: 'file',
-                        description: 'Upload your Infosys course completion certificate'
-                    }
-                ]
-            },
-            {
-                dayId: day1._id,
-                title: 'Introduction, Commands, CLI, Repo',
-                description: 'Day 1 Training: Fundamental Git concepts and operations',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-10T18:00:00'),
-                endTime: new Date('2026-02-10T19:00:00'),
-                attendanceStartTime: new Date('2026-02-10T18:00:00'),
-                attendanceEndTime: new Date('2026-02-10T18:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'GitHub Repository Link',
-                        type: 'link',
-                        description: 'Share your first repository link'
-                    }
-                ]
-            },
-            {
-                dayId: day1._id,
-                title: 'Opensource Startups',
-                description: 'Day 1 Training: Understanding open source ecosystem',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-10T19:00:00'),
-                endTime: new Date('2026-02-10T20:00:00'),
-                attendanceStartTime: new Date('2026-02-10T19:00:00'),
-                attendanceEndTime: new Date('2026-02-10T19:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'Contribution Ideas',
-                        type: 'text',
-                        description: 'List 3 open source projects you would like to contribute to'
-                    }
-                ]
-            },
-            {
-                dayId: day1._id,
-                title: 'Assessment',
-                description: 'Day 1 Training: Quick check of today\'s learnings',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-10T20:00:00'),
-                endTime: new Date('2026-02-10T21:00:00'),
-                attendanceStartTime: new Date('2026-02-10T20:00:00'),
-                attendanceEndTime: new Date('2026-02-10T20:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'Day 1 Concept Quiz',
-                        type: 'text',
-                        description: 'Answer the questions provided during the session'
-                    }
-                ]
-            }
-        ];
-
-        for (const sessionData of sessionsForDay1) {
-            await Session.create(sessionData);
-            console.log(`  ✓ Created session: ${sessionData.title}`);
-        }
-
-        // Create sessions for Day 2
-        const day2 = createdDays[1];
-        const sessionsForDay2 = [
-            {
-                dayId: day2._id,
-                title: 'Introduction, Installation and setup',
-                description: 'Day 2 Training: Getting started with MongoDB',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-11T18:00:00'),
-                endTime: new Date('2026-02-11T19:00:00'),
-                attendanceStartTime: new Date('2026-02-11T18:00:00'),
-                attendanceEndTime: new Date('2026-02-11T18:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'Installation Proof',
-                        type: 'text',
-                        description: 'Paste your MongoDB version output'
-                    }
-                ]
-            },
-            {
-                dayId: day2._id,
-                title: 'Using MongoDB atlas compass and making simple node.js project',
-                description: 'Day 2 Training: Connecting Node to Mongo',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-11T19:00:00'),
-                endTime: new Date('2026-02-11T20:00:00'),
-                attendanceStartTime: new Date('2026-02-11T19:00:00'),
-                attendanceEndTime: new Date('2026-02-11T19:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'Atlas Cluster Screenshot',
-                        type: 'file',
-                        description: 'Upload a screenshot of your Atlas dashboard'
-                    }
-                ]
-            },
-            {
-                dayId: day2._id,
-                title: 'Assessment',
-                description: 'Day 2 Training: Quick check of MongoDB concepts',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-11T20:00:00'),
-                endTime: new Date('2026-02-11T21:00:00'),
-                attendanceStartTime: new Date('2026-02-11T20:00:00'),
-                attendanceEndTime: new Date('2026-02-11T20:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'Day 2 Concept Quiz',
-                        type: 'text',
-                        description: 'Answer the questions provided during the session'
-                    }
-                ]
-            }
-        ];
-
-        for (const sessionData of sessionsForDay2) {
-            await Session.create(sessionData);
-            console.log(`  ✓ Created session: ${sessionData.title}`);
-        }
-
-        // Create sessions for Day 3
-        const day3 = createdDays[2];
-        const sessionsForDay3 = [
-            {
-                dayId: day3._id,
-                title: 'NPC Behavior',
-                description: 'Day 3 Training: Designing intelligent characters',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-12T18:00:00'),
-                endTime: new Date('2026-02-12T19:00:00'),
-                attendanceStartTime: new Date('2026-02-12T18:00:00'),
-                attendanceEndTime: new Date('2026-02-12T18:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'Behavior Logic Draft',
-                        type: 'text',
-                        description: 'Write a short prompt for an NPC shopkeeper'
-                    }
-                ]
-            },
-            {
-                dayId: day3._id,
-                title: 'Prompt Frameworks',
-                description: 'Day 3 Training: Mastering advanced prompting techniques',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-12T19:00:00'),
-                endTime: new Date('2026-02-12T20:00:00'),
-                attendanceStartTime: new Date('2026-02-12T19:00:00'),
-                attendanceEndTime: new Date('2026-02-12T19:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'Framework Application',
-                        type: 'text',
-                        description: 'Apply the CO-STAR framework to a task'
-                    }
-                ]
-            },
-            {
-                dayId: day3._id,
-                title: 'Assessment',
-                description: 'Day 3 Training: Quick check of Prompting & Edge AI concepts',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-12T20:00:00'),
-                endTime: new Date('2026-02-12T21:00:00'),
-                attendanceStartTime: new Date('2026-02-12T20:00:00'),
-                attendanceEndTime: new Date('2026-02-12T20:15:00'),
-                mode: 'ONLINE',
-                assignments: [
-                    {
-                        title: 'Day 3 Concept Quiz',
-                        type: 'text',
-                        description: 'Answer the questions provided during the session'
-                    }
-                ]
-            }
-        ];
-
-        for (const sessionData of sessionsForDay3) {
-            await Session.create(sessionData);
-            console.log(`  ✓ Created session: ${sessionData.title}`);
-        }
-
-        // Create sessions for Day 4
-        const day4 = createdDays[3];
-        const sessionsForDay4 = [
-            {
-                dayId: day4._id,
-                title: 'Cursor, Copilot',
-                description: 'Day 4 Training: Speeding up development with AI extensions',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-13T18:00:00'),
-                endTime: new Date('2026-02-13T19:00:00'),
-                attendanceStartTime: new Date('2026-02-13T18:00:00'),
-                attendanceEndTime: new Date('2026-02-13T18:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'AI Code Snapshot', type: 'text', description: 'Paste a code snippet generated via Cursor/Copilot' }]
-            },
-            {
-                dayId: day4._id,
-                title: 'Replit, Orchids',
-                description: 'Day 4 Training: Cloud development and automated workflows',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-13T19:00:00'),
-                endTime: new Date('2026-02-13T20:00:00'),
-                attendanceStartTime: new Date('2026-02-13T19:00:00'),
-                attendanceEndTime: new Date('2026-02-13T19:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Deployment Link', type: 'link', description: 'Share your Replit project link' }]
-            },
-            {
-                dayId: day4._id,
-                title: 'Assessment',
-                description: 'Day 4 Training: Quick check of No-Code AI tools',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-13T20:00:00'),
-                endTime: new Date('2026-02-13T21:00:00'),
-                attendanceStartTime: new Date('2026-02-13T20:00:00'),
-                attendanceEndTime: new Date('2026-02-13T20:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Day 4 Quiz', type: 'text', description: 'Complete the quiz' }]
-            }
-        ];
-
-        for (const sessionData of sessionsForDay4) {
-            await Session.create(sessionData);
-            console.log(`  ✓ Created session: ${sessionData.title}`);
-        }
-
-        // Create sessions for Day 5
-        const day5 = createdDays[4];
-        const sessionsForDay5 = [
-            {
-                dayId: day5._id,
-                title: 'Introduction and system design',
-                description: 'Day 5 Training: Core concepts of SDD',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-17T18:00:00'),
-                endTime: new Date('2026-02-17T19:00:00'),
-                attendanceStartTime: new Date('2026-02-17T18:00:00'),
-                attendanceEndTime: new Date('2026-02-17T18:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'System Requirement List', type: 'text', description: 'List functional and non-functional requirements' }]
-            },
-            {
-                dayId: day5._id,
-                title: 'High level design',
-                description: 'Day 5 Training: Architecture and components',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-17T19:00:00'),
-                endTime: new Date('2026-02-17T20:00:00'),
-                attendanceStartTime: new Date('2026-02-17T19:00:00'),
-                attendanceEndTime: new Date('2026-02-17T19:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Architecture Diagram link', type: 'link', description: 'Link to your design diagram (Canva/Excalidraw)' }]
-            },
-            {
-                dayId: day5._id,
-                title: 'Low level Design',
-                description: 'Day 5 Training: Detailed component design',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-17T20:00:00'),
-                endTime: new Date('2026-02-17T21:00:00'),
-                attendanceStartTime: new Date('2026-02-17T20:00:00'),
-                attendanceEndTime: new Date('2026-02-17T20:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Schema Design', type: 'text', description: 'Define the database schema' }]
-            }
-        ];
-
-        for (const sessionData of sessionsForDay5) {
-            await Session.create(sessionData);
-            console.log(`  ✓ Created session: ${sessionData.title}`);
-        }
-
-        // Create sessions for Day 6
-        const day6 = createdDays[5];
-        const sessionsForDay6 = [
-            {
-                dayId: day6._id,
-                title: 'Frontend',
-                description: 'Day 6 Training: Building responsive UI with React',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-18T18:00:00'),
-                endTime: new Date('2026-02-18T19:00:00'),
-                attendanceStartTime: new Date('2026-02-18T18:00:00'),
-                attendanceEndTime: new Date('2026-02-18T18:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Component Screenshot', type: 'file', description: 'Upload a screenshot of your React component' }]
-            },
-            {
-                dayId: day6._id,
-                title: 'Backend',
-                description: 'Day 6 Training: API Development with Node and Express',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-18T19:00:00'),
-                endTime: new Date('2026-02-18T20:00:00'),
-                attendanceStartTime: new Date('2026-02-18T19:00:00'),
-                attendanceEndTime: new Date('2026-02-18T19:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'API Endpoint Code', type: 'text', description: 'Paste your GET/POST route code' }]
-            },
-            {
-                dayId: day6._id,
-                title: 'Assessment',
-                description: 'Day 6 Training: MERN Stack verification',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-18T20:00:00'),
-                endTime: new Date('2026-02-18T21:00:00'),
-                attendanceStartTime: new Date('2026-02-18T20:00:00'),
-                attendanceEndTime: new Date('2026-02-18T20:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Day 6 Quiz', type: 'text', description: 'Complete the MERN evaluation' }]
-            }
-        ];
-
-        for (const sessionData of sessionsForDay6) {
-            await Session.create(sessionData);
-            console.log(`  ✓ Created session: ${sessionData.title}`);
-        }
-
-        // Create sessions for Day 7
-        const day7 = createdDays[6];
-        const sessionsForDay7 = [
-            {
-                dayId: day7._id,
-                title: 'Introduction to GEN AI, setting up the environment',
-                description: 'Day 7 Training: Understanding LLMs and setups',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-19T18:00:00'),
-                endTime: new Date('2026-02-19T19:00:00'),
-                attendanceStartTime: new Date('2026-02-19T18:00:00'),
-                attendanceEndTime: new Date('2026-02-19T18:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Environment Config', type: 'text', description: 'List the libraries/tools installed' }]
-            },
-            {
-                dayId: day7._id,
-                title: 'RAG concepts and fundamentals',
-                description: 'Day 7 Training: Retrieval-Augmented Generation',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-19T19:00:00'),
-                endTime: new Date('2026-02-19T20:00:00'),
-                attendanceStartTime: new Date('2026-02-19T19:00:00'),
-                attendanceEndTime: new Date('2026-02-19T19:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Vector DB choice', type: 'text', description: 'Explain why you chose a specific VectorDB' }]
-            },
-            {
-                dayId: day7._id,
-                title: 'Assessment',
-                description: 'Day 7 Training: GEN AI Finale',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-19T20:00:00'),
-                endTime: new Date('2026-02-19T21:00:00'),
-                attendanceStartTime: new Date('2026-02-19T20:00:00'),
-                attendanceEndTime: new Date('2026-02-19T20:15:00'),
-                mode: 'ONLINE',
-                assignments: [{ title: 'Day 7 Quiz', type: 'text', description: 'Final GenAI evaluation' }]
-            }
-        ];
-
-        for (const sessionData of sessionsForDay7) {
-            await Session.create(sessionData);
-            console.log(`  ✓ Created session: ${sessionData.title}`);
-        }
-
-        // Create sessions for Day 8
-        const day8 = createdDays[7];
-        const sessionsForDay8 = [
-            {
-                dayId: day8._id,
-                title: 'Setup & First Workflow',
-                description: 'Day 8 Training: Workflow Automation using n8n',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T09:00:00'),
-                endTime: new Date('2026-02-21T10:00:00'),
-                attendanceStartTime: new Date('2026-02-21T09:00:00'),
-                attendanceEndTime: new Date('2026-02-21T09:15:00'),
-                mode: 'OFFLINE',
-                assignments: [{ title: 'n8n Setup Proof', type: 'text', description: 'Paste the URL of your local n8n instance' }]
-            },
-            {
-                dayId: day8._id,
-                title: 'APIs, Webhooks & Second Workflow',
-                description: 'Day 8 Training: Connecting external services',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T10:00:00'),
-                endTime: new Date('2026-02-21T11:00:00'),
-                attendanceStartTime: new Date('2026-02-21T10:00:00'),
-                attendanceEndTime: new Date('2026-02-21T10:15:00'),
-                mode: 'OFFLINE',
-                assignments: [{ title: 'Webhook Trigger Test', type: 'text', description: 'Describe your webhook logic' }]
-            },
-            {
-                dayId: day8._id,
-                title: 'Cloud Credentials & Final Workflow',
-                description: 'Day 8 Training: Advanced integrations',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T11:00:00'),
-                endTime: new Date('2026-02-21T12:00:00'),
-                attendanceStartTime: new Date('2026-02-21T11:00:00'),
-                attendanceEndTime: new Date('2026-02-21T11:15:00'),
-                mode: 'OFFLINE',
-                assignments: [{ title: 'Final n8n Workflow Export', type: 'text', description: 'Paste the JSON export of your final workflow' }]
-            },
-            {
-                dayId: day8._id,
-                title: 'Customization, Debugging & Wrap-up',
-                description: 'Day 8 Training: Troubleshooting and optimization',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T12:00:00'),
-                endTime: new Date('2026-02-21T13:00:00'),
-                attendanceStartTime: new Date('2026-02-21T12:00:00'),
-                attendanceEndTime: new Date('2026-02-21T12:15:00'),
-                mode: 'OFFLINE',
-                assignments: [{ title: 'Optimization Note', type: 'text', description: 'How did you improve your workflow?' }]
-            },
-            {
-                dayId: day8._id,
-                title: 'Lunch',
-                description: 'Enjoy your lunch!',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T13:00:00'),
-                endTime: new Date('2026-02-21T14:00:00'),
-                mode: 'OFFLINE',
-                type: 'BREAK',
-                assignments: [] // No assignments for lunch
-            },
-            {
-                dayId: day8._id,
-                title: 'Introduction and setup Windows subsystem for Linux',
-                description: 'Day 8 Training: Linux Fundamentals & WSL',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T14:00:00'),
-                endTime: new Date('2026-02-21T15:00:00'),
-                attendanceStartTime: new Date('2026-02-21T14:00:00'),
-                attendanceEndTime: new Date('2026-02-21T14:15:00'),
-                mode: 'OFFLINE',
-                assignments: [{ title: 'WSL Version Proof', type: 'text', description: 'Paste output of wsl -l -v' }]
-            },
-            {
-                dayId: day8._id,
-                title: 'Linux Commands and package manager',
-                description: 'Day 8 Training: Mastering the terminal',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T15:00:00'),
-                endTime: new Date('2026-02-21T16:00:00'),
-                attendanceStartTime: new Date('2026-02-21T15:00:00'),
-                attendanceEndTime: new Date('2026-02-21T15:15:00'),
-                mode: 'OFFLINE',
-                assignments: [{ title: 'Command Mastery list', type: 'text', description: 'List 5 useful linux commands you learned' }]
-            },
-            {
-                dayId: day8._id,
-                title: 'Linux foundations',
-                description: 'Day 8 Training: Kernel, Shel and Process Management',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T16:00:00'),
-                endTime: new Date('2026-02-21T17:00:00'),
-                attendanceStartTime: new Date('2026-02-21T16:00:00'),
-                attendanceEndTime: new Date('2026-02-21T16:15:00'),
-                mode: 'OFFLINE',
-                assignments: [{ title: 'Foundations Quiz', type: 'text', description: 'Quick conceptual check' }]
-            },
-            {
-                dayId: day8._id,
-                title: 'Assessment',
-                description: 'Day 8 Training: Final Workshop Evaluation',
-                attendanceOpen: false,
-                startTime: new Date('2026-02-21T17:00:00'),
-                endTime: new Date('2026-02-21T18:00:00'),
-                attendanceStartTime: new Date('2026-02-21T17:00:00'),
-                attendanceEndTime: new Date('2026-02-21T17:15:00'),
-                mode: 'OFFLINE',
-                assignments: [{ title: 'Workshop Feedback', type: 'text', description: 'Share your key takeaways' }]
-            }
-        ];
-
-        for (const sessionData of sessionsForDay8) {
-            await Session.create(sessionData);
-            console.log(`  ✓ Created session: ${sessionData.title}`);
-        }
+        // Get total count
+        const totalUsers = await User.countDocuments();
 
         console.log('\n✅ Database seeding completed successfully!');
         console.log('\n📋 Summary:');
-        console.log(`   Students Created: ${studentsData.length}`);
-        console.log(`   Days Created: ${createdDays.length}`);
+        console.log(`   New Users Added: ${added}`);
+        console.log(`   Existing Users Skipped: ${skipped}`);
+        console.log(`   Total Users in DB: ${totalUsers}`);
         console.log(`   Login Rule: Password = Register Number`);
 
         process.exit(0);

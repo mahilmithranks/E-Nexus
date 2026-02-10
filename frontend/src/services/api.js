@@ -1,7 +1,16 @@
 import axios from 'axios';
 
+// Helper to handle missing protocol in VITE_API_URL
+const getBaseUrl = () => {
+    let url = import.meta.env.VITE_API_URL;
+    if (!url) return '/api';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return url;
+    return `https://${url}`;
+};
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
+    baseURL: getBaseUrl(),
     timeout: 60000,
     headers: {
         'Content-Type': 'application/json'

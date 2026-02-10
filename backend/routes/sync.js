@@ -33,8 +33,17 @@ router.get('/check', protect, async (req, res) => {
 
         res.json({ lastUpdate });
     } catch (error) {
+        console.error('❌ Sync check error details:', {
+            message: error.message,
+            stack: error.stack,
+            cache: cachedSync
+        });
         // Fallback to error but don't dump too much info to student
-        res.status(500).json({ message: 'Sync sync failed', lastUpdate: cachedSync.lastUpdate });
+        res.status(500).json({
+            message: 'Sync failed',
+            error: error.message,
+            lastUpdate: cachedSync.lastUpdate
+        });
     }
 });
 

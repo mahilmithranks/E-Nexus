@@ -93,7 +93,7 @@ if (!process.env.VERCEL) {
             const result = await Session.updateMany(
                 {
                     attendanceOpen: true,
-                    attendanceEndTime: { $lt: now }
+                    attendanceEndTime: { $ne: null, $lt: now }
                 },
                 {
                     $set: { attendanceOpen: false }

@@ -189,52 +189,41 @@ const initializeAdmin = async () => {
     }
 };
 
-// Start server
-const startServer = async () => {
+const startApp = async () => {
     try {
         await connectDB();
+
+        // Initialize admin if needed
+        const adminExists = await User.findOne({ role: 'admin' });
+        if (!adminExists) {
+            await User.create({
+                registerNumber: process.env.ADMIN_REGISTER_NUMBER || 'ADMIN',
+                email: process.env.ADMIN_EMAIL || 'admin@e-nexus.com',
+                password: process.env.ADMIN_PASSWORD || 'admin123',
+                name: 'System Administrator',
+                role: 'admin'
+            });
+            console.log('✅ Admin user created successfully');
+        }
+
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {
-            console.log(`\n🚀 Server running on port ${PORT} (Process: ${process.pid})`);
-            console.log(`📡 API available at http://127.0.0.1:${PORT}/api`);
-            initializeAdmin();
+            console.log(`\n🚀 Server running on port ${PORT}`);
         });
     } catch (error) {
         console.error('❌ Server failed to start:', error);
-        process.exit(1);
     }
 };
 
-if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
-    if (cluster.isPrimary) {
-        const numCPUs = os.cpus().length;
-        console.log(`\n🏁 Production Master process ${process.pid} is starting...`);
-        console.log(`💪 Spawning ${numCPUs} workers for high load optimization...`);
-
-        // Fork workers
-        for (let i = 0; i < numCPUs; i++) {
-            cluster.fork();
-        }
-
-        cluster.on('exit', (worker, code, signal) => {
-            console.log(`⚠️ Worker ${worker.process.pid} died. Spawning a replacement...`);
-            cluster.fork();
-        });
-    } else {
-        startServer();
-    }
+// Start Logic
+if (process.env.VERCEL) {
+    // Vercel Serverless
+    (async () => {
+        await connectDB();
+    })();
 } else {
-    // Single process for development or serverless environments
-    if (!process.env.VERCEL) {
-        console.log('🛠 Starting server in development mode (single-threaded)...');
-        startServer();
-    } else {
-        // In Vercel, just export the app
-        (async () => {
-            await connectDB();
-            initializeAdmin(); // No await needed for the return of the function itself
-        })();
-    }
+    // Render / Local / VPS
+    startApp();
 }
 
 

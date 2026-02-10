@@ -531,10 +531,10 @@ function AdminDashboard() {
                     {/* Header */}
                     <header className="h-20 border-b border-white/5 px-8 flex items-center justify-between bg-[#0a0a0a]/50 backdrop-blur-md sticky top-0 z-30">
                         <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-3">
-                                <img src="/univ-logo.png" alt="University Logo" className="h-10 w-auto object-contain brightness-0 invert opacity-80" />
+                            <div className="flex items-center gap-4">
+                                <img src="/univ-logo.png" alt="University Logo" className="h-11 w-auto object-contain" />
                                 <span className="text-zinc-600 font-light text-lg">×</span>
-                                <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-12 w-auto object-contain brightness-110" />
+                                <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-14 w-auto object-contain" />
                             </div>
 
                             <div className="h-8 w-px bg-white/10 hidden md:block" />

@@ -722,14 +722,14 @@ export const exportCertificates = async (req, res) => {
                 let fileLink = '-';
                 let fileType = '-';
 
-                if (cert && cert.files && cert.files.length > 0) {
-                    const filePath = cert.files[0];
-                    // Assuming local check or cloud. If local (starts with /uploads), prepend domain if needed or keep relative.
-                    // Ideally, for an excel export, a full URL is better if accessible, or just the path.
-                    // Let's provide the path or a clickable link if we had the domain.
-                    // For now, raw path.
-                    fileLink = filePath;
-                    fileType = filePath.split('.').pop();
+                if (cert) {
+                    if (cert.assignmentType === 'link' || cert.assignmentType === 'certificate') {
+                        fileLink = cert.response || (cert.files && cert.files.length > 0 ? cert.files[0] : '-');
+                        fileType = cert.assignmentType === 'link' ? 'LINK' : (fileLink.split('.').pop() || 'FILE');
+                    } else if (cert.files && cert.files.length > 0) {
+                        fileLink = cert.files[0];
+                        fileType = fileLink.split('.').pop();
+                    }
                 }
 
                 worksheet.addRow({

@@ -917,10 +917,23 @@ function AdminDashboard() {
                                                                             <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">{student.registerNumber}</div>
                                                                         </td>
                                                                         {student.sessions.map(session => {
+                                                                            const fullSession = sessions.find(s => s._id === session.sessionId);
+                                                                            const isInfosys = fullSession?.title === "Infosys Certified Course";
+
                                                                             const hasAttendance = session.attendance?.status === 'PRESENT';
                                                                             const isOverride = session.attendance?.isOverride;
                                                                             const photoPath = session.attendance?.photoPath;
                                                                             const photoUrl = getPhotoUrl(photoPath);
+
+                                                                            if (isInfosys) {
+                                                                                return (
+                                                                                    <td key={session.sessionId} className="p-4">
+                                                                                        <div className="flex flex-col items-center gap-1">
+                                                                                            <div className="text-zinc-700 font-bold text-xs">—</div>
+                                                                                        </div>
+                                                                                    </td>
+                                                                                );
+                                                                            }
 
                                                                             return (
                                                                                 <td key={session.sessionId} className="p-4">
@@ -937,8 +950,6 @@ function AdminDashboard() {
                                                                                             >
                                                                                                 <CheckCircle className="w-4 h-4" />
                                                                                             </button>
-                                                                                        ) : !session.attendanceStartTime ? (
-                                                                                            <div className="text-zinc-700 font-bold text-xs">—</div>
                                                                                         ) : (
                                                                                             <div className="flex flex-col items-center gap-2">
                                                                                                 <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center" title="Absent">

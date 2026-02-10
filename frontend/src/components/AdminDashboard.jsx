@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -530,14 +530,24 @@ function AdminDashboard() {
                 <main className="flex-1 flex flex-col min-w-0 bg-[#0a0a0a] overflow-hidden">
                     {/* Header */}
                     <header className="h-20 border-b border-white/5 px-8 flex items-center justify-between bg-[#0a0a0a]/50 backdrop-blur-md sticky top-0 z-30">
-                        <div className="flex items-center gap-4">
-                            <h2 className="text-lg font-semibold text-white capitalize">
-                                {tabs.find(t => t.id === activeTab)?.label}
-                            </h2>
-                            <div className="h-4 w-px bg-white/10 hidden md:block" />
-                            <div className="hidden md:flex items-center gap-2 text-xs text-zinc-500">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                System Online
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3">
+                                <img src="/univ-logo.png" alt="University Logo" className="h-9 w-auto object-contain brightness-0 invert opacity-80" />
+                                <span className="text-zinc-600 font-light text-lg">×</span>
+                                <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-7 w-auto object-contain brightness-110" />
+                            </div>
+
+                            <div className="h-8 w-px bg-white/10 hidden md:block" />
+
+                            <div className="flex items-center gap-4">
+                                <h2 className="text-lg font-semibold text-white capitalize">
+                                    {tabs.find(t => t.id === activeTab)?.label}
+                                </h2>
+                                <div className="h-4 w-px bg-white/10 hidden md:block" />
+                                <div className="hidden md:flex items-center gap-2 text-xs text-zinc-500">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    System Online
+                                </div>
                             </div>
                         </div>
 

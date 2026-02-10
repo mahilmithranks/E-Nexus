@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, LogOut, FileText, Link as LinkIcon, Upload, Calendar, Clock, ChevronRight, CheckCircle, AlertCircle, Lock, X } from 'lucide-react';
@@ -245,7 +245,12 @@ function StudentDashboard() {
                 {/* MODERN TOP BAR - Glassy */}
                 <header className="h-20 border-b border-white/40 bg-white/60 backdrop-blur-xl sticky top-0 z-50 px-6 md:px-10 flex items-center justify-between shadow-sm supports-[backdrop-filter]:bg-white/60">
                     <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
+                            <img src="/univ-logo.png" alt="University Logo" className="h-11 w-auto object-contain" />
+                            <span className="text-zinc-400 font-light text-xl">×</span>
+                            <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-9 w-auto object-contain" />
+
+                            <div className="h-10 w-px bg-zinc-200/50 mx-2 hidden sm:block" />
 
                             <div className="hidden sm:block">
                                 <span className="text-lg font-bold text-zinc-900 tracking-tight block leading-none">Workshop Console</span>

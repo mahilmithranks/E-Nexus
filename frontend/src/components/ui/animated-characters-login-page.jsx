@@ -358,21 +358,21 @@ function LoginPage({
             </div>
 
             {/* Right Login Section - DEEP MATTE BLACK */}
-            <div className="flex items-center justify-center p-8 bg-[#0a0a0a] order-1 lg:order-2">
+            <div className="flex items-center justify-center p-4 sm:p-6 md:p-8 bg-[#0a0a0a] order-1 lg:order-2 min-h-screen">
                 <div className="w-full max-w-[420px]">
-                    <div className="text-center mb-12">
-                        <div className="flex items-center justify-center gap-6 mb-8">
-                            <img src="/univ-logo.png" alt="University Logo" className="h-14 w-auto object-contain" />
-                            <span className="text-zinc-600 font-light text-xl">×</span>
-                            <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-20 w-auto object-contain" />
+                    <div className="text-center mb-8 sm:mb-12">
+                        <div className="flex items-center justify-center gap-3 sm:gap-6 mb-6 sm:mb-8">
+                            <img src="/univ-logo.png" alt="University Logo" className="h-10 sm:h-14 w-auto object-contain" />
+                            <span className="text-zinc-600 font-light text-lg sm:text-xl">×</span>
+                            <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-14 sm:h-20 w-auto object-contain" />
                         </div>
-                        <h1 className="text-3xl font-bold tracking-tight mb-3 text-white leading-tight">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight mb-2 sm:mb-3 text-white leading-tight px-2">
                             Tech Sprint Boot Camp on GEN AI for All Domains
                         </h1>
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">Authorized Access Only</p>
+                        <p className="text-zinc-500 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">Authorized Access Only</p>
                     </div>
 
-                    <form onSubmit={onSubmit} className="space-y-6">
+                    <form onSubmit={onSubmit} className="space-y-5 sm:space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">Identity Gateway</Label>
                             <Input
@@ -385,7 +385,7 @@ function LoginPage({
                                 onFocus={() => setIsTyping(true)}
                                 onBlur={() => setIsTyping(false)}
                                 required
-                                className="h-14 bg-white/[0.03] border-white/5 text-white placeholder:text-zinc-700 focus:border-[#f05423]/50 focus:ring-[#f05423]/05 transition-all duration-300 rounded-2xl font-medium"
+                                className="h-12 sm:h-14 bg-white/[0.03] border-white/5 text-white placeholder:text-zinc-700 focus:border-[#f05423]/50 focus:ring-[#f05423]/05 transition-all duration-300 rounded-2xl font-medium text-sm"
                             />
                         </div>
 
@@ -399,20 +399,20 @@ function LoginPage({
                                     value={loginPassword}
                                     onChange={onPasswordChange}
                                     required
-                                    className="h-14 pr-12 bg-white/[0.03] border-white/5 text-white placeholder:text-zinc-700 focus:border-[#f05423]/50 focus:ring-[#f05423]/05 transition-all duration-300 rounded-2xl font-medium"
+                                    className="h-12 sm:h-14 pr-12 bg-white/[0.03] border-white/5 text-white placeholder:text-zinc-700 focus:border-[#f05423]/50 focus:ring-[#f05423]/05 transition-all duration-300 rounded-2xl font-medium text-sm"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-[#f05423] transition-colors"
+                                    className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-[#f05423] transition-colors"
                                 >
-                                    {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                                    {showPassword ? <EyeOff className="size-4 sm:size-5" /> : <Eye className="size-4 sm:size-5" />}
                                 </button>
                             </div>
                         </div>
 
                         {loginError && (
-                            <div className="p-5 text-[10px] font-bold text-red-400 bg-red-500/05 border border-red-500/10 rounded-2xl animate-in fade-in slide-in-from-top-2 flex items-center gap-3">
+                            <div className="p-4 sm:p-5 text-[10px] font-bold text-red-400 bg-red-500/05 border border-red-500/10 rounded-2xl animate-in fade-in slide-in-from-top-2 flex items-center gap-3">
                                 <div className="size-1.5 rounded-full bg-red-400" />
                                 {loginError}
                             </div>
@@ -420,7 +420,7 @@ function LoginPage({
 
                         <Button
                             type="submit"
-                            className="w-full h-15 rounded-[1.25rem] text-xs font-black uppercase tracking-[0.3em] bg-gradient-to-r from-[#f05423] to-[#ff9d00] text-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-2xl shadow-[#f05423]/20 border-none mt-6 group"
+                            className="w-full h-13 sm:h-15 rounded-[1.25rem] text-xs font-black uppercase tracking-[0.3em] bg-gradient-to-r from-[#f05423] to-[#ff9d00] text-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-2xl shadow-[#f05423]/20 border-none mt-4 sm:mt-6 group"
                             disabled={loading}
                         >
                             {loading ? (

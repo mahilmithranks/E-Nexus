@@ -78,6 +78,10 @@ sessionSchema.methods.isAttendanceActive = function () {
     if (!this.attendanceOpen) return false;
 
     const now = new Date();
+    // If no end time set, it's active if open. Otherwise check window.
+    if (!this.attendanceEndTime) {
+        return now >= (this.attendanceStartTime || 0);
+    }
     return now >= this.attendanceStartTime && now <= this.attendanceEndTime;
 };
 

@@ -476,9 +476,9 @@ function AdminDashboard() {
                 <div className="absolute bottom-[-5%] left-[-5%] w-[30vw] h-[30vw] rounded-full bg-purple-600/10 blur-[100px]" />
             </div>
 
-            <div className="relative z-10 flex h-screen overflow-hidden">
-                {/* MODERN SIDEBAR */}
-                <aside className="w-72 border-r border-white/5 bg-[#0d0d0d] flex flex-col shrink-0">
+            <div className="relative z-10 flex flex-col lg:flex-row h-screen overflow-hidden">
+                {/* MODERN SIDEBAR - Hidden on mobile, shown on desktop */}
+                <aside className="hidden lg:flex w-72 border-r border-white/5 bg-[#0d0d0d] flex-col shrink-0">
                     <div className="p-8">
                         <div className="mb-10">
                             <span className="text-xl font-bold text-white tracking-tight">Workshop Management</span>
@@ -529,52 +529,73 @@ function AdminDashboard() {
                 {/* MAIN CONTENT AREA */}
                 <main className="flex-1 flex flex-col min-w-0 bg-[#0a0a0a] overflow-hidden">
                     {/* Header */}
-                    <header className="h-20 border-b border-white/5 px-8 flex items-center justify-between bg-[#0a0a0a]/50 backdrop-blur-md sticky top-0 z-30">
-                        <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-4">
-                                <img src="/univ-logo.png" alt="University Logo" className="h-11 w-auto object-contain" />
-                                <span className="text-zinc-600 font-light text-lg">×</span>
-                                <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-14 w-auto object-contain" />
+                    <header className="h-16 lg:h-20 border-b border-white/5 px-3 lg:px-8 flex items-center justify-between bg-[#0a0a0a]/50 backdrop-blur-md sticky top-0 z-30">
+                        <div className="flex items-center gap-2 lg:gap-6 overflow-hidden min-w-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 min-w-0">
+                                <img src="/univ-logo.png" alt="University Logo" className="h-7 sm:h-8 lg:h-11 w-auto object-contain shrink-0" />
+                                <span className="text-zinc-600 font-light text-sm lg:text-lg hidden sm:inline">×</span>
+                                <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-9 sm:h-10 lg:h-14 w-auto object-contain shrink-0" />
                             </div>
 
-                            <div className="h-8 w-px bg-white/10 hidden md:block" />
+                            <div className="h-6 lg:h-8 w-px bg-white/10 hidden md:block" />
 
-                            <div className="flex items-center gap-4">
-                                <h2 className="text-lg font-semibold text-white capitalize">
+                            <div className="hidden sm:flex items-center gap-2 lg:gap-4 min-w-0">
+                                <h2 className="text-sm lg:text-lg font-semibold text-white capitalize truncate">
                                     {tabs.find(t => t.id === activeTab)?.label}
                                 </h2>
-                                <div className="h-4 w-px bg-white/10 hidden md:block" />
-                                <div className="hidden md:flex items-center gap-2 text-xs text-zinc-500">
+                                <div className="h-3 lg:h-4 w-px bg-white/10 hidden md:block" />
+                                <div className="hidden md:flex items-center gap-2 text-[10px] lg:text-xs text-zinc-500">
                                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                                     System Online
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 lg:gap-3">
                             <button
                                 onClick={fetchData}
-                                className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] text-zinc-400 hover:text-white transition-all"
+                                className="p-2 lg:p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] text-zinc-400 hover:text-white transition-all"
                                 title="Refresh Data"
                             >
                                 <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
                             </button>
-                            <div className="h-8 w-px bg-white/10 mx-2" />
-                            <div className="flex items-center gap-3 pl-2">
-                                <div className="text-right hidden sm:block">
-                                    <p className="text-sm font-medium text-white leading-none">{user.name}</p>
-                                    <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1 tracking-wider">Super Admin</p>
+                            <div className="h-6 lg:h-8 w-px bg-white/10 mx-1" />
+                            <div className="flex items-center gap-2 lg:gap-3">
+                                <div className="text-right">
+                                    <p className="text-[10px] sm:text-xs lg:text-sm font-medium text-white leading-none truncate max-w-[80px] sm:max-w-[120px] lg:max-w-none">{user.name}</p>
+                                    <p className="text-[8px] sm:text-[9px] lg:text-[10px] text-zinc-500 font-bold uppercase mt-0.5 sm:mt-1 tracking-wider truncate">Super Admin</p>
                                 </div>
-                                <div className="size-10 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-sm font-bold ring-4 ring-black">
+                                <div className="size-7 sm:size-8 lg:size-10 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-[10px] sm:text-xs lg:text-sm font-bold ring-2 lg:ring-4 ring-black shrink-0">
                                     {user.name?.[0]}
                                 </div>
                             </div>
                         </div>
                     </header>
 
+                    {/* Mobile Tab Navigation */}
+                    <div className="lg:hidden border-b border-white/5 bg-[#0d0d0d] overflow-x-auto">
+                        <div className="flex gap-1 p-2 min-w-max">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
+                                        activeTab === tab.id
+                                            ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                                            : "text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300 border border-transparent"
+                                    )}
+                                >
+                                    <tab.icon className="w-3.5 h-3.5" />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Content Scroll Area */}
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-8">
-                        <div className="max-w-6xl mx-auto space-y-8">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8">
+                        <div className="max-w-6xl mx-auto space-y-6 lg:space-y-8">
                             {/* Dashboard Heading for certain tabs */}
                             {activeTab !== 'attendance' && activeTab !== 'assignments' && (
                                 <motion.div
@@ -812,11 +833,11 @@ function AdminDashboard() {
                                                                 </div>
                                                             </div>
 
-                                                            {session.attendanceOpen && session.attendanceEndTime && (
+                                                            {false && session.attendanceOpen && session.attendanceEndTime && (
                                                                 <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
-                                                                    <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Time remaining until auto-close</div>
+                                                                    {/* Timer removed */}
                                                                     <div className="text-indigo-400 font-mono text-xl font-bold bg-indigo-500/10 px-4 py-1.5 rounded-xl border border-indigo-500/20">
-                                                                        <Timer targetDate={session.attendanceEndTime} />
+                                                                        {/* <Timer targetDate={session.attendanceEndTime} /> */}
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -916,6 +937,8 @@ function AdminDashboard() {
                                                                                             >
                                                                                                 <CheckCircle className="w-4 h-4" />
                                                                                             </button>
+                                                                                        ) : !session.attendanceStartTime ? (
+                                                                                            <div className="text-zinc-700 font-bold text-xs">—</div>
                                                                                         ) : (
                                                                                             <div className="flex flex-col items-center gap-2">
                                                                                                 <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center" title="Absent">
@@ -1168,53 +1191,55 @@ function AdminDashboard() {
                                             </div>
 
                                             <div className="grid grid-cols-1 gap-6">
-                                                {sessions.map(session => (
-                                                    <div key={session._id} className="group relative overflow-hidden p-8 rounded-[2rem] bg-[#111111]/60 border border-white/5 hover:border-emerald-500/30 transition-all duration-500">
-                                                        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-                                                            <div className="space-y-2 max-w-2xl">
-                                                                <div className="flex items-center gap-3">
-                                                                    <h3 className="text-2xl font-bold text-white tracking-tight">{session.title}</h3>
-                                                                    <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest border border-white/10 px-2 py-1 rounded-full">
-                                                                        Day {session.dayId?.dayNumber}
+                                                {sessions
+                                                    .filter(s => s.title === "Infosys Certified Course")
+                                                    .map(session => (
+                                                        <div key={session._id} className="group relative overflow-hidden p-8 rounded-[2rem] bg-[#111111]/60 border border-white/5 hover:border-emerald-500/30 transition-all duration-500">
+                                                            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+                                                                <div className="space-y-2 max-w-2xl">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <h3 className="text-2xl font-bold text-white tracking-tight">{session.title}</h3>
+                                                                        <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest border border-white/10 px-2 py-1 rounded-full">
+                                                                            Day {session.dayId?.dayNumber}
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                                <p className="text-zinc-500 text-sm">{session.description}</p>
-                                                            </div>
-
-                                                            <div className="flex items-center gap-4 shrink-0">
-                                                                <div className={cn(
-                                                                    "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 border",
-                                                                    session.isCertificateUploadOpen
-                                                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                                                        : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
-                                                                )}>
-                                                                    <div className={cn("w-2 h-2 rounded-full", session.isCertificateUploadOpen ? "bg-emerald-500 animate-pulse" : "bg-zinc-500")} />
-                                                                    {session.isCertificateUploadOpen ? "Uploads Active" : "Uploads Closed"}
+                                                                    <p className="text-zinc-500 text-sm">{session.description}</p>
                                                                 </div>
 
-                                                                <button
-                                                                    onClick={() => toggleCertificateUpload(session._id, !session.isCertificateUploadOpen)}
-                                                                    className={cn(
-                                                                        "px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2",
+                                                                <div className="flex items-center gap-4 shrink-0">
+                                                                    <div className={cn(
+                                                                        "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 border",
                                                                         session.isCertificateUploadOpen
-                                                                            ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
-                                                                            : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
-                                                                    )}
-                                                                >
-                                                                    {session.isCertificateUploadOpen ? (
-                                                                        <>
-                                                                            <Lock className="w-4 h-4" /> Close Uploads
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <Unlock className="w-4 h-4" /> Open Uploads
-                                                                        </>
-                                                                    )}
-                                                                </button>
+                                                                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                                                            : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                                                                    )}>
+                                                                        <div className={cn("w-2 h-2 rounded-full", session.isCertificateUploadOpen ? "bg-emerald-500 animate-pulse" : "bg-zinc-500")} />
+                                                                        {session.isCertificateUploadOpen ? "Uploads Active" : "Uploads Closed"}
+                                                                    </div>
+
+                                                                    <button
+                                                                        onClick={() => toggleCertificateUpload(session._id, !session.isCertificateUploadOpen)}
+                                                                        className={cn(
+                                                                            "px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2",
+                                                                            session.isCertificateUploadOpen
+                                                                                ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                                                                                : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
+                                                                        )}
+                                                                    >
+                                                                        {session.isCertificateUploadOpen ? (
+                                                                            <>
+                                                                                <Lock className="w-4 h-4" /> Close Uploads
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Unlock className="w-4 h-4" /> Open Uploads
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    ))}
                                             </div>
                                         </div>
                                     )}

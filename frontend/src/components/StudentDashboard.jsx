@@ -247,29 +247,29 @@ function StudentDashboard() {
 
             <div className="relative z-10 flex flex-col min-h-screen">
                 {/* MODERN TOP BAR - Glassy */}
-                <header className="h-20 border-b border-white/40 bg-white/60 backdrop-blur-xl sticky top-0 z-50 px-6 md:px-10 flex items-center justify-between shadow-sm supports-[backdrop-filter]:bg-white/60">
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-4">
-                            <img src="/univ-logo.png" alt="University Logo" className="h-12 w-auto object-contain" />
-                            <span className="text-zinc-400 font-light text-xl">×</span>
-                            <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-16 w-auto object-contain" />
+                <header className="h-16 sm:h-20 border-b border-white/40 bg-white/60 backdrop-blur-xl sticky top-0 z-50 px-3 sm:px-6 md:px-10 flex items-center justify-between shadow-sm supports-[backdrop-filter]:bg-white/60">
+                    <div className="flex items-center gap-2 sm:gap-4 md:gap-6 overflow-hidden min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                            <img src="/univ-logo.png" alt="University Logo" className="h-8 sm:h-10 md:h-12 w-auto object-contain shrink-0" />
+                            <span className="text-zinc-400 font-light text-base sm:text-xl hidden xs:inline">×</span>
+                            <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-10 sm:h-12 md:h-16 w-auto object-contain shrink-0" />
 
-                            <div className="h-10 w-px bg-zinc-200/50 mx-2 hidden sm:block" />
+                            <div className="h-8 sm:h-10 w-px bg-zinc-200/50 mx-1 sm:mx-2 hidden md:block" />
 
-                            <div className="hidden sm:block">
-                                <span className="text-lg font-bold text-zinc-900 tracking-tight block leading-none">Workshop Console</span>
-                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1 block">Live Learning Environment</span>
+                            <div className="hidden md:block">
+                                <span className="text-sm sm:text-base md:text-lg font-bold text-zinc-900 tracking-tight block leading-none">Workshop Console</span>
+                                <span className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1 block">Live Learning Environment</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 border border-white/40 shadow-sm backdrop-blur-md">
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 border border-white/40 shadow-sm backdrop-blur-md">
                             <div className="text-right">
-                                <p className="text-xs font-bold text-zinc-900 leading-none capitalize">{user.name}</p>
-                                <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-tighter mt-1">{user.registerNumber}</p>
+                                <p className="text-[9px] sm:text-[10px] md:text-xs font-bold text-zinc-900 leading-none capitalize truncate max-w-[80px] sm:max-w-none">{user.name}</p>
+                                <p className="text-[7px] sm:text-[8px] md:text-[9px] text-zinc-400 font-bold uppercase tracking-tighter mt-0.5 sm:mt-1 truncate">{user.registerNumber}</p>
                             </div>
-                            <div className="size-8 rounded-lg bg-[#f05423]/10 border border-[#f05423]/20 flex items-center justify-center text-[#f05423] text-xs font-bold ring-2 ring-white/50">
+                            <div className="size-5 sm:size-6 md:size-8 rounded-md sm:rounded-lg bg-[#f05423]/10 border border-[#f05423]/20 flex items-center justify-center text-[#f05423] text-[9px] sm:text-[10px] md:text-xs font-bold ring-1 sm:ring-2 ring-white/50 shrink-0">
                                 {user.name?.[0]}
                             </div>
                         </div>
@@ -277,45 +277,45 @@ function StudentDashboard() {
                         {user.role === 'admin' && (
                             <button
                                 onClick={() => navigate('/admin')}
-                                className="px-4 py-2 rounded-xl bg-[#f05423]/10 text-[#f05423] text-[10px] font-black uppercase tracking-widest border border-[#f05423]/20 hover:bg-[#f05423]/20 transition-all backdrop-blur-md"
+                                className="px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#f05423]/10 text-[#f05423] text-[9px] sm:text-[10px] font-black uppercase tracking-widest border border-[#f05423]/20 hover:bg-[#f05423]/20 transition-all backdrop-blur-md"
                             >
-                                Admin View
+                                Admin
                             </button>
                         )}
 
-                        <div className="h-6 w-px bg-zinc-200/50 mx-1" />
+                        <div className="h-4 sm:h-6 w-px bg-zinc-200/50 mx-0.5 sm:mx-1" />
 
                         <button
                             onClick={handleLogout}
-                            className="p-2.5 rounded-xl text-zinc-400 hover:bg-red-500/10 hover:text-red-500 transition-all border border-transparent hover:border-red-500/20 backdrop-blur-md"
+                            className="p-1.5 sm:p-2.5 rounded-xl text-zinc-400 hover:bg-red-500/10 hover:text-red-500 transition-all border border-transparent hover:border-red-500/20 backdrop-blur-md"
                             title="Terminate Session"
                         >
-                            <LogOut className="w-5 h-5" />
+                            <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                     </div>
                 </header>
 
-                <main className="flex-1 flex flex-col md:flex-row max-w-[1600px] mx-auto w-full px-4 md:px-10 py-10 gap-10">
+                <main className="flex-1 flex flex-col md:flex-row max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-10 py-6 sm:py-10 gap-6 sm:gap-10">
 
                     {/* LEFT PANEL: TIMELINE & STATS */}
-                    <div className="w-full md:w-80 space-y-8 shrink-0">
+                    <div className="w-full md:w-80 space-y-6 sm:space-y-8 shrink-0">
                         {/* User Metadata Card - Glassy */}
-                        <div className="p-8 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
-                            <div className="absolute -right-4 -top-4 size-32 bg-[#f05423]/10 blur-3xl rounded-full" />
+                        <div className="p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
+                            <div className="absolute -right-4 -top-4 size-24 sm:size-32 bg-[#f05423]/10 blur-3xl rounded-full" />
 
-                            <div className="relative z-10 space-y-6">
+                            <div className="relative z-10 space-y-4 sm:space-y-6">
                                 <div>
-                                    <h2 className="text-sm font-black text-[#f05423] uppercase tracking-[0.2em] mb-4">Identity Profile</h2>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between text-xs py-2 border-b border-zinc-100/50">
+                                    <h2 className="text-xs sm:text-sm font-black text-[#f05423] uppercase tracking-[0.2em] mb-3 sm:mb-4">Identity Profile</h2>
+                                    <div className="space-y-2 sm:space-y-3">
+                                        <div className="flex items-center justify-between text-[10px] sm:text-xs py-1.5 sm:py-2 border-b border-zinc-100/50">
                                             <span className="text-zinc-400 font-bold">Department</span>
                                             <span className="text-zinc-800 font-bold">{user.department}</span>
                                         </div>
-                                        <div className="flex items-center justify-between text-xs py-2 border-b border-zinc-100/50">
+                                        <div className="flex items-center justify-between text-[10px] sm:text-xs py-1.5 sm:py-2 border-b border-zinc-100/50">
                                             <span className="text-zinc-400 font-bold">Academic Year</span>
                                             <span className="text-zinc-800 font-bold">{user.yearOfStudy} Year</span>
                                         </div>
-                                        <div className="flex items-center justify-between text-xs py-2">
+                                        <div className="flex items-center justify-between text-[10px] sm:text-xs py-1.5 sm:py-2">
                                             <span className="text-zinc-400 font-bold">Status</span>
                                             <div className="flex items-center gap-1.5 text-emerald-500 font-bold">
                                                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -325,20 +325,20 @@ function StudentDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="pt-4">
-                                    <div className="p-5 rounded-2xl bg-white/50 border border-white/50 text-[10px] text-zinc-500 leading-relaxed font-medium relative group/notice overflow-hidden backdrop-blur-sm">
+                                <div className="pt-3 sm:pt-4">
+                                    <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-white/50 border border-white/50 text-[9px] sm:text-[10px] text-zinc-500 leading-relaxed font-medium relative group/notice overflow-hidden backdrop-blur-sm">
                                         <div className="absolute inset-0 bg-gradient-to-r from-[#f05423]/05 to-transparent opacity-0 group-hover/notice:opacity-100 transition-opacity" />
-                                        <div className="flex items-center gap-2 text-zinc-800 mb-3 font-black uppercase tracking-wider relative z-10">
-                                            <AlertCircle className="w-3.5 h-3.5 text-[#f05423]" />
+                                        <div className="flex items-center gap-2 text-zinc-800 mb-2 sm:mb-3 font-black uppercase tracking-wider relative z-10 text-[10px] sm:text-xs">
+                                            <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#f05423]" />
                                             Support & Protocol
                                         </div>
-                                        <div className="space-y-2 relative z-10">
+                                        <div className="space-y-1.5 sm:space-y-2 relative z-10">
                                             <p>• Mark attendance within the first 10m of session activation.</p>
                                             <p className="text-[#ff9d00] font-bold">
                                                 • Refresh page if facing any technical issue. Report to admin if not resolved.
                                             </p>
-                                            <div className="pt-2 mt-2 border-t border-zinc-200/30">
-                                                <p className="text-xs font-bold text-zinc-800 mb-1">Contact Admins:</p>
+                                            <div className="pt-1.5 sm:pt-2 mt-1.5 sm:mt-2 border-t border-zinc-200/30">
+                                                <p className="text-[10px] sm:text-xs font-bold text-zinc-800 mb-1">Contact Admins:</p>
                                                 <p>• Rupesh: <span className="text-zinc-900 select-all">9493760536</span></p>
                                                 <p>• Mahil Mithran: <span className="text-zinc-900 select-all">9363978578</span></p>
                                             </div>
@@ -349,23 +349,23 @@ function StudentDashboard() {
                         </div>
 
                         {/* Course Credits Card - Glassy */}
-                        <div className="p-8 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
-                            <div className="absolute -left-4 -bottom-4 size-24 bg-[#ff9d00]/10 blur-3xl rounded-full" />
-                            <div className="relative z-10 space-y-4">
-                                <h2 className="text-[10px] font-black text-[#ff9d00] uppercase tracking-[0.3em]">Course Details</h2>
-                                <div className="space-y-4">
+                        <div className="p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
+                            <div className="absolute -left-4 -bottom-4 size-20 sm:size-24 bg-[#ff9d00]/10 blur-3xl rounded-full" />
+                            <div className="relative z-10 space-y-3 sm:space-y-4">
+                                <h2 className="text-[9px] sm:text-[10px] font-black text-[#ff9d00] uppercase tracking-[0.3em]">Course Details</h2>
+                                <div className="space-y-3 sm:space-y-4">
                                     <div className="flex items-end justify-between">
                                         <div className="space-y-1">
-                                            <p className="text-lg font-black text-zinc-900">Experimental Elective</p>
-                                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Course Type</p>
+                                            <p className="text-base sm:text-lg font-black text-zinc-900">Experimental Elective</p>
+                                            <p className="text-[8px] sm:text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Course Type</p>
                                         </div>
-                                        <div className="px-2.5 py-1 rounded-lg bg-[#ff9d00]/10 border border-[#ff9d00]/20 text-[#ff9d00] text-[9px] font-black uppercase tracking-widest backdrop-blur-sm">
+                                        <div className="px-2 sm:px-2.5 py-1 rounded-lg bg-[#ff9d00]/10 border border-[#ff9d00]/20 text-[#ff9d00] text-[8px] sm:text-[9px] font-black uppercase tracking-widest backdrop-blur-sm">
                                             2 Credits
                                         </div>
                                     </div>
-                                    <div className="pt-3 border-t border-zinc-100/50">
+                                    <div className="pt-2 sm:pt-3 border-t border-zinc-100/50">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Duration</span>
+                                            <span className="text-[9px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Duration</span>
                                             <span className="text-sm font-black text-zinc-900">60 HRS</span>
                                         </div>
                                     </div>
@@ -374,23 +374,23 @@ function StudentDashboard() {
                         </div>
 
                         {/* Component Hours Breakdown - Glassy */}
-                        <div className="p-8 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
-                            <div className="absolute -right-4 -bottom-4 size-32 bg-blue-500/10 blur-3xl rounded-full" />
-                            <div className="relative z-10 space-y-4">
-                                <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Component Hours</h2>
-                                <div className="p-5 rounded-2xl bg-white/50 border border-white/50 space-y-3 backdrop-blur-sm">
+                        <div className="p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
+                            <div className="absolute -right-4 -bottom-4 size-24 sm:size-32 bg-blue-500/10 blur-3xl rounded-full" />
+                            <div className="relative z-10 space-y-3 sm:space-y-4">
+                                <h2 className="text-[9px] sm:text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Component Hours</h2>
+                                <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-white/50 border border-white/50 space-y-2 sm:space-y-3 backdrop-blur-sm">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Infosys Spring Board</span>
-                                        <span className="text-xs font-bold text-zinc-900">30 Hrs</span>
+                                        <span className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Infosys Spring Board</span>
+                                        <span className="text-[10px] sm:text-xs font-bold text-zinc-900">30 Hrs</span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Hands-on Training</span>
-                                        <span className="text-xs font-bold text-zinc-900">30 Hrs</span>
+                                        <span className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Hands-on Training</span>
+                                        <span className="text-[10px] sm:text-xs font-bold text-zinc-900">30 Hrs</span>
                                     </div>
-                                    <div className="w-full h-px bg-zinc-200/30 my-2" />
+                                    <div className="w-full h-px bg-zinc-200/30 my-1.5 sm:my-2" />
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] text-blue-500 font-black uppercase tracking-wider">Total Required</span>
-                                        <span className="text-sm font-black text-zinc-900">60 Hrs</span>
+                                        <span className="text-[9px] sm:text-[10px] text-blue-500 font-black uppercase tracking-wider">Total Required</span>
+                                        <span className="text-xs sm:text-sm font-black text-zinc-900">60 Hrs</span>
                                     </div>
                                 </div>
                             </div>
@@ -575,8 +575,8 @@ function StudentDashboard() {
                                                                 <p className="text-zinc-500 text-sm font-medium line-clamp-1 max-w-sm">{session.description}</p>
                                                             </div>
 
-                                                            {/* Certificate Upload Section */}
-                                                            {session.isCertificateUploadOpen && (
+                                                            {/* Certificate Upload Section - ONLY for Infosys Certified Course */}
+                                                            {session.title === "Infosys Certified Course" && session.isCertificateUploadOpen && (
                                                                 <div className="mt-6 pt-6 border-t border-zinc-100/50 space-y-4">
                                                                     <div className="flex items-center gap-2 text-zinc-900 font-bold text-sm">
                                                                         <FileText className="w-4 h-4 text-emerald-500" />
@@ -669,21 +669,13 @@ function StudentDashboard() {
                                                                             Break Period
                                                                         </div>
                                                                     ) : session.isAttendanceActive ? (
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="text-right hidden sm:block">
-                                                                                <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Window Ends In</div>
-                                                                                <div className="text-zinc-900 font-mono text-sm font-bold bg-[#f05423]/10 px-2 py-0.5 rounded border border-[#f05423]/20 backdrop-blur-sm">
-                                                                                    <Timer targetDate={session.attendanceEndTime} />
-                                                                                </div>
-                                                                            </div>
-                                                                            <button
-                                                                                onClick={() => openCamera(session)}
-                                                                                className="px-8 py-4 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-[#f05423]/20 transition-all flex items-center gap-2.5 active:scale-95 hover:scale-105"
-                                                                            >
-                                                                                <Camera className="w-4 h-4" />
-                                                                                Authenticate
-                                                                            </button>
-                                                                        </div>
+                                                                        <button
+                                                                            onClick={() => openCamera(session)}
+                                                                            className="px-8 py-4 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-[#f05423]/20 transition-all flex items-center gap-2.5 active:scale-95 hover:scale-105"
+                                                                        >
+                                                                            <Camera className="w-4 h-4" />
+                                                                            Authenticate
+                                                                        </button>
                                                                     ) : session.attendanceStatus === 'closed' && session.attendanceEndTime ? (
                                                                         <div className="flex flex-col items-end gap-2">
                                                                             <div className="px-6 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 backdrop-blur-sm">
@@ -714,16 +706,16 @@ function StudentDashboard() {
                             </AnimatePresence>
                         </div>
                     </div>
-                </main>
+                </main >
 
                 {/* MOBILE NAV PLACEHOLDER / FOOTER */}
-                <footer className="py-10 border-t border-zinc-200/50 text-center bg-white/50 backdrop-blur-sm">
+                < footer className="py-10 border-t border-zinc-200/50 text-center bg-white/50 backdrop-blur-sm" >
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.5em]">Workshop Management System</p>
-                </footer>
-            </div>
+                </footer >
+            </div >
 
             {/* Camera Overlay */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {showCamera && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90">
                         <CameraCapture
@@ -731,9 +723,10 @@ function StudentDashboard() {
                             onCancel={() => setShowCamera(false)}
                         />
                     </div>
-                )}
-            </AnimatePresence>
-        </div>
+                )
+                }
+            </AnimatePresence >
+        </div >
     );
 }
 

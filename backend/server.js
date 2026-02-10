@@ -50,15 +50,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Use helmet for security and headers
-app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+// app.use(helmet({
+//     crossOriginResourcePolicy: { policy: "cross-origin" }
+// }));
 
 // Compress all responses
 app.use(compression());
 
 // Apply rate limiting to all routes
-app.use('/api/', apiLimiter);
+app.use('/api', apiLimiter);
 
 // Background job to close expired attendance sessions
 // SKIP on Vercel (We use Vercel Cron instead)
@@ -125,20 +125,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/sync', syncRoutes);
-
-// Root route (for browser check)
-app.get('/', (req, res) => {
-    res.send('<h1>Backend Server is Running! 🚀</h1><p>API is available at /api</p>');
-});
-
-// Root API route
-app.get('/api', (req, res) => {
-    res.json({
-        message: 'Workshop Management System API',
-        version: '1.0.0',
-        status: 'Running'
-    });
-});
 
 // Health check route
 app.get('/api/health', (req, res) => {

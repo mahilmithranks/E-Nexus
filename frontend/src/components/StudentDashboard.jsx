@@ -644,7 +644,7 @@ function StudentDashboard() {
                                                                     ) : (
                                                                         <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm text-center">
                                                                             <Lock className="w-4 h-4" />
-                                                                            Uploading Window Closed
+                                                                            Uploading window is closed now!
                                                                         </div>
                                                                     )}
                                                                 </>

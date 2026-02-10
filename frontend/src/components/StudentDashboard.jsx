@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, LogOut, FileText, Link as LinkIcon, Upload, Calendar, Clock, ChevronRight, CheckCircle, AlertCircle, Lock, X } from 'lucide-react';
+import { Camera, LogOut, FileText, Link as LinkIcon, Upload, Calendar, Clock, ChevronRight, CheckCircle, AlertCircle, Lock, X, Send } from 'lucide-react';
 import api from '../services/api';
 import { getUser, clearAuth } from '../utils/auth';
 import CameraCapture from './CameraCapture';
@@ -591,47 +591,45 @@ function StudentDashboard() {
                                                                                 </div>
                                                                                 <div>
                                                                                     <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
-                                                                                        Successfully Uploaded
+                                                                                        Successfully Submitted
                                                                                     </p>
                                                                                     <p className="text-[10px] font-medium text-emerald-600/80">
-                                                                                        Your certificate has been submitted.
+                                                                                        Your certificate Drive link has been recorded.
                                                                                     </p>
                                                                                 </div>
                                                                             </div>
                                                                             <p className="text-[10px] text-zinc-500 mt-2 font-medium border-t border-emerald-500/10 pt-2">
-                                                                                * If you uploaded the wrong file, please contact the admin immediately to reset your submission.
+                                                                                * If you provided the wrong link, please contact the admin immediately to reset your submission.
                                                                             </p>
                                                                         </div>
                                                                     ) : (
                                                                         <div className="bg-white/40 p-4 rounded-xl border border-white/60 backdrop-blur-sm shadow-sm">
-                                                                            <div className="flex items-center gap-4">
-                                                                                <input
-                                                                                    type="file"
-                                                                                    accept="image/*,.pdf"
-                                                                                    onChange={(e) => handleAssignmentChange(session._id, 'Certificate', e.target.files[0])}
-                                                                                    className="block w-full text-xs text-zinc-600
-                                                                                    file:mr-4 file:py-2 file:px-4
-                                                                                    file:rounded-lg file:border-0
-                                                                                    file:text-[10px] file:font-black file:uppercase file:tracking-widest
-                                                                                    file:bg-[#f05423]/10 file:text-[#f05423]
-                                                                                    hover:file:bg-[#f05423]/20
-                                                                                    cursor-pointer"
-                                                                                />
+                                                                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                                                                <div className="relative flex-1 w-full">
+                                                                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                                                                                    <input
+                                                                                        type="url"
+                                                                                        placeholder="Paste Google Drive Link here..."
+                                                                                        value={assignmentData[`${session._id}-Certificate`] || ''}
+                                                                                        onChange={(e) => handleAssignmentChange(session._id, 'Certificate', e.target.value)}
+                                                                                        className="w-full pl-9 pr-4 py-2 bg-white/50 border border-zinc-200 rounded-xl text-xs focus:ring-2 focus:ring-[#f05423]/20 focus:border-[#f05423] outline-none transition-all placeholder:text-zinc-400 font-medium"
+                                                                                    />
+                                                                                </div>
                                                                                 <button
-                                                                                    onClick={() => handleAssignmentSubmit(session, { title: 'Certificate', type: 'certificate' })}
+                                                                                    onClick={() => handleAssignmentSubmit(session, { title: 'Certificate', type: 'link' })}
                                                                                     disabled={!assignmentData[`${session._id}-Certificate`]}
-                                                                                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 backdrop-blur-sm"
+                                                                                    className="w-full sm:w-auto px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
                                                                                 >
-                                                                                    <Upload className="w-3 h-3" />
-                                                                                    Submit
+                                                                                    <Send className="w-3 h-3" />
+                                                                                    Submit Link
                                                                                 </button>
                                                                             </div>
-                                                                            <p className="text-[10px] text-zinc-700 mt-2 font-medium">
-                                                                                * Please upload your completion certificate (Image or PDF).
-                                                                                <br />
-                                                                                <span className="text-zinc-500">* Max file size: <span className="text-[#f05423]">100KB</span>.</span>
-                                                                                <br />
-                                                                                <span className="text-red-400">* Note: You can only upload once. Ensure the file is correct before submitting.</span>
+                                                                            <p className="text-[10px] text-zinc-700 mt-3 font-medium flex items-center gap-2">
+                                                                                <span className="text-[#f05423] font-black">!</span>
+                                                                                <span>Ensure your Google Drive link is set to <span className="text-emerald-600 font-bold">"Anyone with the link"</span></span>
+                                                                            </p>
+                                                                            <p className="text-[9px] text-red-400 mt-1 font-bold italic">
+                                                                                * Note: You can only submit once.
                                                                             </p>
                                                                         </div>
                                                                     )}

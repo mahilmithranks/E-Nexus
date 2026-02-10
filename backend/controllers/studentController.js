@@ -88,7 +88,7 @@ export const getSessionsForDay = async (req, res) => {
                 let attendanceWindowStatus = 'not_started';
                 if (session.attendanceOpen) {
                     attendanceWindowStatus = 'active';
-                } else if (session.attendanceEndTime && new Date() > new Date(session.attendanceEndTime)) {
+                } else if (session.attendanceStartTime && session.attendanceEndTime && new Date() > new Date(session.attendanceEndTime)) {
                     attendanceWindowStatus = 'closed';
                 }
 

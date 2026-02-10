@@ -32,8 +32,22 @@ export const getSessionsForDay = async (req, res) => {
             return res.status(404).json({ message: 'Day not found' });
         }
 
-        if (day.status !== 'OPEN') {
-            return res.status(403).json({ message: 'This day is not accessible' });
+        if (day.status === 'LOCKED') {
+            return res.status(403).json({ message: 'This day is not accessible yet' });
+        }
+
+        // LAZY CLOSING: Automatically close expired sessions for this day
+        const now = new Date();
+        const expiredResult = await Session.updateMany(
+            { dayId, attendanceOpen: true, attendanceEndTime: { $lt: now } },
+            { $set: { attendanceOpen: false } }
+        );
+
+        if (expiredResult.modifiedCount > 0) {
+            console.log(`Lazy-closed ${expiredResult.modifiedCount} expired sessions for day ${dayId}`);
+            clearCache('admin-sessions');
+            clearCache('student-sessions');
+            clearCache('admin-progress');
         }
 
         // Fetch all sessions for determination
@@ -96,7 +110,7 @@ export const getSessionsForDay = async (req, res) => {
                     attendanceStatus: attendanceWindowStatus,
                     isAttendanceActive: isAttendanceActive,
                     attendanceEndTime: session.attendanceEndTime,
-                    assignmentsSubmitted: submittedTitles.size,
+                    assignmentsSubmitted: Array.from(submittedTitles),
                     totalAssignments: assignmentsCount
                 };
             } catch (err) {
@@ -132,7 +146,7 @@ export const getSession = async (req, res) => {
         }
 
         // Check availability logic
-        if (session.dayId.status !== 'OPEN') {
+        if (session.dayId.status === 'LOCKED') {
             return res.status(403).json({ message: 'This session is not currently accessible' });
         }
 
@@ -287,24 +301,26 @@ export const submitAssignment = async (req, res) => {
             return res.status(404).json({ message: 'Session not found' });
         }
 
-        // Check if student has marked attendance for this session
-        const attendance = await Attendance.findOne({
-            registerNumber: req.user.registerNumber,
-            sessionId,
-            status: 'PRESENT'
-        });
-
-        if (!attendance) {
-            return res.status(403).json({
-                message: 'You must mark attendance before submitting assignments'
+        // Check if student has marked attendance for this session (skip for certificate)
+        if (assignmentType !== 'certificate') {
+            const attendance = await Attendance.findOne({
+                registerNumber: req.user.registerNumber,
+                sessionId,
+                status: 'PRESENT'
             });
+
+            if (!attendance) {
+                return res.status(403).json({
+                    message: 'You must mark attendance before submitting assignments'
+                });
+            }
         }
 
-        // Handle file upload for file type assignments
+        // Handle file upload for file type assignments or certificates
         let finalResponse = response;
         let filePaths = [];
 
-        if (assignmentType === 'file') {
+        if (assignmentType === 'file' || assignmentType === 'certificate') {
             const filesToUpload = req.files || (req.file ? [req.file] : []);
 
             if (filesToUpload.length > 0) {
@@ -312,17 +328,23 @@ export const submitAssignment = async (req, res) => {
                     const cloudinary = (await import('../config/cloudinary.js')).default;
 
                     for (const file of filesToUpload) {
+                        // Use buffer for memory storage (which is likely what multer is using here based on previous code)
+                        // If previous code was using req.file.path it would be different, but it used buffer.
+                        if (!file.buffer) continue;
+
                         const b64 = Buffer.from(file.buffer).toString('base64');
                         const dataURI = `data:${file.mimetype};base64,${b64}`;
 
                         const result = await cloudinary.uploader.upload(dataURI, {
-                            folder: 'e-nexus/assignments',
+                            folder: assignmentType === 'certificate' ? 'e-nexus/certificates' : 'e-nexus/assignments',
                             resource_type: 'auto'
                         });
 
                         filePaths.push(result.secure_url);
                     }
-                    finalResponse = filePaths[0]; // Set first file as response for backward compatibility
+                    if (filePaths.length > 0) {
+                        finalResponse = filePaths[0]; // Set first file as response for backward compatibility
+                    }
                 } catch (cloudinaryError) {
                     console.error('Cloudinary assignment upload failed:', cloudinaryError);
                     return res.status(500).json({ message: 'Failed to upload assignment files' });

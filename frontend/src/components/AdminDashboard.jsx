@@ -132,7 +132,12 @@ function AdminDashboard() {
             }
         } catch (error) {
             console.error('Error fetching initial data:', error);
-            toast.error('Failed to load dashboard data');
+            if (error.response) {
+                console.error('Server Response Data:', error.response.data);
+                toast.error(`Error: ${error.response.data.message || 'Failed to load dashboard data'}`);
+            } else {
+                toast.error('Failed to load dashboard data');
+            }
         } finally {
             setLoading(false);
         }
@@ -339,21 +344,63 @@ function AdminDashboard() {
             window.URL.revokeObjectURL(downloadUrl);
         } catch (error) {
             console.error('Export error:', error);
-            let errorMessage = 'Error exporting assignments';
-            if (error.response?.data instanceof Blob) {
-                // Parse blob error to text
-                const text = await error.response.data.text();
-                try {
-                    const json = JSON.parse(text);
-                    errorMessage = json.message || errorMessage;
-                } catch (e) {
-                    errorMessage = text || errorMessage;
-                }
-            } else {
-                errorMessage = error.response?.data?.message || error.message;
-            }
-            toast.error(errorMessage);
+            handleExportError(error, 'assignments');
         }
+    };
+
+    const exportCertificates = async () => {
+        try {
+            let url = '/admin/export/certificates?';
+            if (exportFilters.sessionId) {
+                url += `sessionId=${exportFilters.sessionId}`;
+            } else if (exportFilters.dayId) {
+                url += `dayId=${exportFilters.dayId}`;
+            }
+
+            const response = await api.get(url, { responseType: 'blob' });
+            // Explicitly set the MIME type for Excel
+            const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+
+            // Generate descriptive filename
+            let filename = 'certificate_report';
+            if (exportFilters.sessionId) {
+                const session = sessions.find(s => s._id === exportFilters.sessionId);
+                filename = `certificates_${session ? session.title.replace(/\s+/g, '_') : 'session'}`;
+            } else if (exportFilters.dayId) {
+                const day = days.find(d => d._id === exportFilters.dayId);
+                filename = `certificates_day_${day ? day.dayNumber : 'filtered'}`;
+            }
+
+            link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error('Export error:', error);
+            handleExportError(error, 'certificates');
+        }
+    };
+
+    const handleExportError = async (error, type) => {
+        let errorMessage = `Error exporting ${type}`;
+        if (error.response?.data instanceof Blob) {
+            // Parse blob error to text
+            const text = await error.response.data.text();
+            try {
+                const json = JSON.parse(text);
+                errorMessage = json.message || errorMessage;
+            } catch (e) {
+                errorMessage = text || errorMessage;
+            }
+        } else {
+            errorMessage = error.response?.data?.message || error.message;
+        }
+        toast.error(errorMessage);
     };
 
     const PaginationControls = () => {
@@ -390,10 +437,21 @@ function AdminDashboard() {
         );
     }
 
+    const toggleCertificateUpload = async (sessionId, isOpen) => {
+        try {
+            await api.put(`/admin/sessions/${sessionId}/certificate-upload`, { isOpen });
+            toast.success(`Certificate uploads ${isOpen ? 'opened' : 'closed'} successfully`);
+            fetchData();
+        } catch (error) {
+            toast.error('Error updating certificate upload status: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
     const tabs = [
         { id: 'days', label: 'Day Control', icon: Calendar },
         { id: 'sessions', label: 'Sessions', icon: Clock },
         { id: 'attendance', label: 'Attendance', icon: Users },
+        { id: 'certificates', label: 'Certificate', icon: FileText },
         { id: 'export', label: 'Exports', icon: Download },
     ];
 
@@ -699,6 +757,28 @@ function AdminDashboard() {
                                                                         <div className="px-6 py-3 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 text-sm font-bold flex items-center gap-2 uppercase tracking-wide">
                                                                             <Clock className="w-4 h-4" /> Reserved for Break
                                                                         </div>
+                                                                    ) : session.title === "Infosys Certified Course" ? (
+                                                                        <button
+                                                                            onClick={() => toggleCertificateUpload(session._id, !session.isCertificateUploadOpen)}
+                                                                            className={cn(
+                                                                                "px-6 py-3.5 rounded-[1.25rem] text-sm font-bold shadow-xl transition-all flex items-center gap-2 group/btn",
+                                                                                session.isCertificateUploadOpen
+                                                                                    ? "bg-white/[0.03] hover:bg-white/[0.06] text-zinc-400 border border-white/5"
+                                                                                    : "bg-indigo-500 hover:bg-indigo-600 text-white shadow-indigo-500/20"
+                                                                            )}
+                                                                        >
+                                                                            {session.isCertificateUploadOpen ? (
+                                                                                <>
+                                                                                    <Square className="w-4 h-4" />
+                                                                                    Close Uploads
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Play className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                                                                    Open Uploads
+                                                                                </>
+                                                                            )}
+                                                                        </button>
                                                                     ) : (
                                                                         <>
                                                                             <button
@@ -988,14 +1068,14 @@ function AdminDashboard() {
                                                 <div className="p-10 rounded-[2.5rem] bg-[#111111]/80 border border-white/5 hover:border-indigo-500/20 transition-all group relative overflow-hidden">
                                                     <div className="absolute -right-12 -top-12 size-48 bg-indigo-500/10 blur-[100px] group-hover:bg-indigo-500/20 transition-all rounded-full" />
 
-                                                    <div className="relative z-10">
+                                                    <div className="relative z-10 h-full flex flex-col">
                                                         <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-8 text-indigo-400">
                                                             <Download className="w-8 h-8" />
                                                         </div>
                                                         <h3 className="text-3xl font-bold text-white mb-3">Attendance Report</h3>
                                                         <p className="text-zinc-500 mb-10 text-sm leading-relaxed max-w-sm">Securely generate complete student attendance logs with date and session filters.</p>
 
-                                                        <div className="space-y-6 mb-12">
+                                                        <div className="space-y-6 mb-12 flex-1">
                                                             <div className="space-y-2.5">
                                                                 <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Target Dimension</label>
                                                                 <select
@@ -1035,6 +1115,96 @@ function AdminDashboard() {
                                                         </button>
                                                     </div>
                                                 </div>
+
+                                                {/* Certificate Export */}
+                                                <div className="p-10 rounded-[2.5rem] bg-[#111111]/80 border border-white/5 hover:border-emerald-500/20 transition-all group relative overflow-hidden">
+                                                    <div className="absolute -right-12 -top-12 size-48 bg-emerald-500/10 blur-[100px] group-hover:bg-emerald-500/20 transition-all rounded-full" />
+
+                                                    <div className="relative z-10 h-full flex flex-col">
+                                                        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-8 text-emerald-400">
+                                                            <FileText className="w-8 h-8" />
+                                                        </div>
+                                                        <h3 className="text-3xl font-bold text-white mb-3">Certificates Report</h3>
+                                                        <p className="text-zinc-500 mb-10 text-sm leading-relaxed max-w-sm">Download user certificates and metadata. This report includes links to uploaded certificate files.</p>
+
+                                                        <div className="flex-1 min-h-[100px] flex items-center justify-center">
+                                                            <div className="text-center space-y-2">
+                                                                <div className="inline-block p-3 rounded-full bg-emerald-500/10 text-emerald-500 mb-2">
+                                                                    <CheckCircle className="w-6 h-6" />
+                                                                </div>
+                                                                <p className="text-zinc-400 text-sm font-medium">Ready for Extraction</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={exportCertificates}
+                                                            className="w-full py-5 rounded-[1.25rem] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                                                        >
+                                                            <Download className="w-5 h-5" /> Export Certificates
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'certificates' && (
+                                        <div className="space-y-6">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                                                <div className="space-y-2">
+                                                    <h2 className="text-3xl font-bold text-white tracking-tight">Certificate Management</h2>
+                                                    <p className="text-zinc-500">Control certificate upload windows and manage submissions.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-6">
+                                                {sessions.map(session => (
+                                                    <div key={session._id} className="group relative overflow-hidden p-8 rounded-[2rem] bg-[#111111]/60 border border-white/5 hover:border-emerald-500/30 transition-all duration-500">
+                                                        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+                                                            <div className="space-y-2 max-w-2xl">
+                                                                <div className="flex items-center gap-3">
+                                                                    <h3 className="text-2xl font-bold text-white tracking-tight">{session.title}</h3>
+                                                                    <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest border border-white/10 px-2 py-1 rounded-full">
+                                                                        Day {session.dayId?.dayNumber}
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-zinc-500 text-sm">{session.description}</p>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-4 shrink-0">
+                                                                <div className={cn(
+                                                                    "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 border",
+                                                                    session.isCertificateUploadOpen
+                                                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                                                        : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                                                                )}>
+                                                                    <div className={cn("w-2 h-2 rounded-full", session.isCertificateUploadOpen ? "bg-emerald-500 animate-pulse" : "bg-zinc-500")} />
+                                                                    {session.isCertificateUploadOpen ? "Uploads Active" : "Uploads Closed"}
+                                                                </div>
+
+                                                                <button
+                                                                    onClick={() => toggleCertificateUpload(session._id, !session.isCertificateUploadOpen)}
+                                                                    className={cn(
+                                                                        "px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2",
+                                                                        session.isCertificateUploadOpen
+                                                                            ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                                                                            : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
+                                                                    )}
+                                                                >
+                                                                    {session.isCertificateUploadOpen ? (
+                                                                        <>
+                                                                            <Lock className="w-4 h-4" /> Close Uploads
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Unlock className="w-4 h-4" /> Open Uploads
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}

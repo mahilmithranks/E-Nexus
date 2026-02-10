@@ -58,7 +58,11 @@ const sessionSchema = new mongoose.Schema({
         enum: ['SESSION', 'BREAK'],
         default: 'SESSION'
     },
-    assignments: [assignmentSchema]
+    assignments: [assignmentSchema],
+    isCertificateUploadOpen: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true
 });

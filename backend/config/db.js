@@ -46,7 +46,8 @@ const connectDB = async () => {
             await new Promise(resolve => setTimeout(resolve, 5000));
             return connectDB();
         }
-        process.exit(1);
+        // process.exit(1); // Do not exit in serverless environment
+        throw error;
     }
 };
 

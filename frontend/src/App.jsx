@@ -8,7 +8,25 @@ import { isAuthenticated, isAdmin, isStudent } from './utils/auth';
 
 import { Toaster } from 'react-hot-toast';
 
+import { useState, useEffect } from 'react';
+import MobileRestriction from './components/MobileRestriction';
+
 function App() {
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    if (isMobile) {
+        return <MobileRestriction />;
+    }
+
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Toaster position="top-right" toastOptions={{

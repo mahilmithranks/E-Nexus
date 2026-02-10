@@ -36,6 +36,20 @@ export const getSessionsForDay = async (req, res) => {
             return res.status(403).json({ message: 'This day is not accessible yet' });
         }
 
+        // LAZY CLOSING: Automatically close expired sessions for this day
+        const now = new Date();
+        const expiredResult = await Session.updateMany(
+            { dayId, attendanceOpen: true, attendanceEndTime: { $lt: now } },
+            { $set: { attendanceOpen: false } }
+        );
+
+        if (expiredResult.modifiedCount > 0) {
+            console.log(`Lazy-closed ${expiredResult.modifiedCount} expired sessions for day ${dayId}`);
+            clearCache('admin-sessions');
+            clearCache('student-sessions');
+            clearCache('admin-progress');
+        }
+
         // Fetch all sessions for determination
         const sessions = await Session.find({ dayId }).sort({ createdAt: 1 }).lean();
         const sessionIds = sessions.map(s => s._id);

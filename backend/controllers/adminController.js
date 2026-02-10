@@ -177,7 +177,16 @@ export const updateDayStatus = async (req, res) => {
 // @access  Private/Admin
 export const getAllSessions = async (req, res) => {
     try {
-        const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 }).lean();
+        const sessions = await Session.find().populate('dayId').lean();
+
+        // Sort in memory by dayNumber
+        sessions.sort((a, b) => {
+            const dayA = a.dayId?.dayNumber ?? 999;
+            const dayB = b.dayId?.dayNumber ?? 999;
+            if (dayA !== dayB) return dayA - dayB;
+            return a._id.toString().localeCompare(b._id.toString());
+        });
+
         res.json(sessions);
     } catch (error) {
         console.error('CRITICAL: Get sessions error:', error);
@@ -282,11 +291,10 @@ export const startAttendance = async (req, res) => {
         }
 
         const now = new Date();
-        const endTime = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes window
 
         session.attendanceOpen = true;
         session.attendanceStartTime = now;
-        session.attendanceEndTime = endTime;
+        session.attendanceEndTime = null; // Stays open until manually closed
 
         await session.save();
 
@@ -297,8 +305,7 @@ export const startAttendance = async (req, res) => {
 
         res.json({
             message: 'Attendance started',
-            session,
-            windowEndsAt: endTime
+            session
         });
     } catch (error) {
         console.error('Start attendance error:', error);
@@ -422,9 +429,16 @@ export const getProgress = async (req, res) => {
 
         const sessions = await Session.find()
             .populate({ path: 'dayId', select: 'dayNumber title' })
-            .select('title dayId assignments')
-            .sort({ createdAt: 1 })
+            .select('title dayId assignments attendanceStartTime attendanceOpen')
             .lean();
+
+        // Sort in memory
+        sessions.sort((a, b) => {
+            const dayA = a.dayId?.dayNumber ?? 999;
+            const dayB = b.dayId?.dayNumber ?? 999;
+            if (dayA !== dayB) return dayA - dayB;
+            return a._id.toString().localeCompare(b._id.toString());
+        });
         const studentRegNums = students.map(s => s.registerNumber);
 
         const allAttendance = await Attendance.find({
@@ -472,6 +486,8 @@ export const getProgress = async (req, res) => {
                         timestamp: attendance.timestamp,
                         photoPath: attendance.photoPath
                     } : null,
+                    attendanceStartTime: session.attendanceStartTime,
+                    attendanceOpen: session.attendanceOpen,
                     assignmentsCompleted: uniqueTitles.size,
                     totalAssignments: session.assignments ? session.assignments.length : 0
                 };
@@ -537,12 +553,13 @@ export const exportAttendance = async (req, res) => {
         for (const student of students) {
             for (const session of sessions) {
                 const att = attendanceMap.get(`${student.registerNumber}|${session._id.toString()}`);
+                const status = att ? 'PRESENT' : (session.attendanceStartTime ? 'ABSENT' : 'NOT STARTED');
                 worksheet.addRow({
                     reg: student.registerNumber,
                     name: student.name,
                     day: session.dayId?.dayNumber || '-',
                     session: session.title,
-                    status: att ? 'PRESENT' : 'ABSENT',
+                    status: status,
                     time: att ? new Date(att.timestamp).toLocaleString() : '-',
                     override: att?.isOverride ? 'YES' : 'NO'
                 });
@@ -722,14 +739,14 @@ export const exportCertificates = async (req, res) => {
                 let fileLink = '-';
                 let fileType = '-';
 
-                if (cert && cert.files && cert.files.length > 0) {
-                    const filePath = cert.files[0];
-                    // Assuming local check or cloud. If local (starts with /uploads), prepend domain if needed or keep relative.
-                    // Ideally, for an excel export, a full URL is better if accessible, or just the path.
-                    // Let's provide the path or a clickable link if we had the domain.
-                    // For now, raw path.
-                    fileLink = filePath;
-                    fileType = filePath.split('.').pop();
+                if (cert) {
+                    if (cert.assignmentType === 'link' || cert.assignmentType === 'certificate') {
+                        fileLink = cert.response || (cert.files && cert.files.length > 0 ? cert.files[0] : '-');
+                        fileType = cert.assignmentType === 'link' ? 'LINK' : (fileLink.split('.').pop() || 'FILE');
+                    } else if (cert.files && cert.files.length > 0) {
+                        fileLink = cert.files[0];
+                        fileType = fileLink.split('.').pop();
+                    }
                 }
 
                 worksheet.addRow({

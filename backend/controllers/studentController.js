@@ -39,7 +39,7 @@ export const getSessionsForDay = async (req, res) => {
         // LAZY CLOSING: Automatically close expired sessions for this day
         const now = new Date();
         const expiredResult = await Session.updateMany(
-            { dayId, attendanceOpen: true, attendanceEndTime: { $lt: now } },
+            { dayId, attendanceOpen: true, attendanceEndTime: { $ne: null, $lt: now } },
             { $set: { attendanceOpen: false } }
         );
 
@@ -88,17 +88,17 @@ export const getSessionsForDay = async (req, res) => {
                 let attendanceWindowStatus = 'not_started';
                 if (session.attendanceOpen) {
                     attendanceWindowStatus = 'active';
-                } else if (session.attendanceEndTime && new Date() > new Date(session.attendanceEndTime)) {
+                } else if (session.attendanceStartTime && !session.attendanceOpen) {
+                    // If it was started at some point but is now closed
                     attendanceWindowStatus = 'closed';
                 }
 
                 // Safety checks for methods and properties
                 // For lean objects, we use the property directly if the method was pre-calculated or not available
-                const isAttendanceActive = !!(session.attendanceOpen &&
-                    session.attendanceStartTime &&
-                    session.attendanceEndTime &&
-                    new Date() >= new Date(session.attendanceStartTime) &&
-                    new Date() <= new Date(session.attendanceEndTime));
+                const isAttendanceActive = session.attendanceOpen && (
+                    !session.attendanceEndTime ||
+                    (new Date() >= new Date(session.attendanceStartTime) && new Date() <= new Date(session.attendanceEndTime))
+                );
 
                 const assignmentsCount = Array.isArray(session.assignments)
                     ? session.assignments.length
@@ -184,41 +184,41 @@ export const markAttendance = async (req, res) => {
     try {
         const { sessionId } = req.body;
 
+        // 1. Immediate validations (Fastest)
         if (!sessionId) {
             return res.status(400).json({ message: 'Session ID is required' });
         }
 
-        // Get session
-        const session = await Session.findById(sessionId).populate('dayId');
+        if (!req.file) {
+            return res.status(400).json({ message: 'Photo is required for attendance' });
+        }
+
+        // 2. Parallelize DB lookups
+        const [session, existingAttendance] = await Promise.all([
+            Session.findById(sessionId).populate('dayId'),
+            Attendance.findOne({
+                registerNumber: req.user.registerNumber,
+                sessionId
+            })
+        ]);
+
         if (!session) {
             return res.status(404).json({ message: 'Session not found' });
         }
-
-        // Check if day is open
-        if (session.dayId.status !== 'OPEN') {
-            return res.status(403).json({ message: 'This day is not open for attendance' });
-        }
-
-        // Check if attendance window is active (be permissive: allow if flag is true OR time is within window)
-        if (!session.attendanceOpen && !session.isAttendanceActive()) {
-            return res.status(403).json({
-                message: 'Attendance window is not active for this session'
-            });
-        }
-
-        // Check if already marked
-        const existingAttendance = await Attendance.findOne({
-            registerNumber: req.user.registerNumber,
-            sessionId
-        });
 
         if (existingAttendance) {
             return res.status(400).json({ message: 'Attendance already marked for this session' });
         }
 
-        // Check if photo was uploaded
-        if (!req.file) {
-            return res.status(400).json({ message: 'Photo is required for attendance' });
+        // 3. Status checks
+        if (session.dayId.status !== 'OPEN') {
+            return res.status(403).json({ message: 'This day is not open for attendance' });
+        }
+
+        if (!session.attendanceOpen && !session.isAttendanceActive()) {
+            return res.status(403).json({
+                message: 'Attendance window is not active for this session'
+            });
         }
 
         let photoPath = null;
@@ -266,8 +266,12 @@ export const markAttendance = async (req, res) => {
             attendance
         });
     } catch (error) {
-        console.error('Mark attendance error stack:', error.stack);
-        console.error('Mark attendance full error:', error);
+        console.error('❌ Mark attendance CRITICAL ERROR:', {
+            message: error.message,
+            stack: error.stack,
+            body: req.body,
+            user: req.user ? { id: req.user._id, registerNumber: req.user.registerNumber } : 'NO_USER'
+        });
 
         // Handle duplicate key error
         if (error.code === 11000) {
@@ -316,11 +320,11 @@ export const submitAssignment = async (req, res) => {
             }
         }
 
-        // Handle file upload for file type assignments or certificates
+        // Handle file upload for file type assignments only (certificates use Drive links)
         let finalResponse = response;
         let filePaths = [];
 
-        if (assignmentType === 'file' || assignmentType === 'certificate') {
+        if (assignmentType === 'file') {
             const filesToUpload = req.files || (req.file ? [req.file] : []);
 
             if (filesToUpload.length > 0) {
@@ -336,7 +340,7 @@ export const submitAssignment = async (req, res) => {
                         const dataURI = `data:${file.mimetype};base64,${b64}`;
 
                         const result = await cloudinary.uploader.upload(dataURI, {
-                            folder: assignmentType === 'certificate' ? 'e-nexus/certificates' : 'e-nexus/assignments',
+                            folder: 'e-nexus/assignments',
                             resource_type: 'auto'
                         });
 
@@ -350,6 +354,9 @@ export const submitAssignment = async (req, res) => {
                     return res.status(500).json({ message: 'Failed to upload assignment files' });
                 }
             }
+        } else if (assignmentType === 'certificate' || assignmentType === 'link') {
+            // For certificates and links, use the provided response (Drive link)
+            finalResponse = response;
         }
 
         if (!finalResponse && filePaths.length === 0) {

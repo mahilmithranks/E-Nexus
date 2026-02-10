@@ -29,55 +29,36 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Trust proxy for accurate IP detection (needed for rate limiting behind NAT/Vercel)
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // Middleware
 // Explicit CORS headers for Vercel serverless compatibility
 // Middleware
 // Robust CORS configuration for Vercel/Local with Credentials support
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-
-    // Set explicit allowed origin based on request origin to support credentials
-    // (Wildcard '*' with credentials is not allowed by browsers)
-    if (origin) {
-        res.header('Access-Control-Allow-Origin', origin);
-    } else {
-        // Fallback for tools like Postman/cURL
-        res.header('Access-Control-Allow-Origin', '*');
-    }
-
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-
-    // Handle preflight immediately
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
-
-// Use cors middleware as backup/complement (configured to align with manual headers)
+// Cors configuration
 app.use(cors({
-    origin: true, // Auto-reflect origin
+    origin: true, // Allow all origins dynamically
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
+// Handle preflight requests explicitly if needed (cors middleware usually handles this)
+app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Use helmet for security and headers
-app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+// app.use(helmet({
+//     crossOriginResourcePolicy: { policy: "cross-origin" }
+// }));
 
 // Compress all responses
 app.use(compression());
 
 // Apply rate limiting to all routes
-app.use('/api/', apiLimiter);
+app.use('/api', apiLimiter);
 
 // Background job to close expired attendance sessions
 // SKIP on Vercel (We use Vercel Cron instead)
@@ -93,7 +74,7 @@ if (!process.env.VERCEL) {
             const result = await Session.updateMany(
                 {
                     attendanceOpen: true,
-                    attendanceEndTime: { $lt: now }
+                    attendanceEndTime: { $ne: null, $lt: now }
                 },
                 {
                     $set: { attendanceOpen: false }
@@ -145,20 +126,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/sync', syncRoutes);
 
-// Root route (for browser check)
-app.get('/', (req, res) => {
-    res.send('<h1>Backend Server is Running! 🚀</h1><p>API is available at /api</p>');
-});
-
-// Root API route
-app.get('/api', (req, res) => {
-    res.json({
-        message: 'Workshop Management System API',
-        version: '1.0.0',
-        status: 'Running'
-    });
-});
-
 // Health check route
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Server is running' });
@@ -170,7 +137,7 @@ app.use((err, req, res, next) => {
 
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ message: 'File too large. Maximum size is 5MB' });
+            return res.status(400).json({ message: 'File too large. Maximum size is 100KB' });
         }
         return res.status(400).json({ message: err.message });
     }
@@ -185,75 +152,55 @@ app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
-// Initialize admin user on first run
+// Initialize admin user
 const initializeAdmin = async () => {
     try {
         const adminExists = await User.findOne({ role: 'admin' });
 
         if (!adminExists) {
-            const admin = await User.create({
-                registerNumber: process.env.ADMIN_REGISTER_NUMBER || 'ADMIN',
-                email: process.env.ADMIN_EMAIL || 'admin@e-nexus.com',
-                password: process.env.ADMIN_PASSWORD || 'admin123',
+            await User.create({
+                registerNumber: process.env.ADMIN_REGISTER_NUMBER || '99240041375',
+                email: process.env.ADMIN_EMAIL || '99240041375@klu.ac.in',
+                password: process.env.ADMIN_PASSWORD || '19012007',
                 name: 'System Administrator',
                 role: 'admin'
             });
 
             console.log('✅ Admin user created successfully');
-            console.log(`   Email: ${admin.email}`);
-            console.log(`   Password: [REDACTED]`);
         }
     } catch (error) {
         console.error('Error initializing admin:', error);
     }
 };
 
-// Start server
+// Start the server directly (No clustering for better stability on free tier)
 const startServer = async () => {
     try {
         await connectDB();
+
+        // Initialize admin
+        await initializeAdmin();
+
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {
-            console.log(`\n🚀 Server running on port ${PORT} (Process: ${process.pid})`);
+            console.log(`\n🚀 Server running on port ${PORT}`);
             console.log(`📡 API available at http://127.0.0.1:${PORT}/api`);
-            initializeAdmin();
         });
     } catch (error) {
         console.error('❌ Server failed to start:', error);
-        process.exit(1);
     }
 };
 
-if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
-    if (cluster.isPrimary) {
-        const numCPUs = os.cpus().length;
-        console.log(`\n🏁 Production Master process ${process.pid} is starting...`);
-        console.log(`💪 Spawning ${numCPUs} workers for high load optimization...`);
-
-        // Fork workers
-        for (let i = 0; i < numCPUs; i++) {
-            cluster.fork();
-        }
-
-        cluster.on('exit', (worker, code, signal) => {
-            console.log(`⚠️ Worker ${worker.process.pid} died. Spawning a replacement...`);
-            cluster.fork();
-        });
-    } else {
-        startServer();
-    }
+// Start logic based on environment
+if (process.env.VERCEL) {
+    // Vercel Serverless
+    (async () => {
+        await connectDB();
+        await initializeAdmin();
+    })();
 } else {
-    // Single process for development or serverless environments
-    if (!process.env.VERCEL) {
-        console.log('🛠 Starting server in development mode (single-threaded)...');
-        startServer();
-    } else {
-        // In Vercel, just export the app
-        (async () => {
-            await connectDB();
-            initializeAdmin(); // No await needed for the return of the function itself
-        })();
-    }
+    // Render / Local / VPS
+    startServer();
 }
 
 

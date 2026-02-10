@@ -13,7 +13,8 @@ import {
     getProgress,
     exportAttendance,
     exportAssignments,
-    runAutoCloseJob
+    runAutoCloseJob,
+    getDashboardStats
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { cacheMiddleware } from '../middleware/cache.js';
@@ -25,6 +26,9 @@ router.get('/cron/auto-close', runAutoCloseJob);
 
 // All routes below require admin authentication
 router.use(protect, adminOnly);
+
+// Dashboard stats
+router.get('/stats', getDashboardStats);
 
 // Student management
 router.post('/students/preload', preloadStudents);

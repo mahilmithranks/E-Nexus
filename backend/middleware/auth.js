@@ -37,6 +37,8 @@ export const protect = async (req, res, next) => {
                 timestamp: Date.now()
             });
 
+
+
             next();
         } catch (error) {
             console.error('Auth error:', error);
@@ -49,6 +51,15 @@ export const protect = async (req, res, next) => {
     }
 };
 
+// Student, Teacher or Admin middleware (most permissive)
+export const anyAuthenticated = (req, res, next) => {
+    if (req.user) {
+        next();
+    } else {
+        res.status(401).json({ message: 'Not authorized' });
+    }
+};
+
 // Admin only middleware
 export const adminOnly = (req, res, next) => {
     if (req.user && req.user.role === 'admin') {
@@ -58,11 +69,11 @@ export const adminOnly = (req, res, next) => {
     }
 };
 
-// Student only middleware
+// Student only middleware (Allows students and administrators)
 export const studentOnly = (req, res, next) => {
-    if (req.user && req.user.role === 'student') {
+    if (req.user && (req.user.role === 'student' || req.user.role === 'admin')) {
         next();
     } else {
-        res.status(403).json({ message: 'Access denied. Students only.' });
+        res.status(403).json({ message: 'Access denied.' });
     }
 };

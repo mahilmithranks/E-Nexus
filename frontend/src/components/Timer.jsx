@@ -31,18 +31,8 @@ const Timer = ({ targetDate }) => {
     if (!targetDate) return null;
 
     return (
-        <span className={`timer-display ${isUrgent ? 'urgent' : ''}`} style={{
-            fontFamily: 'monospace',
-            fontWeight: 'bold',
-            color: isUrgent ? '#ef4444' : '#10b981',
-            marginLeft: '10px',
-            fontSize: '1em',
-            padding: '2px 8px',
-            backgroundColor: isUrgent ? '#fee2e2' : '#d1fae5',
-            borderRadius: '4px',
-            border: `1px solid ${isUrgent ? '#fca5a5' : '#6ee7b7'}`
-        }}>
-            ⏱ {timeLeft}
+        <span className={`${isUrgent ? 'text-[#f05423] animate-pulse' : 'text-[#ff9d00]'} font-mono font-black tracking-tighter`}>
+            {timeLeft}
         </span>
     );
 };

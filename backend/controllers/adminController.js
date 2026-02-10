@@ -12,6 +12,24 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// @desc    Get dashboard stats (Live users count, etc)
+// @route   GET /api/admin/stats
+// @access  Private/Admin
+export const getDashboardStats = async (req, res) => {
+    try {
+        const totalStudents = await User.countDocuments({ role: 'student' });
+
+        res.json({
+            onlineUsers: 0,
+            totalStudents: totalStudents,
+            serverTime: new Date()
+        });
+    } catch (error) {
+        console.error('Get stats error:', error);
+        res.status(500).json({ message: 'Error fetching stats' });
+    }
+};
+
 // @desc    Preload students from JSON array
 // @route   POST /api/admin/students/preload
 // @access  Private/Admin
@@ -70,8 +88,8 @@ export const getAllDays = async (req, res) => {
         const days = await Day.find().sort({ dayNumber: 1 });
         res.json(days);
     } catch (error) {
-        console.error('Get days error:', error);
-        res.status(500).json({ message: 'Server error fetching days' });
+        console.error('CRITICAL: Get days error:', error);
+        res.status(500).json({ message: 'Server error fetching days', error: error.message });
     }
 };
 
@@ -154,8 +172,8 @@ export const getAllSessions = async (req, res) => {
         const sessions = await Session.find().populate('dayId').sort({ createdAt: 1 }).lean();
         res.json(sessions);
     } catch (error) {
-        console.error('Get sessions error:', error);
-        res.status(500).json({ message: 'Server error fetching sessions' });
+        console.error('CRITICAL: Get sessions error:', error);
+        res.status(500).json({ message: 'Server error fetching sessions', error: error.message });
     }
 };
 

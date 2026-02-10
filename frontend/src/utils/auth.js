@@ -28,5 +28,6 @@ export const isAdmin = () => {
 
 export const isStudent = () => {
     const user = getUser();
-    return user?.role === 'student';
+    // Admin and Student can both access student features
+    return user?.role === 'student' || user?.role === 'admin';
 };

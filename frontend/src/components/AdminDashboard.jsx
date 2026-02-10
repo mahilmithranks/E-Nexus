@@ -19,6 +19,8 @@ function AdminDashboard() {
     const [sessions, setSessions] = useState([]);
     const [progressData, setProgressData] = useState([]);
     const [pagination, setPagination] = useState({ total: 0, pages: 1, currentPage: 1, limit: 20 });
+    const [onlineUsers, setOnlineUsers] = useState(0);
+    const [totalStudentsCount, setTotalStudentsCount] = useState(0);
     const [selectedSessionDay, setSelectedSessionDay] = useState(null);
     const [loading, setLoading] = useState(true);
     const [progressLoading, setProgressLoading] = useState(false);
@@ -99,24 +101,30 @@ function AdminDashboard() {
 
     useEffect(() => {
         fetchInitialData();
+        // Auto-refresh stats every 15 seconds to keep "Live Sessions" accurate
+        const interval = setInterval(fetchInitialData, 15000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
         if (activeTab === 'attendance' || activeTab === 'assignments') {
             fetchProgress(1, searchTerm);
         }
-    }, [activeTab]);
+    }, [activeTab, searchTerm]);
 
     const fetchInitialData = async () => {
         try {
             setLoading(true);
-            const [daysRes, sessionsRes] = await Promise.all([
+            const [daysRes, sessionsRes, statsRes] = await Promise.all([
                 api.get('/admin/days'),
-                api.get('/admin/sessions')
+                api.get('/admin/sessions'),
+                api.get('/admin/stats')
             ]);
 
             setDays(daysRes.data);
             setSessions(sessionsRes.data);
+            setOnlineUsers(statsRes.data.onlineUsers);
+            setTotalStudentsCount(statsRes.data.totalStudents);
 
             // Fetch progress initially if we are already on a progress tab
             if (activeTab === 'attendance' || activeTab === 'assignments') {
@@ -147,6 +155,7 @@ function AdminDashboard() {
     // Generic refresh to stay backward compatible with existing calls
     const fetchData = async () => {
         try {
+            setLoading(true);
             const [daysRes, sessionsRes] = await Promise.all([
                 api.get('/admin/days'),
                 api.get('/admin/sessions')
@@ -157,10 +166,14 @@ function AdminDashboard() {
 
             // Only refresh progress if we are on a tab that shows it
             if (activeTab === 'attendance' || activeTab === 'assignments') {
-                await fetchProgress(pagination.currentPage);
+                await fetchProgress(pagination.currentPage, searchTerm);
             }
+            toast.success('System data synchronized', { icon: '🔄' });
         } catch (error) {
             console.error('Error refreshing data:', error);
+            toast.error('Sync failed. Please check connection.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -381,7 +394,6 @@ function AdminDashboard() {
         { id: 'days', label: 'Day Control', icon: Calendar },
         { id: 'sessions', label: 'Sessions', icon: Clock },
         { id: 'attendance', label: 'Attendance', icon: Users },
-        { id: 'assignments', label: 'Assignments', icon: FileText },
         { id: 'export', label: 'Exports', icon: Download },
     ];
 
@@ -399,657 +411,640 @@ function AdminDashboard() {
     };
 
     return (
-        <div className="min-h-screen w-full bg-black relative overflow-hidden flex flex-col selection:bg-blue-500/30 selection:text-blue-200">
-            {/* Background Effects */}
-            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-black to-black pointer-events-none" />
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-soft-light"
-                style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                }}
-            />
-            <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-600/10 blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-cyan-600/10 blur-[100px] pointer-events-none" />
-
-            {/* Floating Logout */}
-            <button
-                onClick={handleLogout}
-                className="absolute top-6 right-6 z-50 flex items-center gap-2 px-4 py-2 rounded-lg bg-black/20 border border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-105 transition-all text-sm font-medium text-white/70 hover:text-white backdrop-blur-md"
-            >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-            </button>
-
-            {/* Hero Section */}
-            <div className="relative z-10 max-w-7xl mx-auto w-full px-4 md:px-6 pt-12 md:pt-16 pb-6">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6"
-                >
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-medium backdrop-blur-md">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                        Administrator Console
-                    </div>
-
-                    <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-tight">
-                        Welcome back,<br />
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 animate-gradient-x bg-[length:200%_auto]">
-                            {user.name}
-                        </span>
-                    </h1>
-                </motion.div>
+        <div className="min-h-screen w-full bg-[#0a0a0a] text-zinc-400 font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+            {/* Ambient Background Effects */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-600/10 blur-[120px]" />
+                <div className="absolute bottom-[-5%] left-[-5%] w-[30vw] h-[30vw] rounded-full bg-purple-600/10 blur-[100px]" />
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="relative z-10 max-w-7xl mx-auto w-full px-4 md:px-6 mb-8">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                        {tabs.map(tab => (
+            <div className="relative z-10 flex h-screen overflow-hidden">
+                {/* MODERN SIDEBAR */}
+                <aside className="w-72 border-r border-white/5 bg-[#0d0d0d] flex flex-col shrink-0">
+                    <div className="p-8">
+                        <div className="mb-10">
+                            <span className="text-xl font-bold text-white tracking-tight">Workshop Management</span>
+                        </div>
+
+                        <nav className="space-y-1.5">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group",
+                                        activeTab === tab.id
+                                            ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                                            : "text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300 border border-transparent"
+                                    )}
+                                >
+                                    <tab.icon className={cn(
+                                        "w-4 h-4 transition-colors",
+                                        activeTab === tab.id ? "text-indigo-400" : "text-zinc-500 group-hover:text-zinc-300"
+                                    )} />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+
+                    <div className="mt-auto p-6 border-t border-white/5 space-y-4">
+                        {user.role === 'admin' && (
                             <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={cn(
-                                    "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
-                                    activeTab === tab.id
-                                        ? "bg-blue-500 text-white shadow-lg shadow-blue-500/25"
-                                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-                                )}
+                                onClick={() => navigate('/student')}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
                             >
-                                <tab.icon className="w-4 h-4" />
-                                {tab.label}
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Switch to Student View
                             </button>
-                        ))}
-                    </div>
-                    <button
-                        onClick={fetchData}
-                        className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white transition-all mb-2"
-                        title="Refresh Data"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 pb-20">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="w-full"
-                    >
-                        {activeTab === 'days' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {days.map(day => (
-                                    <div key={day._id} className={cn(
-                                        "group relative overflow-hidden p-6 rounded-2xl border backdrop-blur-xl transition-all",
-                                        day.status === 'OPEN'
-                                            ? "bg-blue-500/10 border-blue-500/30 shadow-[0_0_30px_-10px_rgba(59,130,246,0.2)]"
-                                            : "bg-white/[0.03] border-white/5 hover:border-white/10"
-                                    )}>
-                                        {/* Glow on Hover */}
-                                        <div className="absolute -inset-px bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-white">
-                                                        Day {day.dayNumber} {day.date && <span className="text-sm font-normal text-white/40 ml-2">({new Date(day.date).toLocaleDateString('en-GB')})</span>}
-                                                    </h3>
-                                                    <p className="text-white/60 text-sm">{day.title}</p>
-                                                </div>
-                                                <span className={cn(
-                                                    "px-2 py-1 rounded-md text-xs font-bold uppercase",
-                                                    day.status === 'OPEN' ? "bg-green-500/20 text-green-400" :
-                                                        day.status === 'LOCKED' ? "bg-red-500/20 text-red-400" :
-                                                            "bg-gray-500/20 text-gray-400"
-                                                )}>
-                                                    {day.status}
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => updateDayStatus(day._id, 'OPEN')}
-                                                    disabled={day.status === 'OPEN'}
-                                                    className="flex-1 px-3 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 text-sm font-medium border border-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                >
-                                                    Open
-                                                </button>
-                                                <button
-                                                    onClick={() => updateDayStatus(day._id, 'CLOSED')}
-                                                    disabled={day.status === 'CLOSED'}
-                                                    className="flex-1 px-3 py-2 rounded-lg bg-gray-500/10 hover:bg-gray-500/20 text-gray-400 text-sm font-medium border border-gray-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                >
-                                                    Close
-                                                </button>
-                                                <button
-                                                    onClick={() => updateDayStatus(day._id, 'LOCKED')}
-                                                    disabled={day.status === 'LOCKED'}
-                                                    className="flex-1 px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium border border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                >
-                                                    Lock
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
                         )}
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            Logout
+                        </button>
+                    </div>
+                </aside>
 
-                        {activeTab === 'sessions' && (
-                            <div className="space-y-6">
-                                {/* Day Selector for Sessions */}
-                                <div className="flex flex-wrap gap-2 p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                                    <div className="w-full text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Filter by Day</div>
-                                    {days.map(day => (
-                                        <button
-                                            key={day._id}
-                                            onClick={() => setSelectedSessionDay(day._id)}
-                                            className={cn(
-                                                "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
-                                                selectedSessionDay === day._id
-                                                    ? "bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-500/20"
-                                                    : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                Day {day.dayNumber}
-                                                {day.status === 'OPEN' && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
-                                            </div>
-                                        </button>
-                                    ))}
+                {/* MAIN CONTENT AREA */}
+                <main className="flex-1 flex flex-col min-w-0 bg-[#0a0a0a] overflow-hidden">
+                    {/* Header */}
+                    <header className="h-20 border-b border-white/5 px-8 flex items-center justify-between bg-[#0a0a0a]/50 backdrop-blur-md sticky top-0 z-30">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-lg font-semibold text-white capitalize">
+                                {tabs.find(t => t.id === activeTab)?.label}
+                            </h2>
+                            <div className="h-4 w-px bg-white/10 hidden md:block" />
+                            <div className="hidden md:flex items-center gap-2 text-xs text-zinc-500">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                System Online
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={fetchData}
+                                className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] text-zinc-400 hover:text-white transition-all"
+                                title="Refresh Data"
+                            >
+                                <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                            </button>
+                            <div className="h-8 w-px bg-white/10 mx-2" />
+                            <div className="flex items-center gap-3 pl-2">
+                                <div className="text-right hidden sm:block">
+                                    <p className="text-sm font-medium text-white leading-none">{user.name}</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1 tracking-wider">Super Admin</p>
                                 </div>
+                                <div className="size-10 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-sm font-bold ring-4 ring-black">
+                                    {user.name?.[0]}
+                                </div>
+                            </div>
+                        </div>
+                    </header>
 
-                                <div className="space-y-4">
-                                    {sessions
-                                        .filter(session => !selectedSessionDay || session.dayId?._id === selectedSessionDay || session.dayId === selectedSessionDay)
-                                        .map(session => (
-                                            <div key={session._id} className="group relative overflow-hidden p-6 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all">
-                                                {/* Glow on Hover */}
-                                                <div className="absolute -inset-px bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                    {/* Content Scroll Area */}
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-8">
+                        <div className="max-w-6xl mx-auto space-y-8">
+                            {/* Dashboard Heading for certain tabs */}
+                            {activeTab !== 'attendance' && activeTab !== 'assignments' && (
+                                <motion.div
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="mb-2"
+                                >
+                                    <h1 className="text-4xl font-bold text-white tracking-tight mb-2">
+                                        Dashboard <span className="text-indigo-500">Overview</span>
+                                    </h1>
+                                    <p className="text-zinc-500">Manage workshop days, sessions and system exports.</p>
+                                </motion.div>
+                            )}
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={activeTab}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="w-full"
+                                >
+                                    {/* Statistics Overview Grid */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+                                        {[
+                                            { label: 'Total Schedule', value: `${days.length} Days`, icon: Calendar, color: 'indigo' },
+                                            { label: 'Total Sessions', value: sessions.length, icon: Clock, color: 'blue' },
+                                            { label: 'Live Sessions', value: sessions.filter(s => s.attendanceOpen).length, icon: Play, color: 'emerald' },
+                                            { label: 'Total Students', value: totalStudentsCount || '0', icon: Users, color: 'purple' },
+                                        ].map((stat, i) => (
+                                            <motion.div
+                                                key={i}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: i * 0.1 }}
+                                                className="p-6 rounded-3xl bg-[#111111]/40 border border-white/5 hover:border-white/10 transition-all group relative overflow-hidden"
+                                            >
+                                                <div className={cn(
+                                                    "absolute -right-4 -top-4 size-24 blur-3xl opacity-10 group-hover:opacity-20 transition-opacity rounded-full",
+                                                    stat.color === 'indigo' && "bg-indigo-500",
+                                                    stat.color === 'blue' && "bg-blue-500",
+                                                    stat.color === 'emerald' && "bg-emerald-500",
+                                                    stat.color === 'purple' && "bg-purple-500",
+                                                )} />
+                                                <div className="flex items-center gap-4 relative z-10">
+                                                    <div className={cn(
+                                                        "size-12 rounded-2xl flex items-center justify-center",
+                                                        stat.color === 'indigo' && "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
+                                                        stat.color === 'blue' && "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+                                                        stat.color === 'emerald' && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                                                        stat.color === 'purple' && "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+                                                    )}>
+                                                        <stat.icon className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">{stat.label}</div>
+                                                        <div className="text-xl font-bold text-white">{stat.value}</div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
 
-                                                <div className="relative z-10 flex flex-col md:flex-row justify-between gap-6">
-                                                    <div className="flex-1">
-                                                        <div className="flex flex-col gap-2 mb-2">
-                                                            <div className="flex flex-wrap items-center gap-3">
-                                                                <h3 className="text-xl font-bold text-white">{session.title}</h3>
-                                                                <span className="px-2 py-0.5 rounded text-xs font-medium bg-white/10 text-white/60 border border-white/5">
-                                                                    Day {session.dayId?.dayNumber}
-                                                                </span>
-                                                                <span className={cn(
-                                                                    "px-2 py-0.5 rounded text-xs font-bold uppercase border",
-                                                                    session.mode === 'OFFLINE'
-                                                                        ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
-                                                                        : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                                                                )}>
-                                                                    {session.mode || 'ONLINE'}
-                                                                </span>
+                                    {activeTab === 'days' && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {days.map(day => (
+                                                <div key={day._id} className={cn(
+                                                    "group relative overflow-hidden p-6 rounded-2xl border transition-all duration-300",
+                                                    day.status === 'OPEN'
+                                                        ? "bg-[#111111] border-indigo-500/50 shadow-[0_0_40px_-15px_rgba(99,102,241,0.2)]"
+                                                        : "bg-[#111111]/40 border-white/5 hover:border-white/10"
+                                                )}>
+                                                    <div className="relative z-10">
+                                                        <div className="flex justify-between items-start mb-6">
+                                                            <div className="space-y-1">
+                                                                <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em]">Workshop Timeline</div>
+                                                                <h3 className="text-2xl font-bold text-white leading-none">
+                                                                    Day {day.dayNumber}
+                                                                </h3>
+                                                                {day.date && <p className="text-zinc-500 text-xs font-medium">{new Date(day.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
                                                             </div>
-                                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                                                                {session.startTime && (
-                                                                    <div className="flex items-center gap-1.5 text-purple-400 text-xs font-medium bg-purple-500/10 px-2 py-1 rounded-md border border-purple-500/20">
-                                                                        <Clock className="w-3.5 h-3.5" />
-                                                                        {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                    </div>
-                                                                )}
-                                                                <p className="text-white/50 text-sm italic">{session.description}</p>
+                                                            <div className={cn(
+                                                                "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border",
+                                                                day.status === 'OPEN' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                                                    day.status === 'LOCKED' ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                                                                        "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                                                            )}>
+                                                                {day.status}
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            {session.attendanceOpen ? (
-                                                                <span className="flex items-center gap-2 text-green-400 text-sm font-medium">
-                                                                    <span className="relative flex h-2 w-2">
-                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                                                    </span>
-                                                                    Attendance Open
-                                                                    {session.attendanceEndTime && <Timer targetDate={session.attendanceEndTime} />}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="flex items-center gap-2 text-red-400 text-sm font-medium">
-                                                                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                                                                    Attendance Closed
-                                                                </span>
-                                                            )}
+
+                                                        <p className="text-zinc-400 text-sm mb-8 line-clamp-1 font-medium">{day.title}</p>
+
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <button
+                                                                onClick={() => updateDayStatus(day._id, 'OPEN')}
+                                                                disabled={day.status === 'OPEN'}
+                                                                className="px-3 py-2.5 rounded-xl bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 text-[11px] font-bold border border-emerald-500/10 disabled:opacity-20 transition-all uppercase tracking-wide"
+                                                            >
+                                                                Activate
+                                                            </button>
+                                                            <button
+                                                                onClick={() => updateDayStatus(day._id, 'CLOSED')}
+                                                                disabled={day.status === 'CLOSED'}
+                                                                className="px-3 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] text-zinc-400 text-[11px] font-bold border border-white/5 disabled:opacity-20 transition-all uppercase tracking-wide"
+                                                            >
+                                                                Finish
+                                                            </button>
+                                                            <button
+                                                                onClick={() => updateDayStatus(day._id, 'LOCKED')}
+                                                                disabled={day.status === 'LOCKED'}
+                                                                className="px-3 py-2.5 rounded-xl bg-red-500/5 hover:bg-red-500/10 text-red-400 text-[11px] font-bold border border-red-500/10 disabled:opacity-20 transition-all uppercase tracking-wide"
+                                                            >
+                                                                Lock
+                                                            </button>
                                                         </div>
                                                     </div>
-
-                                                    {session.type === 'BREAK' ? (
-                                                        <div className="flex items-center px-4 py-2 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 text-sm font-medium gap-2">
-                                                            <Clock className="w-4 h-4" /> Break Time
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-3">
-                                                            <button
-                                                                onClick={() => startAttendance(session._id)}
-                                                                disabled={session.attendanceOpen || session.dayId?.status !== 'OPEN'}
-                                                                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                                                            >
-                                                                <Play className="w-4 h-4" /> Start
-                                                            </button>
-                                                            <button
-                                                                onClick={() => stopAttendance(session._id)}
-                                                                disabled={!session.attendanceOpen}
-                                                                className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                                                            >
-                                                                <Square className="w-4 h-4" /> Stop
-                                                            </button>
-                                                        </div>
-                                                    )}
                                                 </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'sessions' && (
+                                        <div className="space-y-6">
+                                            {/* Day Selector for Sessions */}
+                                            <div className="flex flex-wrap gap-2 p-4 bg-white/[0.02] rounded-xl border border-white/5">
+                                                <div className="w-full text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Filter by Day</div>
+                                                {days.map(day => (
+                                                    <button
+                                                        key={day._id}
+                                                        onClick={() => setSelectedSessionDay(day._id)}
+                                                        className={cn(
+                                                            "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
+                                                            selectedSessionDay === day._id
+                                                                ? "bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-500/20"
+                                                                : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            Day {day.dayNumber}
+                                                            {day.status === 'OPEN' && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
+                                                        </div>
+                                                    </button>
+                                                ))}
                                             </div>
-                                        ))}
-                                </div>
 
-                                {/* Manual Override Toggle */}
-
-                            </div>
-                        )}
-
-                        {/* Attendance Tracking Tab */}
-                        {activeTab === 'attendance' && (
-                            <>
-                                <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-white mb-1">Attendance Tracking</h2>
-                                        <p className="text-white/60 text-sm">View and manage student attendance records.</p>
-                                    </div>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Search student or reg number..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full md:w-80 px-4 py-2 pl-10 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all"
-                                        />
-                                        <Users className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
-                                    </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/[0.02]">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead>
-                                                <tr className="bg-white/5 border-b border-white/10">
-                                                    <th className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider w-12 text-center border-r border-white/5 bg-white/5 sticky left-0 z-20">#</th>
-                                                    <th className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider sticky left-12 bg-white/5 z-20">Student</th>
-                                                    {sessions.map(s => (
-                                                        <th key={s._id} className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider whitespace-nowrap text-center">
-                                                            <div>{s.title}</div>
-                                                            <div className="text-[10px] text-white/40 font-normal mt-1">Day {s.dayId?.dayNumber}</div>
-                                                        </th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {progressLoading ? (
-                                                    <tr>
-                                                        <td colSpan={sessions.length + 1} className="p-8 text-center bg-black/20">
-                                                            <div className="flex flex-col items-center gap-3">
-                                                                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                                                                <p className="text-white/40 text-sm">Loading students...</p>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ) : progressData.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={sessions.length + 1} className="p-8 text-center text-white/40 bg-black/20">
-                                                            No students found
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    progressData.map((student, index) => (
-                                                        <tr key={student.registerNumber} className="hover:bg-white/[0.02]">
-                                                            <td className="p-4 text-center text-white/40 text-xs border-r border-white/5 bg-black/40 backdrop-blur-sm sticky left-0 z-10 w-12">
-                                                                {(pagination.currentPage - 1) * pagination.limit + index + 1}
-                                                            </td>
-                                                            <td className="p-4 sticky left-12 bg-black/40 backdrop-blur-sm z-10 border-r border-white/5">
-                                                                <div className="text-white font-medium">{student.name}</div>
-                                                                <div className="text-white/40 text-xs">{student.registerNumber}</div>
-                                                            </td>
-                                                            {student.sessions.map(session => {
-                                                                const hasAttendance = session.attendance?.status === 'PRESENT';
-                                                                const isOverride = session.attendance?.isOverride;
-                                                                const photoPath = session.attendance?.photoPath;
-                                                                const photoUrl = getPhotoUrl(photoPath);
-
-                                                                return (
-                                                                    <td key={session.sessionId} className="p-4">
-                                                                        <div className="flex flex-col items-center gap-1">
-                                                                            {hasAttendance ? (
-                                                                                <button
-                                                                                    onClick={() => photoUrl && setShowPhotoModal({ show: true, url: photoUrl, student: student.name })}
-                                                                                    className={cn(
-                                                                                        "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                                                                                        isOverride ? "bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30" : "bg-green-500/20 text-green-500 hover:bg-green-500/30",
-                                                                                        photoUrl && "cursor-pointer hover:scale-110"
-                                                                                    )}
-                                                                                    title={photoUrl ? "Click to view photo" : (isOverride ? "Manual override" : "Present")}
-                                                                                >
-                                                                                    <CheckCircle className="w-4 h-4" />
-                                                                                </button>
-                                                                            ) : (
-                                                                                <div className="flex flex-col items-center gap-2">
-                                                                                    <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center" title="Absent">
-                                                                                        <XCircle className="w-4 h-4" />
-                                                                                    </div>
-                                                                                    <button
-                                                                                        onClick={() => openOverrideModal(student, session.sessionId)}
-                                                                                        className="text-xs px-2 py-1 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all"
-                                                                                        title="Override attendance for this session"
-                                                                                    >
-                                                                                        Override
-                                                                                    </button>
+                                            <div className="space-y-4">
+                                                {sessions
+                                                    .filter(session => !selectedSessionDay || session.dayId?._id === selectedSessionDay || session.dayId === selectedSessionDay)
+                                                    .map(session => (
+                                                        <div key={session._id} className="group relative overflow-hidden p-6 rounded-[2rem] bg-[#111111]/60 border border-white/5 hover:border-indigo-500/30 transition-all duration-500">
+                                                            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                                                                <div className="flex gap-6 max-w-2xl">
+                                                                    <div className="size-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col items-center justify-center shrink-0">
+                                                                        <div className="text-[10px] font-black text-indigo-400/60 uppercase leading-none mb-1">Session</div>
+                                                                        <div className="text-xl font-bold text-white leading-none">
+                                                                            {sessions.indexOf(session) + 1}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex flex-wrap items-center gap-3">
+                                                                            <h3 className="text-2xl font-bold text-white tracking-tight">{session.title}</h3>
+                                                                            <div className={cn(
+                                                                                "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                                                                session.mode === 'OFFLINE'
+                                                                                    ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                                                                    : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                                                                            )}>
+                                                                                {session.mode || 'ONLINE'}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-4 text-xs font-semibold">
+                                                                            <div className="flex items-center gap-1.5 text-zinc-400 bg-white/[0.03] px-2.5 py-1.5 rounded-lg border border-white/5">
+                                                                                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                                                                                {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                            </div>
+                                                                            {session.attendanceOpen && (
+                                                                                <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/10 animate-pulse">
+                                                                                    <div className="size-1.5 rounded-full bg-emerald-400" />
+                                                                                    Live
                                                                                 </div>
                                                                             )}
                                                                         </div>
-                                                                    </td>
-                                                                );
-                                                            })}
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <PaginationControls />
+                                                                        <p className="text-zinc-500 text-sm max-w-lg leading-relaxed">{session.description}</p>
+                                                                    </div>
+                                                                </div>
 
-                                {/* Photo Preview Modal */}
-                                <AnimatePresence>
-                                    {showPhotoModal.show && (
-                                        <motion.div
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-                                            onClick={() => setShowPhotoModal({ show: false, url: '', student: '' })}
-                                        >
-                                            <motion.div
-                                                initial={{ scale: 0.9, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                exit={{ scale: 0.9, opacity: 0 }}
-                                                className="relative max-w-4xl w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <div className="p-4 border-b border-white/10 flex justify-between items-center">
-                                                    <h3 className="text-lg font-semibold text-white">
-                                                        Attendance Photo - {showPhotoModal.student}
-                                                    </h3>
-                                                    <button
-                                                        onClick={() => setShowPhotoModal({ show: false, url: '', student: '' })}
-                                                        className="text-white/60 hover:text-white transition-colors"
-                                                    >
-                                                        <XCircle className="w-6 h-6" />
-                                                    </button>
-                                                </div>
-                                                <div className="p-6 flex items-center justify-center bg-black/20">
-                                                    <img
-                                                        src={showPhotoModal.url}
-                                                        alt="Attendance photo"
-                                                        className="max-w-full max-h-[70vh] rounded-lg"
-                                                    />
-                                                </div>
-                                            </motion.div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                                                <div className="flex items-center gap-3 shrink-0">
+                                                                    {session.type === 'BREAK' ? (
+                                                                        <div className="px-6 py-3 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 text-sm font-bold flex items-center gap-2 uppercase tracking-wide">
+                                                                            <Clock className="w-4 h-4" /> Reserved for Break
+                                                                        </div>
+                                                                    ) : (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => startAttendance(session._id)}
+                                                                                disabled={session.attendanceOpen || session.dayId?.status !== 'OPEN'}
+                                                                                className="px-8 py-3.5 rounded-[1.25rem] bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold shadow-xl shadow-indigo-500/20 disabled:opacity-20 transition-all flex items-center gap-2 group/btn"
+                                                                            >
+                                                                                <Play className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                                                                Open Attendance
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => stopAttendance(session._id)}
+                                                                                disabled={!session.attendanceOpen}
+                                                                                className="px-6 py-3.5 rounded-[1.25rem] bg-white/[0.03] hover:bg-white/[0.06] text-zinc-400 border border-white/5 text-sm font-bold disabled:opacity-20 transition-all flex items-center gap-2"
+                                                                            >
+                                                                                <Square className="w-4 h-4" />
+                                                                                Closer
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </div>
 
-                                {/* Override Attendance Modal */}
-                                <AnimatePresence>
-                                    {showOverrideModal.show && (
-                                        <motion.div
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-                                            onClick={() => setShowOverrideModal({ show: false, student: null, sessionId: null, comment: '' })}
-                                        >
-                                            <motion.div
-                                                initial={{ scale: 0.9, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                exit={{ scale: 0.9, opacity: 0 }}
-                                                className="relative max-w-md w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <div className="p-6 border-b border-white/10">
-                                                    <h3 className="text-xl font-bold text-white mb-2">
-                                                        Override Attendance
-                                                    </h3>
-                                                    <p className="text-white/60 text-sm">
-                                                        Manually mark attendance for this student
-                                                    </p>
-                                                </div>
-
-                                                <form onSubmit={handleOverrideSubmit} className="p-6 space-y-4">
-                                                    {/* Student Info */}
-                                                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                                                        <div className="text-sm text-white/40 mb-1">Student</div>
-                                                        <div className="text-white font-medium">{showOverrideModal.student?.name}</div>
-                                                        <div className="text-white/60 text-xs">{showOverrideModal.student?.registerNumber}</div>
-                                                    </div>
-
-                                                    {/* Session Info */}
-                                                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                                                        <div className="text-sm text-white/40 mb-1">Session</div>
-                                                        <div className="text-white font-medium">
-                                                            {sessions.find(s => s._id === showOverrideModal.sessionId)?.title || 'Session'}
+                                                            {session.attendanceOpen && session.attendanceEndTime && (
+                                                                <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                                                                    <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Time remaining until auto-close</div>
+                                                                    <div className="text-indigo-400 font-mono text-xl font-bold bg-indigo-500/10 px-4 py-1.5 rounded-xl border border-indigo-500/20">
+                                                                        <Timer targetDate={session.attendanceEndTime} />
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    </div>
-
-                                                    {/* Comment */}
-                                                    <div>
-                                                        <label className="block text-sm text-white/60 mb-2">
-                                                            Reason for Override <span className="text-red-400">*</span>
-                                                        </label>
-                                                        <textarea
-                                                            value={showOverrideModal.comment}
-                                                            onChange={(e) => setShowOverrideModal({ ...showOverrideModal, comment: e.target.value })}
-                                                            placeholder="e.g., Technical issue, Late entry approved, etc."
-                                                            required
-                                                            rows={3}
-                                                            className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-yellow-500/50 transition-colors"
-                                                        />
-                                                    </div>
-
-                                                    {/* Actions */}
-                                                    <div className="flex gap-3 pt-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowOverrideModal({ show: false, student: null, sessionId: null, comment: '' })}
-                                                            className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                        <button
-                                                            type="submit"
-                                                            className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-medium hover:from-yellow-600 hover:to-orange-600 transition-all"
-                                                        >
-                                                            Override & Mark Present
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            </motion.div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </>
-                        )}
-
-                        {/* Assignments Tracking Tab */}
-                        {activeTab === 'assignments' && (
-                            <>
-                                <div className="mb-6">
-                                    <h2 className="text-2xl font-bold text-white mb-2">Assignment Tracking</h2>
-                                    <p className="text-white/60">View student assignment completion progress across all sessions.</p>
-                                </div>
-
-                                <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/[0.02]">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead>
-                                                <tr className="bg-white/5 border-b border-white/10">
-                                                    <th className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider sticky left-0 bg-white/5">Student</th>
-                                                    {sessions.map(s => (
-                                                        <th key={s._id} className="p-4 text-xs font-semibold text-white/60 uppercase tracking-wider whitespace-nowrap text-center">
-                                                            <div>{s.title}</div>
-                                                            <div className="text-[10px] text-white/40 font-normal mt-1">
-                                                                {s.assignments?.length || 0} Task{s.assignments?.length !== 1 ? 's' : ''}
-                                                            </div>
-                                                        </th>
                                                     ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {progressLoading ? (
-                                                    <tr>
-                                                        <td colSpan={sessions.length + 1} className="p-8 text-center bg-black/20">
-                                                            <div className="flex flex-col items-center gap-3">
-                                                                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                                                                <p className="text-white/40 text-sm">Loading tasks...</p>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ) : progressData.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={sessions.length + 1} className="p-8 text-center text-white/40 bg-black/20">
-                                                            No student data found
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    progressData.map(student => (
-                                                        <tr key={student.registerNumber} className="hover:bg-white/[0.02]">
-                                                            <td className="p-4 sticky left-0 bg-black/40 backdrop-blur-sm">
-                                                                <div className="text-white font-medium">{student.name}</div>
-                                                                <div className="text-white/40 text-xs">{student.registerNumber}</div>
-                                                            </td>
-                                                            {student.sessions.map(session => {
-                                                                const completed = session.assignmentsCompleted || 0;
-                                                                const total = session.totalAssignments || 0;
-                                                                const percentage = total > 0 ? (completed / total) * 100 : 0;
-                                                                const isComplete = completed === total && total > 0;
+                                            </div>
 
-                                                                return (
-                                                                    <td key={session.sessionId} className="p-4">
-                                                                        <div className="flex flex-col items-center gap-2">
-                                                                            {total > 0 ? (
-                                                                                <>
-                                                                                    <div className={cn(
-                                                                                        "text-sm font-semibold",
-                                                                                        isComplete ? "text-green-400" : completed > 0 ? "text-yellow-400" : "text-white/40"
-                                                                                    )}>
-                                                                                        {completed}/{total}
-                                                                                    </div>
-                                                                                    <div className="w-full max-w-[60px] h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                                                        <div
-                                                                                            className={cn(
-                                                                                                "h-full transition-all",
-                                                                                                isComplete ? "bg-green-500" : completed > 0 ? "bg-yellow-500" : "bg-transparent"
-                                                                                            )}
-                                                                                            style={{ width: `${percentage}%` }}
-                                                                                        />
-                                                                                    </div>
-                                                                                </>
-                                                                            ) : (
-                                                                                <div className="text-xs text-white/30">No tasks</div>
-                                                                            )}
+                                            {/* Manual Override Toggle */}
+
+                                        </div>
+                                    )}
+
+                                    {/* Attendance Tracking Tab */}
+                                    {activeTab === 'attendance' && (
+                                        <>
+                                            <div className="mb-10 flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+                                                <div className="space-y-2">
+                                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest border border-indigo-500/20">
+                                                        Real-time Monitoring
+                                                    </div>
+                                                    <h2 className="text-4xl font-bold text-white tracking-tight">Attendance Tracking</h2>
+                                                    <p className="text-zinc-500 font-medium">Verified student logs with photographic evidence.</p>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="relative group">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Target Student or Reg ID..."
+                                                            value={searchTerm}
+                                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                                            className="w-full md:w-96 px-6 py-4 pl-12 rounded-2xl bg-[#111111] border border-white/5 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none"
+                                                        />
+                                                        <Users className="w-5 h-5 text-zinc-600 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-400 transition-colors" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/[0.02]">
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left border-collapse">
+                                                        <thead>
+                                                            <tr className="bg-white/[0.03] border-b border-white/10">
+                                                                <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] w-14 text-center border-r border-white/5 sticky left-0 z-20 bg-[#0d0d0d]">#</th>
+                                                                <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] sticky left-14 bg-[#0d0d0d] z-20 min-w-[200px] border-r border-white/5">Student Information</th>
+                                                                {sessions.map(s => (
+                                                                    <th key={s._id} className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] whitespace-nowrap text-center border-r border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                                                                        <div>{s.title}</div>
+                                                                        <div className="text-[10px] text-indigo-400/50 font-bold mt-1 tracking-widest italic">Day {s.dayId?.dayNumber}</div>
+                                                                    </th>
+                                                                ))}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-white/5">
+                                                            {progressLoading ? (
+                                                                <tr>
+                                                                    <td colSpan={sessions.length + 1} className="p-8 text-center bg-black/20">
+                                                                        <div className="flex flex-col items-center gap-3">
+                                                                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                                                            <p className="text-white/40 text-sm">Loading students...</p>
                                                                         </div>
                                                                     </td>
-                                                                );
-                                                            })}
-                                                        </tr>
-                                                    ))
+                                                                </tr>
+                                                            ) : progressData.length === 0 ? (
+                                                                <tr>
+                                                                    <td colSpan={sessions.length + 1} className="p-8 text-center text-white/40 bg-black/20">
+                                                                        No students found
+                                                                    </td>
+                                                                </tr>
+                                                            ) : (
+                                                                progressData.map((student, index) => (
+                                                                    <tr key={student.registerNumber} className="hover:bg-white/[0.01] transition-colors group/row">
+                                                                        <td className="p-5 text-center text-zinc-600 text-[10px] font-bold border-r border-white/5 bg-[#0d0d0d] sticky left-0 z-10 w-14">
+                                                                            {(pagination.currentPage - 1) * pagination.limit + index + 1}
+                                                                        </td>
+                                                                        <td className="p-5 sticky left-14 bg-[#0d0d0d] z-10 border-r border-white/5">
+                                                                            <div className="text-sm font-bold text-white group-hover/row:text-indigo-400 transition-colors">{student.name}</div>
+                                                                            <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">{student.registerNumber}</div>
+                                                                        </td>
+                                                                        {student.sessions.map(session => {
+                                                                            const hasAttendance = session.attendance?.status === 'PRESENT';
+                                                                            const isOverride = session.attendance?.isOverride;
+                                                                            const photoPath = session.attendance?.photoPath;
+                                                                            const photoUrl = getPhotoUrl(photoPath);
+
+                                                                            return (
+                                                                                <td key={session.sessionId} className="p-4">
+                                                                                    <div className="flex flex-col items-center gap-1">
+                                                                                        {hasAttendance ? (
+                                                                                            <button
+                                                                                                onClick={() => photoUrl && setShowPhotoModal({ show: true, url: photoUrl, student: student.name })}
+                                                                                                className={cn(
+                                                                                                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                                                                                                    isOverride ? "bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30" : "bg-green-500/20 text-green-500 hover:bg-green-500/30",
+                                                                                                    photoUrl && "cursor-pointer hover:scale-110"
+                                                                                                )}
+                                                                                                title={photoUrl ? "Click to view photo" : (isOverride ? "Manual override" : "Present")}
+                                                                                            >
+                                                                                                <CheckCircle className="w-4 h-4" />
+                                                                                            </button>
+                                                                                        ) : (
+                                                                                            <div className="flex flex-col items-center gap-2">
+                                                                                                <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center" title="Absent">
+                                                                                                    <XCircle className="w-4 h-4" />
+                                                                                                </div>
+                                                                                                <button
+                                                                                                    onClick={() => openOverrideModal(student, session.sessionId)}
+                                                                                                    className="text-xs px-2 py-1 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all"
+                                                                                                    title="Override attendance for this session"
+                                                                                                >
+                                                                                                    Override
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </td>
+                                                                            );
+                                                                        })}
+                                                                    </tr>
+                                                                ))
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <PaginationControls />
+
+                                            {/* Photo Preview Modal */}
+                                            <AnimatePresence>
+                                                {showPhotoModal.show && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        exit={{ opacity: 0 }}
+                                                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                                                        onClick={() => setShowPhotoModal({ show: false, url: '', student: '' })}
+                                                    >
+                                                        <motion.div
+                                                            initial={{ scale: 0.9, opacity: 0 }}
+                                                            animate={{ scale: 1, opacity: 1 }}
+                                                            exit={{ scale: 0.9, opacity: 0 }}
+                                                            className="relative max-w-4xl w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                                                                <h3 className="text-lg font-semibold text-white">
+                                                                    Attendance Photo - {showPhotoModal.student}
+                                                                </h3>
+                                                                <button
+                                                                    onClick={() => setShowPhotoModal({ show: false, url: '', student: '' })}
+                                                                    className="text-white/60 hover:text-white transition-colors"
+                                                                >
+                                                                    <XCircle className="w-6 h-6" />
+                                                                </button>
+                                                            </div>
+                                                            <div className="p-6 flex items-center justify-center bg-black/20">
+                                                                <img
+                                                                    src={showPhotoModal.url}
+                                                                    alt="Attendance photo"
+                                                                    className="max-w-full max-h-[70vh] rounded-lg"
+                                                                />
+                                                            </div>
+                                                        </motion.div>
+                                                    </motion.div>
                                                 )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <PaginationControls />
-                            </>
-                        )}
+                                            </AnimatePresence>
 
-                        {activeTab === 'export' && (
-                            <div className="space-y-6">
-                                <div className="mb-6">
-                                    <h2 className="text-2xl font-bold text-white mb-2">Export Data</h2>
-                                    <p className="text-white/60">Generate and download reports in Excel format.</p>
-                                </div>
+                                            {/* Override Attendance Modal */}
+                                            <AnimatePresence>
+                                                {showOverrideModal.show && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        exit={{ opacity: 0 }}
+                                                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                                                        onClick={() => setShowOverrideModal({ show: false, student: null, sessionId: null, comment: '' })}
+                                                    >
+                                                        <motion.div
+                                                            initial={{ scale: 0.9, opacity: 0 }}
+                                                            animate={{ scale: 1, opacity: 1 }}
+                                                            exit={{ scale: 0.9, opacity: 0 }}
+                                                            className="relative max-w-md w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <div className="p-6 border-b border-white/10">
+                                                                <h3 className="text-xl font-bold text-white mb-2">
+                                                                    Override Attendance
+                                                                </h3>
+                                                                <p className="text-white/60 text-sm">
+                                                                    Manually mark attendance for this student
+                                                                </p>
+                                                            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Attendance Export */}
-                                    <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20">
-                                        <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-blue-400">
-                                            <FileText className="w-6 h-6" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-white mb-2">Attendance Report</h3>
-                                        <p className="text-white/60 mb-6 text-sm">Download comprehensive or filtered attendance data.</p>
+                                                            <form onSubmit={handleOverrideSubmit} className="p-6 space-y-4">
+                                                                {/* Student Info */}
+                                                                <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                                                    <div className="text-sm text-white/40 mb-1">Student</div>
+                                                                    <div className="text-white font-medium">{showOverrideModal.student?.name}</div>
+                                                                    <div className="text-white/60 text-xs">{showOverrideModal.student?.registerNumber}</div>
+                                                                </div>
 
-                                        <div className="space-y-4 mb-8">
-                                            <div className="space-y-2">
-                                                <label className="text-xs text-white/40 uppercase font-semibold">Filter by Day (Optional)</label>
-                                                <select
-                                                    value={exportFilters.dayId}
-                                                    onChange={(e) => setExportFilters({ dayId: e.target.value, sessionId: '' })}
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all"
-                                                >
-                                                    <option value="">All Days</option>
-                                                    {days.map(d => (
-                                                        <option key={d._id} value={d._id}>Day {d.dayNumber} - {d.title}</option>
-                                                    ))}
-                                                </select>
+                                                                {/* Session Info */}
+                                                                <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                                                    <div className="text-sm text-white/40 mb-1">Session</div>
+                                                                    <div className="text-white font-medium">
+                                                                        {sessions.find(s => s._id === showOverrideModal.sessionId)?.title || 'Session'}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Comment */}
+                                                                <div>
+                                                                    <label className="block text-sm text-white/60 mb-2">
+                                                                        Reason for Override <span className="text-red-400">*</span>
+                                                                    </label>
+                                                                    <textarea
+                                                                        value={showOverrideModal.comment}
+                                                                        onChange={(e) => setShowOverrideModal({ ...showOverrideModal, comment: e.target.value })}
+                                                                        placeholder="e.g., Technical issue, Late entry approved, etc."
+                                                                        required
+                                                                        rows={3}
+                                                                        className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-yellow-500/50 transition-colors"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Actions */}
+                                                                <div className="flex gap-3 pt-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setShowOverrideModal({ show: false, student: null, sessionId: null, comment: '' })}
+                                                                        className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                    <button
+                                                                        type="submit"
+                                                                        className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-medium hover:from-yellow-600 hover:to-orange-600 transition-all"
+                                                                    >
+                                                                        Override & Mark Present
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </motion.div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </>
+                                    )}
+
+
+
+                                    {activeTab === 'export' && (
+                                        <div className="space-y-6">
+                                            <div className="mb-6">
+                                                <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">System Exports</h2>
+                                                <p className="text-zinc-500 text-sm">Generate and download workshop reports in Microsoft Excel format.</p>
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <label className="text-xs text-white/40 uppercase font-semibold">Filter by Session (Optional)</label>
-                                                <select
-                                                    value={exportFilters.sessionId}
-                                                    onChange={(e) => setExportFilters({ ...exportFilters, sessionId: e.target.value })}
-                                                    className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500/50 transition-all"
-                                                >
-                                                    <option value="">All Sessions</option>
-                                                    {sessions
-                                                        .filter(s => !exportFilters.dayId || s.dayId?._id === exportFilters.dayId || s.dayId === exportFilters.dayId)
-                                                        .map(s => (
-                                                            <option key={s._id} value={s._id}>{s.title}</option>
-                                                        ))}
-                                                </select>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                {/* Attendance Export */}
+                                                <div className="p-10 rounded-[2.5rem] bg-[#111111]/80 border border-white/5 hover:border-indigo-500/20 transition-all group relative overflow-hidden">
+                                                    <div className="absolute -right-12 -top-12 size-48 bg-indigo-500/10 blur-[100px] group-hover:bg-indigo-500/20 transition-all rounded-full" />
+
+                                                    <div className="relative z-10">
+                                                        <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-8 text-indigo-400">
+                                                            <Download className="w-8 h-8" />
+                                                        </div>
+                                                        <h3 className="text-3xl font-bold text-white mb-3">Attendance Report</h3>
+                                                        <p className="text-zinc-500 mb-10 text-sm leading-relaxed max-w-sm">Securely generate complete student attendance logs with date and session filters.</p>
+
+                                                        <div className="space-y-6 mb-12">
+                                                            <div className="space-y-2.5">
+                                                                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Target Dimension</label>
+                                                                <select
+                                                                    value={exportFilters.dayId}
+                                                                    onChange={(e) => setExportFilters({ dayId: e.target.value, sessionId: '' })}
+                                                                    className="w-full px-6 py-5 rounded-[1.25rem] bg-[#0d0d0d] border border-white/10 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 transition-all appearance-none cursor-pointer"
+                                                                >
+                                                                    <option value="">All Days Combined</option>
+                                                                    {days.map(d => (
+                                                                        <option key={d._id} value={d._id}>Timeline: Day {d.dayNumber}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+
+                                                            <div className="space-y-2.5">
+                                                                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Granularity</label>
+                                                                <select
+                                                                    value={exportFilters.sessionId}
+                                                                    onChange={(e) => setExportFilters({ ...exportFilters, sessionId: e.target.value })}
+                                                                    className="w-full px-6 py-5 rounded-[1.25rem] bg-[#0d0d0d] border border-white/10 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 transition-all appearance-none cursor-pointer"
+                                                                >
+                                                                    <option value="">Consolidated Sessions</option>
+                                                                    {sessions
+                                                                        .filter(s => !exportFilters.dayId || s.dayId?._id === exportFilters.dayId || s.dayId === exportFilters.dayId)
+                                                                        .map(s => (
+                                                                            <option key={s._id} value={s._id}>{s.title}</option>
+                                                                        ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={exportAttendance}
+                                                            className="w-full py-5 rounded-[1.25rem] bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                                                        >
+                                                            <Download className="w-5 h-5" /> Export Data Assets
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-
-                                        <button
-                                            onClick={exportAttendance}
-                                            className="w-full py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <Download className="w-4 h-4" /> Download Attendance
-                                        </button>
-                                    </div>
-
-                                    {/* Assignment Export */}
-                                    <div className="p-8 rounded-2xl bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 flex flex-col justify-between">
-                                        <div>
-                                            <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center mb-4 text-green-400">
-                                                <FileText className="w-6 h-6" />
-                                            </div>
-                                            <h3 className="text-xl font-bold text-white mb-2">Assignment Data</h3>
-                                            <p className="text-white/60 mb-8 text-sm">Download all student assignment submissions across all sessions.</p>
-                                        </div>
-                                        <button
-                                            onClick={exportAssignments}
-                                            className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium shadow-lg shadow-green-500/20 transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <Download className="w-4 h-4" /> Download Assignments
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-                </AnimatePresence>
+                                    )}
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
+                    </div>
+                </main>
             </div>
-        </div >
+        </div>
     );
 }
 

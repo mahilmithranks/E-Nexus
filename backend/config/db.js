@@ -11,21 +11,41 @@ const connectDB = async () => {
     }
 
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI, {
-            // Optimized for High Concurrency (500+ users)
-            maxPoolSize: 200,      // Handle more concurrent DB operations
-            minPoolSize: 50,       // Keep 50 connections warm at all times
-            serverSelectionTimeoutMS: 10000, // Be more patient under heavy load
-            socketTimeoutMS: 60000,
+        const options = {
+            maxPoolSize: 100,
+            minPoolSize: 10,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
             connectTimeoutMS: 30000,
             heartbeatFrequencyMS: 10000,
-        });
+            retryWrites: true,
+            retryReads: true
+        };
+
+        const conn = await mongoose.connect(process.env.MONGODB_URI, options);
 
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+
+        // Handle connection events
+        mongoose.connection.on('error', err => {
+            console.error('MongoDB connection error:', err);
+        });
+
+        mongoose.connection.on('disconnected', () => {
+            console.warn('MongoDB disconnected. Attempting to reconnect...');
+            cachedConnection = null;
+        });
+
         cachedConnection = conn;
         return conn;
     } catch (error) {
         console.error(`❌ MongoDB Connection Error: ${error.message}`);
+        // Instead of immediate exit, retry once after a delay if it's a network/DNS error
+        if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
+            console.log('Retrying connection in 5 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            return connectDB();
+        }
         process.exit(1);
     }
 };

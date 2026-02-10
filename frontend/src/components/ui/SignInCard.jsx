@@ -227,7 +227,7 @@ export function SignInCard({ username, password, onUsernameChange, onPasswordCha
                                     transition={{ delay: 0.3 }}
                                     className="text-white/60 text-xs"
                                 >
-                                    Sign in to continue to Workshop System
+                                    Log in to continue to Workshop System
                                 </motion.p>
                             </div>
 

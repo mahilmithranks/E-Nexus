@@ -38,26 +38,14 @@ export const login = async (req, res) => {
 
         console.log(`[Login] Found user: ${user.registerNumber} (${user.role})`);
 
-        // Check if account is locked
-        if (user.isLocked) {
-            return res.status(423).json({
-                message: 'Account is locked due to too many failed login attempts. Please try again later.'
-            });
-        }
 
         // Check password
         const isMatch = await user.comparePassword(password);
 
         if (!isMatch) {
-            // Increment login attempts
-            await user.incLoginAttempts();
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Reset login attempts on successful login
-        if (user.loginAttempts > 0 || user.lockUntil) {
-            await user.resetLoginAttempts();
-        }
 
         // Generate token
         const token = generateToken(user._id);
@@ -75,8 +63,12 @@ export const login = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error during login' });
+        console.error('CRITICAL Login Error:', error);
+        console.error(error.stack);
+        res.status(500).json({
+            message: 'Server error during login',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 

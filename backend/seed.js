@@ -1583,7 +1583,15 @@ const studentsData = [
         "email": "9988776655@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "2",
-        "role": "teacher"
+        "role": "student"
+    },
+    {
+        "name": "V.Akhil",
+        "registerNumber": "99220041410",
+        "email": "99220041410@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
     }
 ];
 

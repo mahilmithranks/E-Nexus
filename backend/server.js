@@ -36,31 +36,8 @@ app.set('trust proxy', 1);
 // Middleware
 // Robust CORS configuration for Vercel/Local with Credentials support
 // Cors configuration
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://e-nexus-main.vercel.app',
-    'https://e-nexus.vercel.app',
-    'https://e-nexus-frontend.vercel.app',
-    'https://e-nexus-bh76.onrender.com'
-];
-
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        // Check if the origin is in the allowed list
-        // For development/testing flexibility, you might want to allow all temporarily:
-        // return callback(null, true); 
-
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
-            callback(null, true);
-        } else {
-            console.log('Blocked by CORS:', origin);
-            callback(null, true); // Temporarily allow all to fix the issue, then restrict later
-        }
-    },
+    origin: true, // Allow all origins dynamically
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']

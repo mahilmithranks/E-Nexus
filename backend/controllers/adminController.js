@@ -26,7 +26,11 @@ export const getDashboardStats = async (req, res) => {
         });
     } catch (error) {
         console.error('Get stats error:', error);
-        res.status(500).json({ message: 'Error fetching stats' });
+        res.status(500).json({
+            message: 'Error fetching stats',
+            error: error.message,
+            stack: error.stack
+        });
     }
 };
 
@@ -89,7 +93,11 @@ export const getAllDays = async (req, res) => {
         res.json(days);
     } catch (error) {
         console.error('CRITICAL: Get days error:', error);
-        res.status(500).json({ message: 'Server error fetching days', error: error.message });
+        res.status(500).json({
+            message: 'Server error fetching days',
+            error: error.message,
+            stack: error.stack
+        });
     }
 };
 
@@ -650,8 +658,145 @@ export const exportAssignments = async (req, res) => {
     }
 };
 
-// @desc    Cron job logic
-// @access  Public/Admin
+// @desc    Export certificates to Excel
+// @route   GET /api/admin/export/certificates
+// @access  Private/Admin
+export const exportCertificates = async (req, res) => {
+    try {
+        const { dayId, sessionId } = req.query;
+
+        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
+
+        // Filter sessions
+        let sessionQuery = {};
+        if (sessionId) {
+            sessionQuery._id = sessionId;
+        } else if (dayId) {
+            sessionQuery.dayId = dayId;
+        }
+
+        // Only include sessions where certificate upload IS or WAS open (or just all sessions to show missing ones too)
+        // Let's include all sessions that match the filter for completeness
+        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+
+        if (sessions.length === 0) {
+            return res.status(404).json({ message: 'No sessions found' });
+        }
+
+        const sessionIds = sessions.map(s => s._id);
+        const allCertificates = await AssignmentSubmission.find({
+            sessionId: { $in: sessionIds },
+            assignmentType: 'certificate'
+        }).lean();
+
+        const certMap = new Map();
+        allCertificates.forEach(c => certMap.set(`${c.registerNumber}|${c.sessionId.toString()}`, c));
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Certificates');
+
+        worksheet.columns = [
+            { header: 'Reg Number', key: 'reg', width: 15 },
+            { header: 'Student Name', key: 'name', width: 25 },
+            { header: 'Day', key: 'day', width: 10 },
+            { header: 'Session', key: 'session', width: 30 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'Submitted At', key: 'submittedAt', width: 20 },
+            { header: 'Certificate Link', key: 'link', width: 50 },
+            { header: 'File Type', key: 'fileType', width: 10 }
+        ];
+
+        for (const student of students) {
+            for (const session of sessions) {
+                // Check if this session even offers certificate upload (optional check, but good for clarity)
+                // If the session has isCertificateUploadOpen=true OR if there are any submissions for it, we include it.
+                // Or simply included all sessions if the admin filtered for them.
+                // To avoid clutter, let's include if session.isCertificateUploadOpen is true OR there is a submission.
+                // Actually, if a session never had it open, it's noise.
+                // But simplified: checking if 'isCertificateUploadOpen' might be false NOW but was true earlier.
+                // So we'll list for all sessions in the filter.
+
+                const cert = certMap.get(`${student.registerNumber}|${session._id.toString()}`);
+
+                // Construct full URL for the certificate if it exists
+                let fileLink = '-';
+                let fileType = '-';
+
+                if (cert && cert.files && cert.files.length > 0) {
+                    const filePath = cert.files[0];
+                    // Assuming local check or cloud. If local (starts with /uploads), prepend domain if needed or keep relative.
+                    // Ideally, for an excel export, a full URL is better if accessible, or just the path.
+                    // Let's provide the path or a clickable link if we had the domain.
+                    // For now, raw path.
+                    fileLink = filePath;
+                    fileType = filePath.split('.').pop();
+                }
+
+                worksheet.addRow({
+                    reg: student.registerNumber,
+                    name: student.name,
+                    day: session.dayId?.dayNumber || '-',
+                    session: session.title,
+                    status: cert ? 'UPLOADED' : 'PENDING',
+                    submittedAt: cert ? new Date(cert.submittedAt).toLocaleString() : '-',
+                    link: fileLink,
+                    fileType: fileType
+                });
+            }
+        }
+
+        // Styling
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD1FAE5' } // Light emerald/green
+        };
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        let filename = 'certificates_report';
+        if (sessionId) filename = `certificates_${sessions[0].title.replace(/\s+/g, '_')}`;
+        else if (dayId) filename = `certificates_day_${sessions[0].dayId?.dayNumber || 'filtered'}`;
+
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}_${Date.now()}.xlsx`);
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (error) {
+        console.error('Export certificates error:', error);
+        res.status(500).json({ message: 'Export failed' });
+    }
+};
+
+// @desc    Toggle certificate upload window
+// @route   PUT /api/admin/sessions/:id/certificate-upload
+// @access  Private/Admin
+export const toggleCertificateUpload = async (req, res) => {
+    try {
+        const { isOpen } = req.body;
+        const session = await Session.findById(req.params.id);
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        session.isCertificateUploadOpen = isOpen;
+        await session.save();
+
+        // Clear caches
+        clearCache('admin-sessions');
+        clearCache('student-sessions');
+
+        res.json({
+            message: `Certificate uploads ${isOpen ? 'opened' : 'closed'}`,
+            session
+        });
+    } catch (error) {
+        console.error('Toggle certificate upload error:', error);
+        res.status(500).json({ message: 'Server error updating certificate upload status' });
+    }
+};
+
 export const runAutoCloseJob = async (req, res) => {
     try {
         const now = new Date();

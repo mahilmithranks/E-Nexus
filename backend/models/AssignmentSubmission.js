@@ -17,7 +17,7 @@ const assignmentSubmissionSchema = new mongoose.Schema({
     },
     assignmentType: {
         type: String,
-        enum: ['text', 'file', 'link'],
+        enum: ['text', 'file', 'link', 'certificate'],
         required: true
     },
     response: {

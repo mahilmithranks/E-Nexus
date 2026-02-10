@@ -11,10 +11,12 @@ import {
     stopAttendance,
     overrideAttendance,
     getProgress,
-    exportAttendance,
     exportAssignments,
+    exportCertificates,
+    exportAttendance,
     runAutoCloseJob,
-    getDashboardStats
+    getDashboardStats,
+    toggleCertificateUpload
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { cacheMiddleware } from '../middleware/cache.js';
@@ -46,6 +48,7 @@ router.get('/sessions', cacheMiddleware('admin-sessions', 30000), getAllSessions
 router.post('/sessions/:id/attendance/start', startAttendance);
 router.post('/sessions/:id/attendance/stop', stopAttendance);
 router.post('/attendance/override', overrideAttendance);
+router.put('/sessions/:id/certificate-upload', toggleCertificateUpload);
 
 // Progress tracking
 router.get('/progress', cacheMiddleware('admin-progress', 60000), getProgress); // Cache for 60s (expensive query)
@@ -53,5 +56,6 @@ router.get('/progress', cacheMiddleware('admin-progress', 60000), getProgress); 
 // Excel exports (no cache - always fresh data)
 router.get('/export/attendance', exportAttendance);
 router.get('/export/assignments', exportAssignments);
+router.get('/export/certificates', exportCertificates);
 
 export default router;

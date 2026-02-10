@@ -113,7 +113,11 @@ function StudentDashboard() {
             setSessions(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Error fetching sessions:', error);
-            toast.error(error.response?.data?.message || 'Error fetching sessions');
+            if (error.response?.status === 403) {
+                toast.error('This day is currently locked by the administrator.');
+            } else {
+                toast.error(error.response?.data?.message || 'Error fetching sessions');
+            }
             setSessions([]);
         } finally {
             setIsRefreshing(false);
@@ -191,48 +195,72 @@ function StudentDashboard() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-white font-sans">
+            <div className="min-h-screen bg-white flex items-center justify-center text-zinc-900 font-sans">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-8 h-8 border-2 border-[#f05423] border-t-transparent rounded-full animate-spin" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Initializing Environment</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Initializing Environment</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen w-full bg-[#0a0a0a] text-zinc-400 font-sans selection:bg-[#f05423]/30 selection:text-[#f05423]">
-            {/* Ambient Background Effects */}
+        <div className="min-h-screen w-full bg-white text-zinc-600 font-sans selection:bg-[#f05423]/20 selection:text-[#f05423] relative overflow-x-hidden">
+            {/* Ambient Background Effects - Enhanced Liquid Motion */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-[#f05423]/05 blur-[120px]" />
-                <div className="absolute bottom-[-5%] right-[-5%] w-[30vw] h-[30vw] rounded-full bg-[#ff9d00]/05 blur-[100px]" />
-                <div className="absolute inset-0 opacity-[0.02]"
+                <motion.div
+                    animate={{
+                        x: [0, 40, -20, 0],
+                        y: [0, -30, 50, 0],
+                        scale: [1, 1.1, 0.9, 1]
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#f05423]/10 blur-[120px]"
+                />
+                <motion.div
+                    animate={{
+                        x: [0, -50, 30, 0],
+                        y: [0, 60, -40, 0],
+                        scale: [1, 0.9, 1.1, 1]
+                    }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#ff9d00]/10 blur-[100px]"
+                />
+                <motion.div
+                    animate={{
+                        x: [0, 30, -50, 0],
+                        y: [0, 40, 20, 0]
+                    }}
+                    transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+                    className="absolute top-[30%] left-[20%] w-[40vw] h-[40vw] rounded-full bg-blue-400/05 blur-[120px]"
+                />
+                <div className="absolute inset-0 opacity-[0.3]"
                     style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.5'/%3E%3C/svg%3E")`,
                     }}
                 />
             </div>
 
             <div className="relative z-10 flex flex-col min-h-screen">
-                {/* MODERN TOP BAR */}
-                <header className="h-20 border-b border-white/5 bg-[#0d0d0d]/80 backdrop-blur-xl sticky top-0 z-50 px-6 md:px-10 flex items-center justify-between">
+                {/* MODERN TOP BAR - Glassy */}
+                <header className="h-20 border-b border-white/40 bg-white/60 backdrop-blur-xl sticky top-0 z-50 px-6 md:px-10 flex items-center justify-between shadow-sm supports-[backdrop-filter]:bg-white/60">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-3">
 
                             <div className="hidden sm:block">
-                                <span className="text-lg font-bold text-white tracking-tight block leading-none">Workshop Console</span>
-                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-1 block">Live Learning Environment</span>
+                                <span className="text-lg font-bold text-zinc-900 tracking-tight block leading-none">Workshop Console</span>
+                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1 block">Live Learning Environment</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5">
+                        <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 border border-white/40 shadow-sm backdrop-blur-md">
                             <div className="text-right">
-                                <p className="text-xs font-bold text-white leading-none capitalize">{user.name}</p>
-                                <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-tighter mt-1">{user.registerNumber}</p>
+                                <p className="text-xs font-bold text-zinc-900 leading-none capitalize">{user.name}</p>
+                                <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-tighter mt-1">{user.registerNumber}</p>
                             </div>
-                            <div className="size-8 rounded-lg bg-[#f05423]/10 border border-[#f05423]/20 flex items-center justify-center text-[#f05423] text-xs font-bold ring-2 ring-black">
+                            <div className="size-8 rounded-lg bg-[#f05423]/10 border border-[#f05423]/20 flex items-center justify-center text-[#f05423] text-xs font-bold ring-2 ring-white/50">
                                 {user.name?.[0]}
                             </div>
                         </div>
@@ -240,17 +268,17 @@ function StudentDashboard() {
                         {user.role === 'admin' && (
                             <button
                                 onClick={() => navigate('/admin')}
-                                className="px-4 py-2 rounded-xl bg-[#f05423]/10 text-[#f05423] text-[10px] font-black uppercase tracking-widest border border-[#f05423]/20 hover:bg-[#f05423]/20 transition-all"
+                                className="px-4 py-2 rounded-xl bg-[#f05423]/10 text-[#f05423] text-[10px] font-black uppercase tracking-widest border border-[#f05423]/20 hover:bg-[#f05423]/20 transition-all backdrop-blur-md"
                             >
                                 Admin View
                             </button>
                         )}
 
-                        <div className="h-6 w-px bg-white/10 mx-1" />
+                        <div className="h-6 w-px bg-zinc-200/50 mx-1" />
 
                         <button
                             onClick={handleLogout}
-                            className="p-2.5 rounded-xl text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20"
+                            className="p-2.5 rounded-xl text-zinc-400 hover:bg-red-500/10 hover:text-red-500 transition-all border border-transparent hover:border-red-500/20 backdrop-blur-md"
                             title="Terminate Session"
                         >
                             <LogOut className="w-5 h-5" />
@@ -262,26 +290,26 @@ function StudentDashboard() {
 
                     {/* LEFT PANEL: TIMELINE & STATS */}
                     <div className="w-full md:w-80 space-y-8 shrink-0">
-                        {/* User Metadata Card */}
-                        <div className="p-8 rounded-[2rem] bg-gradient-to-br from-[#111111] to-[#0d0d0d] border border-white/5 shadow-2xl relative overflow-hidden group">
+                        {/* User Metadata Card - Glassy */}
+                        <div className="p-8 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
                             <div className="absolute -right-4 -top-4 size-32 bg-[#f05423]/10 blur-3xl rounded-full" />
 
                             <div className="relative z-10 space-y-6">
                                 <div>
                                     <h2 className="text-sm font-black text-[#f05423] uppercase tracking-[0.2em] mb-4">Identity Profile</h2>
                                     <div className="space-y-3">
-                                        <div className="flex items-center justify-between text-xs py-2 border-b border-white/5">
-                                            <span className="text-zinc-500 font-medium">Department</span>
-                                            <span className="text-white font-bold">{user.department}</span>
+                                        <div className="flex items-center justify-between text-xs py-2 border-b border-zinc-100/50">
+                                            <span className="text-zinc-400 font-bold">Department</span>
+                                            <span className="text-zinc-800 font-bold">{user.department}</span>
                                         </div>
-                                        <div className="flex items-center justify-between text-xs py-2 border-b border-white/5">
-                                            <span className="text-zinc-500 font-medium">Academic Year</span>
-                                            <span className="text-white font-bold">{user.yearOfStudy} Year</span>
+                                        <div className="flex items-center justify-between text-xs py-2 border-b border-zinc-100/50">
+                                            <span className="text-zinc-400 font-bold">Academic Year</span>
+                                            <span className="text-zinc-800 font-bold">{user.yearOfStudy} Year</span>
                                         </div>
                                         <div className="flex items-center justify-between text-xs py-2">
-                                            <span className="text-zinc-500 font-medium">Status</span>
-                                            <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                                                <div className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                            <span className="text-zinc-400 font-bold">Status</span>
+                                            <div className="flex items-center gap-1.5 text-emerald-500 font-bold">
+                                                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                                 Active
                                             </div>
                                         </div>
@@ -289,9 +317,9 @@ function StudentDashboard() {
                                 </div>
 
                                 <div className="pt-4">
-                                    <div className="p-5 rounded-2xl bg-[#0a0a0a] border border-[#f05423]/20 text-[10px] text-zinc-500 leading-relaxed font-medium relative group/notice overflow-hidden">
+                                    <div className="p-5 rounded-2xl bg-white/50 border border-white/50 text-[10px] text-zinc-500 leading-relaxed font-medium relative group/notice overflow-hidden backdrop-blur-sm">
                                         <div className="absolute inset-0 bg-gradient-to-r from-[#f05423]/05 to-transparent opacity-0 group-hover/notice:opacity-100 transition-opacity" />
-                                        <div className="flex items-center gap-2 text-white mb-3 font-black uppercase tracking-wider relative z-10">
+                                        <div className="flex items-center gap-2 text-zinc-800 mb-3 font-black uppercase tracking-wider relative z-10">
                                             <AlertCircle className="w-3.5 h-3.5 text-[#f05423]" />
                                             Support & Protocol
                                         </div>
@@ -300,55 +328,60 @@ function StudentDashboard() {
                                             <p className="text-[#ff9d00] font-bold">
                                                 • Refresh page if facing any technical issue. Report to admin if not resolved.
                                             </p>
+                                            <div className="pt-2 mt-2 border-t border-zinc-200/30">
+                                                <p className="text-xs font-bold text-zinc-800 mb-1">Contact Admins:</p>
+                                                <p>• Rupesh: <span className="text-zinc-900 select-all">9493760536</span></p>
+                                                <p>• Mahil Mithran: <span className="text-zinc-900 select-all">9363978578</span></p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Course Credits Card */}
-                        <div className="p-8 rounded-[2rem] bg-gradient-to-br from-[#111111] to-[#0a0a0a] border border-white/5 shadow-2xl relative overflow-hidden group">
-                            <div className="absolute -left-4 -bottom-4 size-24 bg-[#ff9d00]/05 blur-3xl rounded-full" />
+                        {/* Course Credits Card - Glassy */}
+                        <div className="p-8 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
+                            <div className="absolute -left-4 -bottom-4 size-24 bg-[#ff9d00]/10 blur-3xl rounded-full" />
                             <div className="relative z-10 space-y-4">
                                 <h2 className="text-[10px] font-black text-[#ff9d00] uppercase tracking-[0.3em]">Course Details</h2>
                                 <div className="space-y-4">
                                     <div className="flex items-end justify-between">
                                         <div className="space-y-1">
-                                            <p className="text-lg font-black text-white">Experimental Elective</p>
-                                            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Course Type</p>
+                                            <p className="text-lg font-black text-zinc-900">Experimental Elective</p>
+                                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Course Type</p>
                                         </div>
-                                        <div className="px-2.5 py-1 rounded-lg bg-[#ff9d00]/10 border border-[#ff9d00]/20 text-[#ff9d00] text-[9px] font-black uppercase tracking-widest">
+                                        <div className="px-2.5 py-1 rounded-lg bg-[#ff9d00]/10 border border-[#ff9d00]/20 text-[#ff9d00] text-[9px] font-black uppercase tracking-widest backdrop-blur-sm">
                                             2 Credits
                                         </div>
                                     </div>
-                                    <div className="pt-3 border-t border-white/5">
+                                    <div className="pt-3 border-t border-zinc-100/50">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Total Duration</span>
-                                            <span className="text-sm font-black text-white">60 HRS</span>
+                                            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Duration</span>
+                                            <span className="text-sm font-black text-zinc-900">60 HRS</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Component Hours Breakdown */}
-                        <div className="p-8 rounded-[2rem] bg-gradient-to-br from-[#111111] to-[#0d0d0d] border border-white/5 shadow-2xl relative overflow-hidden group">
-                            <div className="absolute -right-4 -bottom-4 size-32 bg-blue-500/05 blur-3xl rounded-full" />
+                        {/* Component Hours Breakdown - Glassy */}
+                        <div className="p-8 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
+                            <div className="absolute -right-4 -bottom-4 size-32 bg-blue-500/10 blur-3xl rounded-full" />
                             <div className="relative z-10 space-y-4">
-                                <h2 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]">Component Hours</h2>
-                                <div className="p-5 rounded-2xl bg-[#0a0a0a] border border-white/5 space-y-3">
+                                <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Component Hours</h2>
+                                <div className="p-5 rounded-2xl bg-white/50 border border-white/50 space-y-3 backdrop-blur-sm">
                                     <div className="flex items-center justify-between">
                                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Infosys Spring Board</span>
-                                        <span className="text-xs font-bold text-white">30 Hrs</span>
+                                        <span className="text-xs font-bold text-zinc-900">30 Hrs</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Hands-on Training</span>
-                                        <span className="text-xs font-bold text-white">30 Hrs</span>
+                                        <span className="text-xs font-bold text-zinc-900">30 Hrs</span>
                                     </div>
-                                    <div className="w-full h-px bg-white/5 my-2" />
+                                    <div className="w-full h-px bg-zinc-200/30 my-2" />
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] text-blue-400 font-black uppercase tracking-wider">Total Required</span>
-                                        <span className="text-sm font-black text-white">60 Hrs</span>
+                                        <span className="text-[10px] text-blue-500 font-black uppercase tracking-wider">Total Required</span>
+                                        <span className="text-sm font-black text-zinc-900">60 Hrs</span>
                                     </div>
                                 </div>
                             </div>
@@ -357,7 +390,7 @@ function StudentDashboard() {
 
                         {/* Workshop Rules Section */}
                         <div className="space-y-4 px-4">
-                            <h3 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-4">Workshop Rules</h3>
+                            <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] mb-4">Workshop Rules</h3>
                             <div className="space-y-3">
                                 {[
                                     { text: "Professional Conduct", color: "text-indigo-400" },
@@ -366,8 +399,8 @@ function StudentDashboard() {
                                     { text: "Session Punctuality", color: "text-blue-400" }
                                 ].map((rule, i) => (
                                     <div key={i} className="flex items-center gap-3 group/rule">
-                                        <div className={cn("size-1 rounded-full bg-zinc-800 transition-all group-hover/rule:scale-150 group-hover/rule:bg-current", rule.color)} />
-                                        <span className="text-[11px] font-medium text-zinc-500 group-hover:text-zinc-300 transition-colors uppercase tracking-wider">{rule.text}</span>
+                                        <div className={cn("size-1 rounded-full bg-zinc-300 transition-all group-hover/rule:scale-150 group-hover/rule:bg-current", rule.color)} />
+                                        <span className="text-[11px] font-medium text-zinc-500 group-hover:text-zinc-700 transition-colors uppercase tracking-wider">{rule.text}</span>
                                     </div>
                                 ))}
                             </div>
@@ -380,7 +413,7 @@ function StudentDashboard() {
                     <div className="flex-1 space-y-8">
                         {/* Innovative Sprint Roadmap */}
                         <div className="w-full">
-                            <h3 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-6">Sprint Roadmap</h3>
+                            <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] mb-6">Sprint Roadmap</h3>
 
                             <div className="relative group">
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-8">
@@ -398,15 +431,15 @@ function StudentDashboard() {
                                                 transition={{ delay: idx * 0.05 }}
                                                 className={cn(
                                                     "relative w-full aspect-[3/4] outline-none transition-all duration-300 group/card",
-                                                    isLocked ? "opacity-40 grayscale cursor-not-allowed" : "cursor-pointer",
+                                                    isLocked ? "opacity-30 grayscale cursor-not-allowed" : "cursor-pointer",
                                                     isActive ? "z-10" : "z-0"
                                                 )}
                                             >
                                                 <div className={cn(
-                                                    "relative w-full h-full rounded-[2rem] p-5 flex flex-col justify-between overflow-hidden transition-all duration-500 border",
+                                                    "relative w-full h-full rounded-[2rem] p-5 flex flex-col justify-between overflow-hidden transition-all duration-500 border backdrop-blur-xl",
                                                     isActive
-                                                        ? "bg-[#f05423] border-[#f05423] shadow-[0_10px_40px_-10px_rgba(240,84,35,0.6)] scale-105"
-                                                        : "bg-[#111111] border-white/5 hover:border-white/20 hover:bg-[#1a1a1a] hover:translate-y-[-2px]"
+                                                        ? "bg-[#f05423] border-[#f05423] shadow-xl scale-105"
+                                                        : "bg-white/60 border-white/40 hover:border-white hover:bg-white/80 hover:translate-y-[-2px] shadow-sm"
                                                 )}>
                                                     {/* Active Background Effects */}
                                                     {isActive && (
@@ -419,12 +452,12 @@ function StudentDashboard() {
                                                     <div className="relative z-10 flex justify-between items-start">
                                                         <span className={cn(
                                                             "text-3xl font-black tracking-tighter leading-none",
-                                                            isActive ? "text-white" : "text-zinc-800 group-hover/card:text-zinc-700"
+                                                            isActive ? "text-white" : "text-zinc-900 group-hover/card:text-zinc-700"
                                                         )}>
                                                             {String(day.dayNumber).padStart(2, '0')}
                                                         </span>
                                                         {isLocked ? (
-                                                            <Lock className="w-4 h-4 text-zinc-700" />
+                                                            <Lock className="w-4 h-4 text-zinc-300" />
                                                         ) : isActive ? (
                                                             <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_10px_white]" />
                                                         ) : null}
@@ -433,17 +466,17 @@ function StudentDashboard() {
                                                     <div className="relative z-10 space-y-1.5 text-left">
                                                         <p className={cn(
                                                             "text-[9px] font-black uppercase tracking-widest",
-                                                            isActive ? "text-white/60" : "text-zinc-600"
+                                                            isActive ? "text-white/60" : "text-zinc-400"
                                                         )}>
                                                             {day.date ? new Date(day.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }) : 'TBA'}
                                                         </p>
                                                         <div className={cn(
                                                             "h-px w-full",
-                                                            isActive ? "bg-white/20" : "bg-white/5"
+                                                            isActive ? "bg-white/20" : "bg-zinc-200/50"
                                                         )} />
                                                         <p className={cn(
                                                             "text-[11px] font-bold line-clamp-2 leading-tight min-h-[2.5em]",
-                                                            isActive ? "text-white" : "text-zinc-400 group-hover/card:text-zinc-300"
+                                                            isActive ? "text-white" : "text-zinc-500 group-hover/card:text-zinc-600"
                                                         )}>
                                                             {day.title}
                                                         </p>
@@ -456,25 +489,25 @@ function StudentDashboard() {
                             </div>
                         </div>
 
-                        {/* Header Stats for Selected Day */}
+                        {/* Header Stats for Selected Day - Glassy */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 flex items-center justify-between group hover:bg-white/[0.03] transition-colors">
+                            <div className="p-6 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 flex items-center justify-between group shadow-lg shadow-zinc-200/50 hover:shadow-xl transition-all">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Selected Period</p>
-                                    <p className="text-xl font-bold text-white capitalize">
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Selected Period</p>
+                                    <p className="text-xl font-bold text-zinc-900 capitalize">
                                         {days.find(d => d._id === selectedDay)?.title || "Select a Day"}
                                     </p>
                                 </div>
-                                <div className="size-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/40">
+                                <div className="size-12 rounded-2xl bg-white/50 border border-white/40 flex items-center justify-center text-zinc-400 backdrop-blur-sm">
                                     <Calendar className="w-6 h-6" />
                                 </div>
                             </div>
-                            <div className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 flex items-center justify-between hover:bg-white/[0.03] transition-colors">
+                            <div className="p-6 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 flex items-center justify-between shadow-lg shadow-zinc-200/50 hover:shadow-xl transition-all">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Volume</p>
-                                    <p className="text-xl font-bold text-white">{sessions.length} Core Sessions</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Volume</p>
+                                    <p className="text-xl font-bold text-zinc-900">{sessions.length} Core Sessions</p>
                                 </div>
-                                <div className="size-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/40">
+                                <div className="size-12 rounded-2xl bg-white/50 border border-white/40 flex items-center justify-center text-zinc-400 backdrop-blur-sm">
                                     <Clock className="w-6 h-6" />
                                 </div>
                             </div>
@@ -483,12 +516,12 @@ function StudentDashboard() {
                         <div className="space-y-6">
                             <AnimatePresence mode="wait">
                                 {isRefreshing && sessions.length === 0 ? (
-                                    <div className="py-20 flex flex-col items-center justify-center text-zinc-600 space-y-4">
-                                        <div className="w-6 h-6 border border-zinc-500 border-t-transparent animate-spin rounded-full" />
+                                    <div className="py-20 flex flex-col items-center justify-center text-zinc-400 space-y-4">
+                                        <div className="w-6 h-6 border border-zinc-300 border-t-transparent animate-spin rounded-full" />
                                         <p className="text-xs font-black uppercase tracking-[0.2em]">Synchronizing Records</p>
                                     </div>
                                 ) : sessions.length === 0 ? (
-                                    <div className="py-20 rounded-[2.5rem] border border-dashed border-white/5 flex flex-col items-center justify-center text-zinc-600 bg-white/[0.01]">
+                                    <div className="py-20 rounded-[2.5rem] border border-dashed border-zinc-200 flex flex-col items-center justify-center text-zinc-400 bg-white/30 backdrop-blur-sm">
                                         <AlertCircle className="w-8 h-8 mb-4 opacity-20" />
                                         <p className="text-xs font-black uppercase tracking-[0.2em]">No Active Sessions Found</p>
                                     </div>
@@ -500,7 +533,7 @@ function StudentDashboard() {
                                                 initial={{ opacity: 0, scale: 0.98 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ delay: idx * 0.05 }}
-                                                className="group relative p-8 rounded-[2.5rem] bg-[#111111]/40 border border-white/5 hover:border-[#f05423]/20 transition-all duration-500 overflow-hidden shadow-2xl"
+                                                className="group relative p-8 rounded-[2.5rem] bg-white/60 border border-white/60 hover:border-[#f05423]/30 transition-all duration-500 overflow-hidden shadow-xl shadow-zinc-200/40 backdrop-blur-2xl"
                                             >
                                                 <div className="absolute -right-20 -bottom-20 size-64 bg-[#f05423]/05 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
 
@@ -508,9 +541,9 @@ function StudentDashboard() {
                                                     <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
                                                         <div className="space-y-4 flex-1">
                                                             <div className="flex flex-wrap items-center gap-3">
-                                                                <h3 className="text-2xl font-bold text-white tracking-tight">{session.title}</h3>
+                                                                <h3 className="text-2xl font-bold text-zinc-900 tracking-tight">{session.title}</h3>
                                                                 <div className={cn(
-                                                                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                                                                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border backdrop-blur-sm",
                                                                     session.mode === 'OFFLINE'
                                                                         ? "bg-[#ff9d00]/10 text-[#ff9d00] border-[#ff9d00]/20"
                                                                         : "bg-[#f05423]/10 text-[#f05423] border-[#f05423]/20"
@@ -521,7 +554,7 @@ function StudentDashboard() {
 
                                                             <div className="flex items-center gap-6">
                                                                 {session.startTime && (
-                                                                    <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/5">
+                                                                    <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold bg-white/50 px-3 py-1.5 rounded-lg border border-zinc-200/50 backdrop-blur-sm">
                                                                         <Clock className="w-3.5 h-3.5 text-[#f05423]" />
                                                                         {session.title === "Infosys Certified Course" ? (
                                                                             new Date(session.startTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -532,49 +565,133 @@ function StudentDashboard() {
                                                                 )}
                                                                 <p className="text-zinc-500 text-sm font-medium line-clamp-1 max-w-sm">{session.description}</p>
                                                             </div>
+
+                                                            {/* Certificate Upload Section */}
+                                                            {session.isCertificateUploadOpen && (
+                                                                <div className="mt-6 pt-6 border-t border-zinc-100/50 space-y-4">
+                                                                    <div className="flex items-center gap-2 text-zinc-900 font-bold text-sm">
+                                                                        <FileText className="w-4 h-4 text-emerald-500" />
+                                                                        {session.assignmentsSubmitted?.includes('Certificate') ? 'Certificate Status' : 'Upload Certification'}
+                                                                    </div>
+
+                                                                    {session.assignmentsSubmitted?.includes('Certificate') ? (
+                                                                        <div className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10 backdrop-blur-sm">
+                                                                            <div className="flex items-center gap-3 mb-2">
+                                                                                <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shadow-sm ring-1 ring-emerald-500/20">
+                                                                                    <CheckCircle className="w-4 h-4" />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
+                                                                                        Successfully Uploaded
+                                                                                    </p>
+                                                                                    <p className="text-[10px] font-medium text-emerald-600/80">
+                                                                                        Your certificate has been submitted.
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+                                                                            <p className="text-[10px] text-zinc-500 mt-2 font-medium border-t border-emerald-500/10 pt-2">
+                                                                                * If you uploaded the wrong file, please contact the admin immediately to reset your submission.
+                                                                            </p>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="bg-white/40 p-4 rounded-xl border border-white/60 backdrop-blur-sm shadow-sm">
+                                                                            <div className="flex items-center gap-4">
+                                                                                <input
+                                                                                    type="file"
+                                                                                    accept="image/*,.pdf"
+                                                                                    onChange={(e) => handleAssignmentChange(session._id, 'Certificate', e.target.files[0])}
+                                                                                    className="block w-full text-xs text-zinc-600
+                                                                                    file:mr-4 file:py-2 file:px-4
+                                                                                    file:rounded-lg file:border-0
+                                                                                    file:text-[10px] file:font-black file:uppercase file:tracking-widest
+                                                                                    file:bg-[#f05423]/10 file:text-[#f05423]
+                                                                                    hover:file:bg-[#f05423]/20
+                                                                                    cursor-pointer"
+                                                                                />
+                                                                                <button
+                                                                                    onClick={() => handleAssignmentSubmit(session, { title: 'Certificate', type: 'certificate' })}
+                                                                                    disabled={!assignmentData[`${session._id}-Certificate`]}
+                                                                                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 backdrop-blur-sm"
+                                                                                >
+                                                                                    <Upload className="w-3 h-3" />
+                                                                                    Submit
+                                                                                </button>
+                                                                            </div>
+                                                                            <p className="text-[10px] text-zinc-700 mt-2 font-medium">
+                                                                                * Please upload your completion certificate (Image or PDF).
+                                                                                <br />
+                                                                                <span className="text-red-400">* Note: You can only upload once. Ensure the file is correct before submitting.</span>
+                                                                            </p>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         <div className="shrink-0">
-                                                            {session.hasAttendance ? (
-                                                                <div className="px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest flex items-center gap-2.5">
-                                                                    <CheckCircle className="w-4 h-4" />
-                                                                    Attendance Verified
-                                                                </div>
-                                                            ) : session.type === 'BREAK' ? (
-                                                                <div className="px-6 py-3 rounded-2xl bg-white/[0.03] text-zinc-500 border border-white/5 text-xs font-black uppercase tracking-widest flex items-center gap-2.5">
-                                                                    Break Period
-                                                                </div>
-                                                            ) : session.isAttendanceActive ? (
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="text-right hidden sm:block">
-                                                                        <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">Window Ends In</div>
-                                                                        <div className="text-white font-mono text-sm font-bold bg-[#f05423]/10 px-2 py-0.5 rounded border border-[#f05423]/20">
-                                                                            <Timer targetDate={session.attendanceEndTime} />
+                                                            {session.title === "Infosys Certified Course" ? (
+                                                                <>
+                                                                    {session.assignmentsSubmitted?.includes('Certificate') ? (
+                                                                        <div className="px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                            <CheckCircle className="w-4 h-4" />
+                                                                            Successfully Uploaded
                                                                         </div>
-                                                                    </div>
-                                                                    <button
-                                                                        onClick={() => openCamera(session)}
-                                                                        className="px-8 py-4 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-[#f05423]/20 transition-all flex items-center gap-2.5 active:scale-95"
-                                                                    >
-                                                                        <Camera className="w-4 h-4" />
-                                                                        Authenticate
-                                                                    </button>
-                                                                </div>
-                                                            ) : session.attendanceStatus === 'closed' && session.attendanceEndTime ? (
-                                                                <div className="flex flex-col items-end gap-2">
-                                                                    <div className="px-6 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                                                                        <X className="w-3 h-3" />
-                                                                        Absent
-                                                                    </div>
-                                                                    <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter bg-white/[0.03] px-3 py-1 rounded-lg border border-white/5">
-                                                                        Registration Window Closed
-                                                                    </div>
-                                                                </div>
+                                                                    ) : session.isCertificateUploadOpen ? (
+                                                                        <div className="px-6 py-3 rounded-2xl bg-[#f05423]/10 border border-[#f05423]/20 text-[#f05423] text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm animate-pulse ring-2 ring-[#f05423]/20">
+                                                                            <Upload className="w-4 h-4" />
+                                                                            Upload your certificate now
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                            <Lock className="w-4 h-4" />
+                                                                            Registration Closed
+                                                                        </div>
+                                                                    )}
+                                                                </>
                                                             ) : (
-                                                                <div className="px-6 py-3 rounded-2xl bg-white/[0.02] border border-white/5 text-zinc-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5">
-                                                                    <Lock className="w-4 h-4" />
-                                                                    Awaiting Startup
-                                                                </div>
+                                                                <>
+                                                                    {session.hasAttendance ? (
+                                                                        <div className="px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                            <CheckCircle className="w-4 h-4" />
+                                                                            Attendance Verified
+                                                                        </div>
+                                                                    ) : session.type === 'BREAK' ? (
+                                                                        <div className="px-6 py-3 rounded-2xl bg-white/40 text-zinc-700 border border-white/60 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                            Break Period
+                                                                        </div>
+                                                                    ) : session.isAttendanceActive ? (
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="text-right hidden sm:block">
+                                                                                <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Window Ends In</div>
+                                                                                <div className="text-zinc-900 font-mono text-sm font-bold bg-[#f05423]/10 px-2 py-0.5 rounded border border-[#f05423]/20 backdrop-blur-sm">
+                                                                                    <Timer targetDate={session.attendanceEndTime} />
+                                                                                </div>
+                                                                            </div>
+                                                                            <button
+                                                                                onClick={() => openCamera(session)}
+                                                                                className="px-8 py-4 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-[#f05423]/20 transition-all flex items-center gap-2.5 active:scale-95 hover:scale-105"
+                                                                            >
+                                                                                <Camera className="w-4 h-4" />
+                                                                                Authenticate
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : session.attendanceStatus === 'closed' && session.attendanceEndTime ? (
+                                                                        <div className="flex flex-col items-end gap-2">
+                                                                            <div className="px-6 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 backdrop-blur-sm">
+                                                                                <X className="w-3 h-3" />
+                                                                                Absent
+                                                                            </div>
+                                                                            <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter bg-white/40 px-3 py-1 rounded-lg border border-white/60 backdrop-blur-sm">
+                                                                                Registration Window Closed
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                            <Lock className="w-4 h-4" />
+                                                                            Awaiting Startup
+                                                                        </div>
+                                                                    )}
+                                                                </>
                                                             )}
                                                         </div>
                                                     </div>
@@ -591,8 +708,8 @@ function StudentDashboard() {
                 </main>
 
                 {/* MOBILE NAV PLACEHOLDER / FOOTER */}
-                <footer className="py-10 border-t border-white/5 text-center bg-[#0d0d0d]/40">
-                    <p className="text-[10px] font-black text-zinc-800 uppercase tracking-[0.5em]">Workshop Management System</p>
+                <footer className="py-10 border-t border-zinc-200/50 text-center bg-white/50 backdrop-blur-sm">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.5em]">Workshop Management System</p>
                 </footer>
             </div>
 

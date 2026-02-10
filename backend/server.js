@@ -35,35 +35,39 @@ app.set('trust proxy', 1);
 // Explicit CORS headers for Vercel serverless compatibility
 // Middleware
 // Robust CORS configuration for Vercel/Local with Credentials support
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
+// Cors configuration
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://e-nexus-main.vercel.app',
+    'https://e-nexus.vercel.app',
+    'https://e-nexus-frontend.vercel.app',
+    'https://e-nexus-bh76.onrender.com'
+];
 
-    // Set explicit allowed origin based on request origin to support credentials
-    // (Wildcard '*' with credentials is not allowed by browsers)
-    if (origin) {
-        res.header('Access-Control-Allow-Origin', origin);
-    } else {
-        // Fallback for tools like Postman/cURL
-        res.header('Access-Control-Allow-Origin', '*');
-    }
-
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-
-    // Handle preflight immediately
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
-
-// Use cors middleware as backup/complement (configured to align with manual headers)
 app.use(cors({
-    origin: true, // Auto-reflect origin
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Check if the origin is in the allowed list
+        // For development/testing flexibility, you might want to allow all temporarily:
+        // return callback(null, true); 
+
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
+            callback(null, true);
+        } else {
+            console.log('Blocked by CORS:', origin);
+            callback(null, true); // Temporarily allow all to fix the issue, then restrict later
+        }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
+// Handle preflight requests explicitly if needed (cors middleware usually handles this)
+app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

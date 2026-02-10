@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, LogOut, FileText, Link as LinkIcon, Upload, Calendar, Clock, ChevronRight, CheckCircle, AlertCircle, Lock, X } from 'lucide-react';
@@ -245,7 +245,12 @@ function StudentDashboard() {
                 {/* MODERN TOP BAR - Glassy */}
                 <header className="h-20 border-b border-white/40 bg-white/60 backdrop-blur-xl sticky top-0 z-50 px-6 md:px-10 flex items-center justify-between shadow-sm supports-[backdrop-filter]:bg-white/60">
                     <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
+                            <img src="/univ-logo.png" alt="University Logo" className="h-12 w-auto object-contain" />
+                            <span className="text-zinc-400 font-light text-xl">×</span>
+                            <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-16 w-auto object-contain" />
+
+                            <div className="h-10 w-px bg-zinc-200/50 mx-2 hidden sm:block" />
 
                             <div className="hidden sm:block">
                                 <span className="text-lg font-bold text-zinc-900 tracking-tight block leading-none">Workshop Console</span>
@@ -620,6 +625,8 @@ function StudentDashboard() {
                                                                             <p className="text-[10px] text-zinc-700 mt-2 font-medium">
                                                                                 * Please upload your completion certificate (Image or PDF).
                                                                                 <br />
+                                                                                <span className="text-zinc-500">* Max file size: <span className="text-[#f05423]">100KB</span>.</span>
+                                                                                <br />
                                                                                 <span className="text-red-400">* Note: You can only upload once. Ensure the file is correct before submitting.</span>
                                                                             </p>
                                                                         </div>
@@ -642,9 +649,9 @@ function StudentDashboard() {
                                                                             Upload your certificate now
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                        <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm text-center">
                                                                             <Lock className="w-4 h-4" />
-                                                                            Registration Closed
+                                                                            Uploading window is closed now!
                                                                         </div>
                                                                     )}
                                                                 </>
@@ -682,7 +689,7 @@ function StudentDashboard() {
                                                                                 Absent
                                                                             </div>
                                                                             <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter bg-white/40 px-3 py-1 rounded-lg border border-white/60 backdrop-blur-sm">
-                                                                                Registration Window Closed
+                                                                                Attendance Window Closed
                                                                             </div>
                                                                         </div>
                                                                     ) : (

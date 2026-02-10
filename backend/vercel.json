@@ -1,5 +1,11 @@
 {
     "version": 2,
+    "crons": [
+        {
+            "path": "/api/admin/cron/auto-close",
+            "schedule": "* * * * *"
+        }
+    ],
     "builds": [
         {
             "src": "server.js",

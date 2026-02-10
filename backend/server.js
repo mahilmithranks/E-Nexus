@@ -29,7 +29,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Trust proxy for accurate IP detection (needed for rate limiting behind NAT/Vercel)
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // Middleware
 // Explicit CORS headers for Vercel serverless compatibility
@@ -166,64 +166,55 @@ app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
-// Initialize admin user on first run
+// Initialize admin user
 const initializeAdmin = async () => {
     try {
         const adminExists = await User.findOne({ role: 'admin' });
 
         if (!adminExists) {
-            const admin = await User.create({
-                registerNumber: process.env.ADMIN_REGISTER_NUMBER || 'ADMIN',
-                email: process.env.ADMIN_EMAIL || 'admin@e-nexus.com',
-                password: process.env.ADMIN_PASSWORD || 'admin123',
+            await User.create({
+                registerNumber: process.env.ADMIN_REGISTER_NUMBER || '99240041375',
+                email: process.env.ADMIN_EMAIL || '99240041375@klu.ac.in',
+                password: process.env.ADMIN_PASSWORD || '19012007',
                 name: 'System Administrator',
                 role: 'admin'
             });
 
             console.log('✅ Admin user created successfully');
-            console.log(`   Email: ${admin.email}`);
-            console.log(`   Password: [REDACTED]`);
         }
     } catch (error) {
         console.error('Error initializing admin:', error);
     }
 };
 
-const startApp = async () => {
+// Start the server directly (No clustering for better stability on free tier)
+const startServer = async () => {
     try {
         await connectDB();
 
-        // Initialize admin if needed
-        const adminExists = await User.findOne({ role: 'admin' });
-        if (!adminExists) {
-            await User.create({
-                registerNumber: process.env.ADMIN_REGISTER_NUMBER || 'ADMIN',
-                email: process.env.ADMIN_EMAIL || 'admin@e-nexus.com',
-                password: process.env.ADMIN_PASSWORD || 'admin123',
-                name: 'System Administrator',
-                role: 'admin'
-            });
-            console.log('✅ Admin user created successfully');
-        }
+        // Initialize admin
+        await initializeAdmin();
 
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {
             console.log(`\n🚀 Server running on port ${PORT}`);
+            console.log(`📡 API available at http://127.0.0.1:${PORT}/api`);
         });
     } catch (error) {
         console.error('❌ Server failed to start:', error);
     }
 };
 
-// Start Logic
+// Start logic based on environment
 if (process.env.VERCEL) {
     // Vercel Serverless
     (async () => {
         await connectDB();
+        await initializeAdmin();
     })();
 } else {
     // Render / Local / VPS
-    startApp();
+    startServer();
 }
 
 

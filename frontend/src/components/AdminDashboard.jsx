@@ -13,6 +13,31 @@ import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 // import './AdminDashboard.css'; // Removed in favor of Tailwind
 
+// Internal Debounced Input Component to fix INP (Input Lag)
+const DebouncedInput = ({ value: initialValue, onChange, delay = 300, ...props }) => {
+    const [value, setValue] = useState(initialValue);
+
+    React.useEffect(() => {
+        setValue(initialValue);
+    }, [initialValue]);
+
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            onChange(value);
+        }, delay);
+
+        return () => clearTimeout(handler);
+    }, [value, delay]); // Intentionally omitting onChange to avoid reset on parent re-renders
+
+    return (
+        <input
+            {...props}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+        />
+    );
+};
+
 // Admin Dashboard Component
 function AdminDashboard() {
     const [days, setDays] = useState([]);
@@ -863,11 +888,11 @@ function AdminDashboard() {
                                                 </div>
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative group">
-                                                        <input
+                                                        <DebouncedInput
                                                             type="text"
                                                             placeholder="Target Student or Reg ID..."
                                                             value={searchTerm}
-                                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                                            onChange={setSearchTerm}
                                                             className="w-full md:w-96 px-6 py-4 pl-12 rounded-2xl bg-[#111111] border border-white/5 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none"
                                                         />
                                                         <Users className="w-5 h-5 text-zinc-600 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-400 transition-colors" />

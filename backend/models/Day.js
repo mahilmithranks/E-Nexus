@@ -25,6 +25,7 @@ const daySchema = new mongoose.Schema({
 
 // Index for fast queries
 daySchema.index({ status: 1 });
+daySchema.index({ updatedAt: -1 });
 
 const Day = mongoose.model('Day', daySchema);
 

@@ -71,6 +71,7 @@ const sessionSchema = new mongoose.Schema({
 sessionSchema.index({ dayId: 1 });
 sessionSchema.index({ attendanceOpen: 1 });
 sessionSchema.index({ dayId: 1, attendanceOpen: 1 });
+sessionSchema.index({ updatedAt: -1 });
 
 // Method to check if attendance window is active
 sessionSchema.methods.isAttendanceActive = function () {

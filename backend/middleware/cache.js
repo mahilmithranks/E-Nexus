@@ -5,27 +5,32 @@ const CACHE_TTL = 30000; // 30 seconds
 export const cacheMiddleware = (key, ttl = CACHE_TTL) => {
     return (req, res, next) => {
         try {
-            // Include user identification in cache key if authenticated
-            // This is critical for routes that return user-specific data (like sessions)
-            const userPart = req.user ? `_user_${req.user.registerNumber}` : '';
-            const cacheKey = key + userPart + JSON.stringify(req.params) + JSON.stringify(req.query);
+            // Skip caching if explicitly disabled via query param (e.g., ?refresh=true)
+            if (req.query.refresh) {
+                return next();
+            }
+
+            const cacheKey = key + (req.user ? `_user_${req.user.id}` : '') + JSON.stringify(req.params) + JSON.stringify(req.query);
             const cached = cache.get(cacheKey);
 
-            if (cached && Date.now() - cached.timestamp < ttl) {
+            if (cached && (Date.now() - cached.timestamp < ttl)) {
+                console.log(`⚡ Serving from cache: ${key}`);
                 return res.json(cached.data);
             }
 
-            // Override res.json to cache the response
-            const originalJson = res.json.bind(res);
-            res.json = (data) => {
-                cache.set(cacheKey, { data, timestamp: Date.now() });
-                return originalJson(data);
+            // Hook into res.json to capture the response
+            const originalJson = res.json;
+            res.json = function (body) {
+                cache.set(cacheKey, {
+                    data: body,
+                    timestamp: Date.now()
+                });
+                return originalJson.call(this, body);
             };
 
             next();
         } catch (error) {
             console.error('Cache middleware error:', error);
-            // On cache error, just proceed without caching
             next();
         }
     };

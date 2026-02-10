@@ -362,7 +362,7 @@ function LoginPage({
                 <div className="w-full max-w-[420px]">
                     <div className="text-center mb-12">
                         <div className="flex items-center justify-center gap-6 mb-8">
-                            <img src="/univ-logo.png" alt="University Logo" className="h-14 w-auto object-contain brightness-0 invert" />
+                            <img src="/univ-logo.png" alt="University Logo" className="h-14 w-auto object-contain" />
                             <span className="text-zinc-600 font-light text-xl">×</span>
                             <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-20 w-auto object-contain" />
                         </div>

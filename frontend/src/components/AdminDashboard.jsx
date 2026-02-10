@@ -805,7 +805,7 @@ function AdminDashboard() {
                                                                                 className="px-6 py-3.5 rounded-[1.25rem] bg-white/[0.03] hover:bg-white/[0.06] text-zinc-400 border border-white/5 text-sm font-bold disabled:opacity-20 transition-all flex items-center gap-2"
                                                                             >
                                                                                 <Square className="w-4 h-4" />
-                                                                                Closer
+                                                                                Close
                                                                             </button>
                                                                         </>
                                                                     )}

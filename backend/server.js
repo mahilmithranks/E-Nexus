@@ -29,7 +29,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Trust proxy for accurate IP detection (needed for rate limiting behind NAT/Vercel)
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // Middleware
 // Explicit CORS headers for Vercel serverless compatibility
@@ -166,75 +166,55 @@ app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
-// Initialize admin user on first run
+// Initialize admin user
 const initializeAdmin = async () => {
     try {
         const adminExists = await User.findOne({ role: 'admin' });
 
         if (!adminExists) {
-            const admin = await User.create({
-                registerNumber: process.env.ADMIN_REGISTER_NUMBER || 'ADMIN',
-                email: process.env.ADMIN_EMAIL || 'admin@e-nexus.com',
-                password: process.env.ADMIN_PASSWORD || 'admin123',
+            await User.create({
+                registerNumber: process.env.ADMIN_REGISTER_NUMBER || '99240041375',
+                email: process.env.ADMIN_EMAIL || '99240041375@klu.ac.in',
+                password: process.env.ADMIN_PASSWORD || '19012007',
                 name: 'System Administrator',
                 role: 'admin'
             });
 
             console.log('✅ Admin user created successfully');
-            console.log(`   Email: ${admin.email}`);
-            console.log(`   Password: [REDACTED]`);
         }
     } catch (error) {
         console.error('Error initializing admin:', error);
     }
 };
 
-// Start server
+// Start the server directly (No clustering for better stability on free tier)
 const startServer = async () => {
     try {
         await connectDB();
+
+        // Initialize admin
+        await initializeAdmin();
+
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {
-            console.log(`\n🚀 Server running on port ${PORT} (Process: ${process.pid})`);
+            console.log(`\n🚀 Server running on port ${PORT}`);
             console.log(`📡 API available at http://127.0.0.1:${PORT}/api`);
-            initializeAdmin();
         });
     } catch (error) {
         console.error('❌ Server failed to start:', error);
-        process.exit(1);
     }
 };
 
-if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
-    if (cluster.isPrimary) {
-        const numCPUs = os.cpus().length;
-        console.log(`\n🏁 Production Master process ${process.pid} is starting...`);
-        console.log(`💪 Spawning ${numCPUs} workers for high load optimization...`);
-
-        // Fork workers
-        for (let i = 0; i < numCPUs; i++) {
-            cluster.fork();
-        }
-
-        cluster.on('exit', (worker, code, signal) => {
-            console.log(`⚠️ Worker ${worker.process.pid} died. Spawning a replacement...`);
-            cluster.fork();
-        });
-    } else {
-        startServer();
-    }
+// Start logic based on environment
+if (process.env.VERCEL) {
+    // Vercel Serverless
+    (async () => {
+        await connectDB();
+        await initializeAdmin();
+    })();
 } else {
-    // Single process for development or serverless environments
-    if (!process.env.VERCEL) {
-        console.log('🛠 Starting server in development mode (single-threaded)...');
-        startServer();
-    } else {
-        // In Vercel, just export the app
-        (async () => {
-            await connectDB();
-            initializeAdmin(); // No await needed for the return of the function itself
-        })();
-    }
+    // Render / Local / VPS
+    startServer();
 }
 
 

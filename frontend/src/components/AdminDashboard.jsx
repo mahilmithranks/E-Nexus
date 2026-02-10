@@ -907,7 +907,7 @@ function AdminDashboard() {
                                                             <tr className="bg-white/[0.03] border-b border-white/10">
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] w-14 text-center border-r border-white/5 sticky left-0 z-20 bg-[#0d0d0d]">#</th>
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] sticky left-14 bg-[#0d0d0d] z-20 min-w-[200px] border-r border-white/5">Student Information</th>
-                                                                {sessions.map(s => (
+                                                                {sessions.filter(s => s.title !== "Infosys Certified Course").map(s => (
                                                                     <th key={s._id} className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] whitespace-nowrap text-center border-r border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
                                                                         <div>{s.title}</div>
                                                                         <div className="text-[10px] text-indigo-400/50 font-bold mt-1 tracking-widest italic">Day {s.dayId?.dayNumber}</div>
@@ -941,24 +941,16 @@ function AdminDashboard() {
                                                                             <div className="text-sm font-bold text-white group-hover/row:text-indigo-400 transition-colors">{student.name}</div>
                                                                             <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">{student.registerNumber}</div>
                                                                         </td>
-                                                                        {student.sessions.map(session => {
+                                                                        {student.sessions.filter(s => {
+                                                                            const fullSession = sessions.find(fs => fs._id === s.sessionId);
+                                                                            return fullSession?.title !== "Infosys Certified Course";
+                                                                        }).map(session => {
                                                                             const fullSession = sessions.find(s => s._id === session.sessionId);
-                                                                            const isInfosys = fullSession?.title === "Infosys Certified Course";
 
                                                                             const hasAttendance = session.attendance?.status === 'PRESENT';
                                                                             const isOverride = session.attendance?.isOverride;
                                                                             const photoPath = session.attendance?.photoPath;
                                                                             const photoUrl = getPhotoUrl(photoPath);
-
-                                                                            if (isInfosys) {
-                                                                                return (
-                                                                                    <td key={session.sessionId} className="p-4">
-                                                                                        <div className="flex flex-col items-center gap-1">
-                                                                                            <div className="text-zinc-700 font-bold text-xs">—</div>
-                                                                                        </div>
-                                                                                    </td>
-                                                                                );
-                                                                            }
 
                                                                             return (
                                                                                 <td key={session.sessionId} className="p-4">

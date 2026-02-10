@@ -642,9 +642,9 @@ function StudentDashboard() {
                                                                             Upload your certificate now
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                        <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm text-center">
                                                                             <Lock className="w-4 h-4" />
-                                                                            Registration Closed
+                                                                            Uploading Window Closed
                                                                         </div>
                                                                     )}
                                                                 </>
@@ -682,7 +682,7 @@ function StudentDashboard() {
                                                                                 Absent
                                                                             </div>
                                                                             <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter bg-white/40 px-3 py-1 rounded-lg border border-white/60 backdrop-blur-sm">
-                                                                                Registration Window Closed
+                                                                                Attendance Window Closed
                                                                             </div>
                                                                         </div>
                                                                     ) : (

@@ -523,7 +523,11 @@ function StudentDashboard() {
                                                                 {session.startTime && (
                                                                     <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/5">
                                                                         <Clock className="w-3.5 h-3.5 text-[#f05423]" />
-                                                                        {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                        {session.title === "Infosys Certified Course" ? (
+                                                                            new Date(session.startTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                                                                        ) : (
+                                                                            `${new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — ${new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                                 <p className="text-zinc-500 text-sm font-medium line-clamp-1 max-w-sm">{session.description}</p>
@@ -556,7 +560,7 @@ function StudentDashboard() {
                                                                         Authenticate
                                                                     </button>
                                                                 </div>
-                                                            ) : session.attendanceStatus === 'closed' ? (
+                                                            ) : session.attendanceStatus === 'closed' && session.attendanceEndTime ? (
                                                                 <div className="flex flex-col items-end gap-2">
                                                                     <div className="px-6 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
                                                                         <X className="w-3 h-3" />

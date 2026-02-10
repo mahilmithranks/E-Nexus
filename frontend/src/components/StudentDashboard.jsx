@@ -625,6 +625,8 @@ function StudentDashboard() {
                                                                             <p className="text-[10px] text-zinc-700 mt-2 font-medium">
                                                                                 * Please upload your completion certificate (Image or PDF).
                                                                                 <br />
+                                                                                <span className="text-zinc-500">* Max file size: <span className="text-[#f05423]">100KB</span>.</span>
+                                                                                <br />
                                                                                 <span className="text-red-400">* Note: You can only upload once. Ensure the file is correct before submitting.</span>
                                                                             </p>
                                                                         </div>

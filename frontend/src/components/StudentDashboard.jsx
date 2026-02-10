@@ -246,9 +246,9 @@ function StudentDashboard() {
                 <header className="h-20 border-b border-white/40 bg-white/60 backdrop-blur-xl sticky top-0 z-50 px-6 md:px-10 flex items-center justify-between shadow-sm supports-[backdrop-filter]:bg-white/60">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-4">
-                            <img src="/univ-logo.png" alt="University Logo" className="h-11 w-auto object-contain" />
+                            <img src="/univ-logo.png" alt="University Logo" className="h-12 w-auto object-contain" />
                             <span className="text-zinc-400 font-light text-xl">×</span>
-                            <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-9 w-auto object-contain" />
+                            <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-16 w-auto object-contain" />
 
                             <div className="h-10 w-px bg-zinc-200/50 mx-2 hidden sm:block" />
 

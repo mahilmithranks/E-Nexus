@@ -189,6 +189,10 @@ function StudentDashboard() {
     };
 
     const handleAssignmentChange = (sessionId, assignmentTitle, value) => {
+        if (value instanceof File && value.size > 100 * 1024) {
+            toast.error('File size exceeds 100KB limit! Please compress the file.');
+            return;
+        }
         const key = `${sessionId}-${assignmentTitle}`;
         setAssignmentData({ ...assignmentData, [key]: value });
     };

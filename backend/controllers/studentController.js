@@ -11,7 +11,7 @@ import { clearCache } from '../middleware/cache.js';
 export const getEnabledDays = async (req, res) => {
     try {
         // Return all days so they can be displayed (even if locked)
-        const days = await Day.find().sort({ dayNumber: 1 });
+        const days = await Day.find().select('dayNumber title status date').sort({ dayNumber: 1 }).lean();
         res.json(days);
     } catch (error) {
         console.error('Get enabled days error:', error);
@@ -19,9 +19,6 @@ export const getEnabledDays = async (req, res) => {
     }
 };
 
-// @desc    Get sessions for a specific day
-// @route   GET /api/student/sessions/:dayId
-// @access  Private/Student
 // @desc    Get sessions for a specific day
 // @route   GET /api/student/sessions/:dayId
 // @access  Private/Student
@@ -83,10 +80,11 @@ export const getSessionsForDay = async (req, res) => {
 
                 if (session.attendanceOpen) {
                     attendanceWindowStatus = 'active';
-                } else if (session.attendanceStartTime && !session.attendanceOpen) {
+                } else if (session.attendanceEndTime && now > new Date(session.attendanceEndTime)) {
                     attendanceWindowStatus = 'closed';
-                } else if (session.endTime && now > new Date(session.endTime)) {
-                    attendanceWindowStatus = 'closed';
+                } else {
+                    // Default to not_started if not explicitly open and not expired
+                    attendanceWindowStatus = 'not_started';
                 }
 
                 const isAttendanceActive = session.attendanceOpen && (

@@ -1,26 +1,25 @@
-import express from 'express';
 import dotenv from 'dotenv';
+dotenv.config();
+import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import multer from 'multer';
+import compression from 'compression';
+import mongoose from 'mongoose';
 import connectDB from './config/db.js';
+import User from './models/User.js';
+import Session from './models/Session.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import studentRoutes from './routes/student.js';
 import syncRoutes from './routes/sync.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { clearCache } from './middleware/cache.js';
-import User from './models/User.js';
-import compression from 'compression';
-import helmet from 'helmet';
-import cluster from 'cluster';
-import os from 'os';
-import mongoose from 'mongoose';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables - MOVED TO TOP FOR ES MODULES
+// dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,7 +61,6 @@ app.use('/api', apiLimiter);
 
 // Background job to close expired attendance sessions
 // SKIP on Vercel (We use Vercel Cron instead)
-import Session from './models/Session.js';
 
 if (!process.env.VERCEL) {
     setInterval(async () => {

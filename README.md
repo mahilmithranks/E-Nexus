@@ -110,7 +110,7 @@ E-Nexus is a complete workshop management solution designed for educational inst
 - **Session-Based**: Organized by session
 
 #### 🔄 Auto-Refresh
-- **Real-Time Updates**: Refreshes every 30 seconds
+- **Real-Time Updates**: Refreshes every 3 seconds (optimized sync check)
 - **Status Sync**: Automatically shows when attendance closes
 - **No Manual Refresh**: Seamless experience
 

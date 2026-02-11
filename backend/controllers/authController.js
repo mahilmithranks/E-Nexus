@@ -58,7 +58,7 @@ export const login = async (req, res) => {
         }
 
         // Generate token
-        const token = generateToken(user._id);
+        const token = generateToken(user._id.toString());
 
         res.json({
             token,
@@ -77,7 +77,8 @@ export const login = async (req, res) => {
         console.error(error.stack);
         res.status(500).json({
             message: 'Server error during login',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, LogOut, FileText, Link as LinkIcon, Upload, Calendar, Clock, ChevronRight, CheckCircle, AlertCircle, Lock, X, Send } from 'lucide-react';
+import { Camera, LogOut, FileText, Link as LinkIcon, Upload, Calendar, Clock, ChevronRight, CheckCircle, AlertCircle, Lock, X, Send, ExternalLink } from 'lucide-react';
 import api from '../services/api';
 import { getUser, clearAuth } from '../utils/auth';
 import CameraCapture from './CameraCapture';
@@ -582,8 +582,8 @@ function StudentDashboard() {
                                                                 <p className="text-zinc-500 text-sm font-medium line-clamp-1 max-w-sm">{session.description}</p>
                                                             </div>
 
-                                                            {/* Infosys Assessment Link */}
-                                                            {session.title === "Infosys Certified Course" && (
+                                                            {/* Course Assessment Link - ONLY for Assessment Day 2 */}
+                                                            {(session.title === "Assessment Day 2" || days.find(d => d._id === selectedDay)?.title === "Assessment Day 2") && (
                                                                 <div className="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-3">
                                                                     <div className="flex items-center justify-between">
                                                                         <div>
@@ -685,7 +685,7 @@ function StudentDashboard() {
                                                                                 </div>
                                                                             </div>
                                                                         ) : (
-                                                                            <>
+                                                                            <div className="flex flex-col items-end gap-3">
                                                                                 <div className="px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 text-[10px] font-bold uppercase tracking-wide flex items-center gap-2 backdrop-blur-sm border-dashed">
                                                                                     <AlertCircle className="w-3 h-3" />
                                                                                     Mark attendance to unlock assessment window
@@ -699,12 +699,12 @@ function StudentDashboard() {
                                                                                         Authenticate
                                                                                     </button>
                                                                                 ) : (
-                                                                                    <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-400 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm ring-1 ring-white/50">
+                                                                                    <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
                                                                                         <Lock className="w-4 h-4" />
-                                                                                        Attendance Not Started Yet
+                                                                                        Attendance Not Started
                                                                                     </div>
                                                                                 )}
-                                                                            </>
+                                                                            </div>
                                                                         )
                                                                     ) : (
                                                                         <div className="flex flex-col items-end gap-3">
@@ -785,10 +785,15 @@ function StudentDashboard() {
                                                                                 Attendance Window Closed
                                                                             </div>
                                                                         </div>
-                                                                    ) : (
+                                                                    ) : session.attendanceStatus === 'not_started' ? (
                                                                         <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
                                                                             <Lock className="w-4 h-4" />
                                                                             Attendance Not Started
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                            <Lock className="w-4 h-4" />
+                                                                            Attendance Locked
                                                                         </div>
                                                                     )}
                                                                 </>

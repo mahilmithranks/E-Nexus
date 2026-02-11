@@ -292,7 +292,7 @@ const studentsData = [
     {
         "name": "Varigi Charaneswar Reddy",
         "registerNumber": "99220040765",
-        "email": "9922040765@klu.ac.in",
+        "email": "99220040765@klu.ac.in",
         "department": "CSE",
         "yearOfStudy": "4",
         "role": "student"
@@ -1589,6 +1589,22 @@ const studentsData = [
         "name": "V.Akhil",
         "registerNumber": "99220041410",
         "email": "99220041410@klu.ac.in",
+        "department": "IT",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Madhumitha M.",
+        "registerNumber": "9922008356",
+        "email": "9922008356@gmail.com",
+        "department": "IT - D",
+        "yearOfStudy": "4",
+        "role": "student"
+    },
+    {
+        "name": "Nithishkumar M",
+        "registerNumber": "9922008291",
+        "email": "9922008291@klu.ac.in",
         "department": "IT",
         "yearOfStudy": "4",
         "role": "student"

@@ -11,9 +11,10 @@ const connectDB = async () => {
     }
 
     try {
+        const isServerless = !!process.env.VERCEL;
         const options = {
-            maxPoolSize: 100,
-            minPoolSize: 10,
+            maxPoolSize: isServerless ? 5 : 100,
+            minPoolSize: isServerless ? 1 : 10,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
             connectTimeoutMS: 30000,

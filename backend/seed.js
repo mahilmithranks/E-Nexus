@@ -6,7 +6,13 @@ import Session from './models/Session.js';
 import Attendance from './models/Attendance.js';
 import AssignmentSubmission from './models/AssignmentSubmission.js';
 
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const studentsData = [
     {
@@ -1596,7 +1602,7 @@ const studentsData = [
     {
         "name": "Madhumitha M.",
         "registerNumber": "9922008356",
-        "email": "9922008356@gmail.com",
+        "email": "9922008356@klu.ac.in",
         "department": "IT - D",
         "yearOfStudy": "4",
         "role": "student"
@@ -1644,25 +1650,36 @@ const seedData = async () => {
         });
 
         let added = 0;
-        let skipped = 0;
+        let updated = 0;
+        let total = 0;
 
         for (const studentData of uniqueSourceStudents.values()) {
-            const exists = await User.findOne({ registerNumber: studentData.registerNumber });
-            if (exists) {
-                skipped++;
-                continue;
+            total++;
+            const existingUser = await User.findOne({ registerNumber: studentData.registerNumber });
+
+            if (existingUser) {
+                // Update existing user with latest info from seed
+                existingUser.name = studentData.name;
+                existingUser.email = studentData.email;
+                existingUser.department = studentData.department;
+                existingUser.yearOfStudy = studentData.yearOfStudy;
+                // Optionally reset password if it's strictly Password = Register Number
+                existingUser.password = studentData.registerNumber;
+
+                await existingUser.save();
+                updated++;
+            } else {
+                const student = {
+                    ...studentData,
+                    password: studentData.registerNumber
+                };
+
+                await User.create(student);
+                console.log(`✓ Added student: ${student.registerNumber} - ${student.name}`);
+                added++;
             }
-
-            const student = {
-                ...studentData,
-                password: studentData.registerNumber
-            };
-
-            await User.create(student);
-            console.log(`✓ Added student: ${student.registerNumber} - ${student.name}`);
-            added++;
         }
-        console.log(`\nUser Sync Complete: Added ${added}, Skipped ${skipped}`);
+        console.log(`\nUser Sync Complete: Added ${added}, Updated ${updated}, Total ${total}`);
 
         // 3. preserve existing days and sessions
         console.log('\nℹ️  Skipping Day/Session reset to preserve existing data.');
@@ -1674,7 +1691,7 @@ const seedData = async () => {
         console.log('\n✅ Database seeding completed successfully!');
         console.log('\n📋 Summary:');
         console.log(`   New Users Added: ${added}`);
-        console.log(`   Existing Users Skipped: ${skipped}`);
+        console.log(`   Existing Users Updated: ${updated}`);
         console.log(`   Total Users in DB: ${totalUsers}`);
         console.log(`   Login Rule: Password = Register Number`);
 

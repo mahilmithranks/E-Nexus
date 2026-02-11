@@ -59,6 +59,23 @@ app.use(compression());
 // Apply rate limiting to all routes
 app.use('/api', apiLimiter);
 
+// Debug middleware to log requests on Vercel
+app.use((req, res, next) => {
+    if (process.env.VERCEL) {
+        console.log(`[Vercel Request] ${req.method} ${req.url}`);
+    }
+    next();
+});
+
+// Root route for quick verification
+app.get('/', (req, res) => {
+    res.json({
+        message: 'E-Nexus API is live',
+        environment: process.env.VERCEL ? 'production' : 'development',
+        time: new Date().toISOString()
+    });
+});
+
 // Background job to close expired attendance sessions
 // SKIP on Vercel (We use Vercel Cron instead)
 

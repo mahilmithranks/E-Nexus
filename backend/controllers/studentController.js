@@ -22,12 +22,15 @@ export const getEnabledDays = async (req, res) => {
 // @desc    Get sessions for a specific day
 // @route   GET /api/student/sessions/:dayId
 // @access  Private/Student
+// @desc    Get sessions for a specific day
+// @route   GET /api/student/sessions/:dayId
+// @access  Private/Student
 export const getSessionsForDay = async (req, res) => {
     try {
         const { dayId } = req.params;
 
         // Verify day exists and is open
-        const day = await Day.findById(dayId).lean();
+        const day = await Day.findById(dayId).select('status').lean();
         if (!day) {
             return res.status(404).json({ message: 'Day not found' });
         }
@@ -36,19 +39,7 @@ export const getSessionsForDay = async (req, res) => {
             return res.status(403).json({ message: 'This day is not accessible yet' });
         }
 
-        // LAZY CLOSING: Automatically close expired sessions for this day
-        const now = new Date();
-        const expiredResult = await Session.updateMany(
-            { dayId, attendanceOpen: true, attendanceEndTime: { $ne: null, $lt: now } },
-            { $set: { attendanceOpen: false } }
-        );
-
-        if (expiredResult.modifiedCount > 0) {
-            console.log(`Lazy-closed ${expiredResult.modifiedCount} expired sessions for day ${dayId}`);
-            clearCache('admin-sessions');
-            clearCache('student-sessions');
-            clearCache('admin-progress');
-        }
+        // OPTIMIZATION: Removed blocking lazy-close. Background job (server.js/cron) handles this.
 
         // Fetch all sessions for determination
         const sessions = await Session.find({ dayId }).sort({ createdAt: 1 }).lean();
@@ -59,17 +50,18 @@ export const getSessionsForDay = async (req, res) => {
             Attendance.find({
                 registerNumber: req.user.registerNumber,
                 sessionId: { $in: sessionIds }
-            }).lean(),
+            }).select('sessionId status').lean(),
             AssignmentSubmission.find({
                 registerNumber: req.user.registerNumber,
                 sessionId: { $in: sessionIds }
-            }).lean()
+            }).select('sessionId assignmentTitle').lean()
         ]);
 
         // Create lookups for faster access
-        const attendanceMap = new Map(attendances.map(a => [a.sessionId.toString(), a]));
-        const submissionMap = new Map();
+        const attendanceMap = new Map();
+        attendances.forEach(a => attendanceMap.set(a.sessionId.toString(), a));
 
+        const submissionMap = new Map();
         submissions.forEach(s => {
             const sessId = s.sessionId.toString();
             if (!submissionMap.has(sessId)) {
@@ -77,6 +69,8 @@ export const getSessionsForDay = async (req, res) => {
             }
             submissionMap.get(sessId).add(s.assignmentTitle);
         });
+
+        const now = new Date();
 
         const sessionsWithStatus = sessions.map((session) => {
             try {
@@ -86,18 +80,18 @@ export const getSessionsForDay = async (req, res) => {
 
                 // Determine attendance window status
                 let attendanceWindowStatus = 'not_started';
+
                 if (session.attendanceOpen) {
                     attendanceWindowStatus = 'active';
                 } else if (session.attendanceStartTime && !session.attendanceOpen) {
-                    // If it was started at some point but is now closed
+                    attendanceWindowStatus = 'closed';
+                } else if (session.endTime && now > new Date(session.endTime)) {
                     attendanceWindowStatus = 'closed';
                 }
 
-                // Safety checks for methods and properties
-                // For lean objects, we use the property directly if the method was pre-calculated or not available
                 const isAttendanceActive = session.attendanceOpen && (
                     !session.attendanceEndTime ||
-                    (new Date() >= new Date(session.attendanceStartTime) && new Date() <= new Date(session.attendanceEndTime))
+                    (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
                 );
 
                 const assignmentsCount = Array.isArray(session.assignments)
@@ -109,20 +103,12 @@ export const getSessionsForDay = async (req, res) => {
                     hasAttendance: !!attendance,
                     attendanceStatus: attendanceWindowStatus,
                     isAttendanceActive: isAttendanceActive,
-                    attendanceEndTime: session.attendanceEndTime,
                     assignmentsSubmitted: Array.from(submittedTitles),
                     totalAssignments: assignmentsCount
                 };
             } catch (err) {
                 console.error(`Error processing session ${session._id}:`, err);
-                return {
-                    ...session,
-                    hasAttendance: false,
-                    attendanceStatus: 'error',
-                    isAttendanceActive: false,
-                    assignmentsSubmitted: 0,
-                    totalAssignments: 0
-                };
+                return session;
             }
         });
 
@@ -140,32 +126,45 @@ export const getSession = async (req, res) => {
     try {
         const { sessionId } = req.params;
 
-        const session = await Session.findById(sessionId).populate('dayId');
+        // Use lean for performance
+        const session = await Session.findById(sessionId).populate('dayId', 'status dayNumber').lean();
         if (!session) {
             return res.status(404).json({ message: 'Session not found' });
         }
 
-        // Check availability logic
         if (session.dayId.status === 'LOCKED') {
             return res.status(403).json({ message: 'This session is not currently accessible' });
         }
 
-        // Get student status
-        const attendance = await Attendance.findOne({
-            registerNumber: req.user.registerNumber,
-            sessionId
-        });
+        const [attendance, submissions] = await Promise.all([
+            Attendance.findOne({
+                registerNumber: req.user.registerNumber,
+                sessionId
+            }).select('status').lean(),
+            AssignmentSubmission.find({
+                registerNumber: req.user.registerNumber,
+                sessionId
+            }).lean()
+        ]);
 
-        const submissions = await AssignmentSubmission.find({
-            registerNumber: req.user.registerNumber,
-            sessionId
-        });
+        if (session.title.toLowerCase().includes('assessment') && !attendance) {
+            return res.status(403).json({
+                message: 'Identity verification required. Please mark your attendance first to access this assessment.',
+                hasAttendance: false
+            });
+        }
+
+        // Re-construct logic for lean object
+        const now = new Date();
+        const isAttendanceActive = session.attendanceOpen && (
+            !session.attendanceEndTime || (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
+        );
 
         const sessionData = {
-            ...session.toObject(),
+            ...session,
             hasAttendance: !!attendance,
             attendanceStatus: attendance ? attendance.status : null,
-            isAttendanceActive: session.isAttendanceActive(),
+            isAttendanceActive,
             assignmentsSubmitted: submissions.map(s => s.assignmentTitle),
             submissions: submissions
         };
@@ -184,81 +183,59 @@ export const markAttendance = async (req, res) => {
     try {
         const { sessionId } = req.body;
 
-        // 1. Immediate validations (Fastest)
-        if (!sessionId) {
-            return res.status(400).json({ message: 'Session ID is required' });
-        }
+        if (!sessionId) return res.status(400).json({ message: 'Session ID is required' });
+        if (!req.file) return res.status(400).json({ message: 'Photo is required' });
 
-        if (!req.file) {
-            return res.status(400).json({ message: 'Photo is required for attendance' });
-        }
-
-        // 2. Parallelize DB lookups
+        // Parallel fetch with LEAN
         const [session, existingAttendance] = await Promise.all([
-            Session.findById(sessionId).populate('dayId'),
+            Session.findById(sessionId).populate('dayId', 'status').lean(),
             Attendance.findOne({
                 registerNumber: req.user.registerNumber,
                 sessionId
-            })
+            }).select('_id').lean()
         ]);
 
-        if (!session) {
-            return res.status(404).json({ message: 'Session not found' });
+        if (!session) return res.status(404).json({ message: 'Session not found' });
+        if (existingAttendance) return res.status(400).json({ message: 'Attendance already marked' });
+        if (session.dayId.status !== 'OPEN') return res.status(403).json({ message: 'Day not open' });
+
+        // Logic check for active window
+        const now = new Date();
+        const isAttendanceActive = session.attendanceOpen && (
+            !session.attendanceEndTime || (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
+        );
+
+        if (!session.attendanceOpen && !isAttendanceActive) {
+            return res.status(403).json({ message: 'Attendance window closed' });
         }
 
-        if (existingAttendance) {
-            return res.status(400).json({ message: 'Attendance already marked for this session' });
-        }
-
-        // 3. Status checks
-        if (session.dayId.status !== 'OPEN') {
-            return res.status(403).json({ message: 'This day is not open for attendance' });
-        }
-
-        if (!session.attendanceOpen && !session.isAttendanceActive()) {
-            return res.status(403).json({
-                message: 'Attendance window is not active for this session'
-            });
-        }
-
+        // Upload
         let photoPath = null;
-
-        // Upload to Cloudinary (required for Vercel serverless)
         try {
             const cloudinary = (await import('../config/cloudinary.js')).default;
-
-            // Convert buffer to base64 for Cloudinary upload
             const b64 = Buffer.from(req.file.buffer).toString('base64');
             const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
             const result = await cloudinary.uploader.upload(dataURI, {
                 folder: 'e-nexus/attendance',
                 resource_type: 'image',
-                transformation: [
-                    { width: 800, height: 800, crop: 'limit' },
-                    { quality: 'auto' }
-                ]
+                transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }]
             });
-
             photoPath = result.secure_url;
-            console.log('Photo uploaded to Cloudinary:', photoPath);
-        } catch (cloudinaryError) {
-            console.error('Cloudinary upload failed:', cloudinaryError);
-            return res.status(500).json({
-                message: 'Failed to upload photo. Please try again.'
-            });
+        } catch (err) {
+            console.error('Cloudinary error:', err);
+            return res.status(500).json({ message: 'Photo upload failed' });
         }
 
-        // Create attendance record
+        // Create record
         const attendance = await Attendance.create({
             registerNumber: req.user.registerNumber,
             sessionId,
             status: 'PRESENT',
             photoPath: photoPath,
-            timestamp: new Date()
+            timestamp: now
         });
 
-        // Clear admin progress cache
         clearCache('admin-progress');
 
         res.status(201).json({
@@ -266,23 +243,9 @@ export const markAttendance = async (req, res) => {
             attendance
         });
     } catch (error) {
-        console.error('❌ Mark attendance CRITICAL ERROR:', {
-            message: error.message,
-            stack: error.stack,
-            body: req.body,
-            user: req.user ? { id: req.user._id, registerNumber: req.user.registerNumber } : 'NO_USER'
-        });
-
-        // Handle duplicate key error
-        if (error.code === 11000) {
-            return res.status(400).json({ message: 'Attendance already marked for this session' });
-        }
-
-        res.status(500).json({
-            message: 'Server error marking attendance',
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
+        console.error('Mark attendance error:', error);
+        if (error.code === 11000) return res.status(400).json({ message: 'Attendance already marked' });
+        res.status(500).json({ message: 'Server error marking attendance' });
     }
 };
 
@@ -316,6 +279,23 @@ export const submitAssignment = async (req, res) => {
             if (!attendance) {
                 return res.status(403).json({
                     message: 'You must mark attendance before submitting assignments'
+                });
+            }
+        }
+
+        // Finality Check: Assessments cannot be edited once submitted
+        const isAssessment = session.title.toLowerCase().includes('assessment');
+
+        if (isAssessment) {
+            const existingSubmission = await AssignmentSubmission.findOne({
+                registerNumber: req.user.registerNumber,
+                sessionId,
+                assignmentTitle
+            });
+
+            if (existingSubmission) {
+                return res.status(403).json({
+                    message: "This assessment response has already been submitted and cannot be edited."
                 });
             }
         }
@@ -363,16 +343,21 @@ export const submitAssignment = async (req, res) => {
             return res.status(400).json({ message: 'Assignment response is required' });
         }
 
-        // Create assignment submission
-        const submission = await AssignmentSubmission.create({
-            registerNumber: req.user.registerNumber,
-            sessionId,
-            assignmentTitle,
-            assignmentType,
-            response: finalResponse,
-            files: filePaths,
-            submittedAt: new Date()
-        });
+        // Use findOneAndUpdate to allow multiple re-submissions (overwrites previous)
+        const submission = await AssignmentSubmission.findOneAndUpdate(
+            {
+                registerNumber: req.user.registerNumber,
+                sessionId,
+                assignmentTitle
+            },
+            {
+                assignmentType,
+                response: finalResponse,
+                files: filePaths,
+                submittedAt: new Date()
+            },
+            { new: true, upsert: true }
+        );
 
         // Clear admin progress cache
         clearCache('admin-progress');

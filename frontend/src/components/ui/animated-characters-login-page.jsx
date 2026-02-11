@@ -361,10 +361,8 @@ function LoginPage({
             <div className="flex items-center justify-center p-4 sm:p-6 md:p-8 bg-[#0a0a0a] order-1 lg:order-2 min-h-screen">
                 <div className="w-full max-w-[420px]">
                     <div className="text-center mb-8 sm:mb-12">
-                        <div className="flex items-center justify-center gap-3 sm:gap-6 mb-6 sm:mb-8">
-                            <img src="/univ-logo.png" alt="University Logo" className="h-10 sm:h-14 w-auto object-contain" />
-                            <span className="text-zinc-600 font-light text-lg sm:text-xl">×</span>
-                            <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-14 sm:h-20 w-auto object-contain" />
+                        <div className="flex items-center justify-center mb-6 sm:mb-8">
+                            <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-16 sm:h-24 w-auto object-contain" />
                         </div>
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight mb-2 sm:mb-3 text-white leading-tight px-2">
                             Tech Sprint Boot Camp on GEN AI for All Domains

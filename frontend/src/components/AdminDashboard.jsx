@@ -55,10 +55,16 @@ function AdminDashboard() {
     const [showPhotoModal, setShowPhotoModal] = useState({ show: false, url: '', student: '' });
     const [showOverrideModal, setShowOverrideModal] = useState({
         show: false,
-        student: null,
         sessionId: null,
         comment: ''
     });
+    const [assessmentStats, setAssessmentStats] = useState([]);
+    const [selectedAssessmentId, setSelectedAssessmentId] = useState(null);
+    const [assessmentDetails, setAssessmentDetails] = useState(null);
+    const [assessmentDetailsLoading, setAssessmentDetailsLoading] = useState(false);
+    const [certificateData, setCertificateData] = useState(null);
+    const [certificateLoading, setCertificateLoading] = useState(false);
+    const [showCertificateTracker, setShowCertificateTracker] = useState(false);
 
     const user = getUser();
     const navigate = useNavigate();
@@ -135,6 +141,11 @@ function AdminDashboard() {
         if (activeTab === 'attendance' || activeTab === 'assignments') {
             fetchProgress(1, searchTerm);
         }
+        // Reset assessment selection when switching tabs unless it's the assessments tab
+        if (activeTab !== 'assessments') {
+            setSelectedAssessmentId(null);
+            setAssessmentDetails(null);
+        }
     }, [activeTab, searchTerm]);
 
     const fetchInitialData = async () => {
@@ -167,6 +178,74 @@ function AdminDashboard() {
             setLoading(false);
         }
     };
+
+    const fetchCertificateTracking = async (search = '') => {
+        try {
+            if (!certificateData) setCertificateLoading(true);
+            const res = await api.get(`/admin/certificate-tracking?search=${search}`);
+            setCertificateData(res.data);
+        } catch (error) {
+            console.error('Error fetching certificate tracking:', error);
+            if (error.response?.status !== 404) {
+                toast.error('Failed to refresh certificate tracking');
+            }
+        } finally {
+            setCertificateLoading(false);
+        }
+    };
+
+    const fetchAssessmentDetails = async (sessionId, search = '') => {
+        try {
+            if (!assessmentDetails) setAssessmentDetailsLoading(true);
+            const res = await api.get(`/admin/assessment-details/${sessionId}?search=${search}`);
+            setAssessmentDetails(res.data);
+        } catch (error) {
+            console.error('Error fetching assessment details:', error);
+            if (error.response?.status !== 404) {
+                toast.error('Failed to refresh assessment logs');
+            }
+        } finally {
+            setAssessmentDetailsLoading(false);
+        }
+    };
+
+    const fetchAssessmentStats = async () => {
+        // Placeholder or actual implementation if endpoint exists
+        // Currently it seems we might just need to fetch sessions to update stats
+        try {
+            // Re-fetch sessions to get updated stats/metadata if needed
+            const sessionsRes = await api.get('/admin/sessions');
+            setSessions(sessionsRes.data);
+        } catch (error) {
+            console.error('Error fetching assessment stats:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'assessments') {
+            fetchAssessmentStats();
+            const interval = setInterval(fetchAssessmentStats, 10000);
+
+            let detailsInterval;
+            if (selectedAssessmentId) {
+                fetchAssessmentDetails(selectedAssessmentId, searchTerm);
+                detailsInterval = setInterval(() => {
+                    fetchAssessmentDetails(selectedAssessmentId, searchTerm);
+                }, 5000);
+            }
+
+            return () => {
+                clearInterval(interval);
+                if (detailsInterval) clearInterval(detailsInterval);
+            };
+        }
+
+        if (activeTab === 'certificates') {
+            fetchCertificateTracking(searchTerm);
+            const interval = setInterval(() => fetchCertificateTracking(searchTerm), 3000);
+            return () => clearInterval(interval);
+        }
+    }, [activeTab, selectedAssessmentId, searchTerm]);
 
     const fetchProgress = async (page = 1, search = '') => {
         try {
@@ -411,6 +490,41 @@ function AdminDashboard() {
         }
     };
 
+    const exportAssessments = async () => {
+        try {
+            let url = '/admin/export/assessments?';
+            if (exportFilters.sessionId) {
+                url += `sessionId=${exportFilters.sessionId}`;
+            } else if (exportFilters.dayId) {
+                url += `dayId=${exportFilters.dayId}`;
+            }
+
+            const response = await api.get(url, { responseType: 'blob' });
+            const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+
+            let filename = 'assessment_report';
+            if (exportFilters.sessionId) {
+                const session = sessions.find(s => s._id === exportFilters.sessionId);
+                filename = `assessment_${session ? session.title.replace(/\s+/g, '_') : 'session'}`;
+            } else if (exportFilters.dayId) {
+                const day = days.find(d => d._id === exportFilters.dayId);
+                filename = `assessment_day_${day ? day.dayNumber : 'filtered'}`;
+            }
+
+            link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error('Export error:', error);
+            handleExportError(error, 'assessments');
+        }
+    };
+
     const handleExportError = async (error, type) => {
         let errorMessage = `Error exporting ${type}`;
         if (error.response?.data instanceof Blob) {
@@ -476,7 +590,8 @@ function AdminDashboard() {
         { id: 'days', label: 'Day Control', icon: Calendar },
         { id: 'sessions', label: 'Sessions', icon: Clock },
         { id: 'attendance', label: 'Attendance', icon: Users },
-        { id: 'certificates', label: 'Certificate', icon: FileText },
+        { id: 'assessments', label: 'Assessments', icon: FileText },
+        { id: 'certificates', label: 'Certificate', icon: CheckCircle },
         { id: 'export', label: 'Exports', icon: Download },
     ];
 
@@ -506,7 +621,7 @@ function AdminDashboard() {
                 <aside className="hidden lg:flex w-72 border-r border-white/5 bg-[#0d0d0d] flex-col shrink-0">
                     <div className="p-8">
                         <div className="mb-10">
-                            <span className="text-xl font-bold text-white tracking-tight">Workshop Management</span>
+                            <span className="text-xl font-bold text-white tracking-tight">Bootcamp Management</span>
                         </div>
 
                         <nav className="space-y-1.5">
@@ -557,8 +672,6 @@ function AdminDashboard() {
                     <header className="h-16 lg:h-20 border-b border-white/5 px-3 lg:px-8 flex items-center justify-between bg-[#0a0a0a]/50 backdrop-blur-md sticky top-0 z-30">
                         <div className="flex items-center gap-2 lg:gap-6 overflow-hidden min-w-0">
                             <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 min-w-0">
-                                <img src="/univ-logo.png" alt="University Logo" className="h-7 sm:h-8 lg:h-11 w-auto object-contain shrink-0" />
-                                <span className="text-zinc-600 font-light text-sm lg:text-lg hidden sm:inline">×</span>
                                 <img src="/enexus-white-logo.png" alt="E-Nexus Logo" className="h-9 sm:h-10 lg:h-14 w-auto object-contain shrink-0" />
                             </div>
 
@@ -566,7 +679,7 @@ function AdminDashboard() {
 
                             <div className="hidden sm:flex items-center gap-2 lg:gap-4 min-w-0">
                                 <h2 className="text-sm lg:text-lg font-semibold text-white capitalize truncate">
-                                    {tabs.find(t => t.id === activeTab)?.label}
+                                    E-Nexus <span className="text-indigo-400">Buildmode 2026 Bootcamp</span>
                                 </h2>
                                 <div className="h-3 lg:h-4 w-px bg-white/10 hidden md:block" />
                                 <div className="hidden md:flex items-center gap-2 text-[10px] lg:text-xs text-zinc-500">
@@ -598,7 +711,7 @@ function AdminDashboard() {
                     </header>
 
                     {/* Mobile Tab Navigation */}
-                    <div className="lg:hidden border-b border-white/5 bg-[#0d0d0d] overflow-x-auto">
+                    <div className="lg:hidden flex overflow-x-auto bg-[#0a0a0a] border-b border-white/5 no-scrollbar">
                         <div className="flex gap-1 p-2 min-w-max">
                             {tabs.map(tab => (
                                 <button
@@ -631,7 +744,7 @@ function AdminDashboard() {
                                     <h1 className="text-4xl font-bold text-white tracking-tight mb-2">
                                         Dashboard <span className="text-indigo-500">Overview</span>
                                     </h1>
-                                    <p className="text-zinc-500">Manage workshop days, sessions and system exports.</p>
+                                    <p className="text-zinc-500">Manage bootcamp days, sessions and system exports.</p>
                                 </motion.div>
                             )}
                             <AnimatePresence mode="wait">
@@ -696,11 +809,15 @@ function AdminDashboard() {
                                                     <div className="relative z-10">
                                                         <div className="flex justify-between items-start mb-6">
                                                             <div className="space-y-1">
-                                                                <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em]">Workshop Timeline</div>
-                                                                <h3 className="text-2xl font-bold text-white leading-none">
-                                                                    Day {day.dayNumber}
-                                                                </h3>
-                                                                {day.date && <p className="text-zinc-500 text-xs font-medium">{new Date(day.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
+                                                                <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em]">Bootcamp Timeline</div>
+                                                                {!day.title.toLowerCase().includes('certificate') && (
+                                                                    <>
+                                                                        <h3 className="text-2xl font-bold text-white leading-none">
+                                                                            Day {day.dayNumber}
+                                                                        </h3>
+                                                                        {day.date && <p className="text-zinc-500 text-xs font-medium">{new Date(day.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
+                                                                    </>
+                                                                )}
                                                             </div>
                                                             <div className={cn(
                                                                 "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border",
@@ -748,7 +865,7 @@ function AdminDashboard() {
                                             {/* Day Selector for Sessions */}
                                             <div className="flex flex-wrap gap-2 p-4 bg-white/[0.02] rounded-xl border border-white/5">
                                                 <div className="w-full text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Filter by Day</div>
-                                                {days.map(day => (
+                                                {days.filter(d => d.dayNumber !== 10).map(day => (
                                                     <button
                                                         key={day._id}
                                                         onClick={() => setSelectedSessionDay(day._id)}
@@ -769,6 +886,7 @@ function AdminDashboard() {
 
                                             <div className="space-y-4">
                                                 {sessions
+                                                    .filter(session => session.dayId?.dayNumber !== 10) // Hide Day 10 sessions from this list
                                                     .filter(session => !selectedSessionDay || session.dayId?._id === selectedSessionDay || session.dayId === selectedSessionDay)
                                                     .map(session => (
                                                         <div key={session._id} className="group relative overflow-hidden p-6 rounded-[2rem] bg-[#111111]/60 border border-white/5 hover:border-indigo-500/30 transition-all duration-500">
@@ -789,13 +907,7 @@ function AdminDashboard() {
                                                                                     ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
                                                                                     : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
                                                                             )}>
-                                                                                {session.mode || 'ONLINE'}
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-4 text-xs font-semibold">
-                                                                            <div className="flex items-center gap-1.5 text-zinc-400 bg-white/[0.03] px-2.5 py-1.5 rounded-lg border border-white/5">
-                                                                                <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                                                                                {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                                {session.mode}
                                                                             </div>
                                                                             {session.attendanceOpen && (
                                                                                 <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/10 animate-pulse">
@@ -803,6 +915,16 @@ function AdminDashboard() {
                                                                                     Live
                                                                                 </div>
                                                                             )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-4 text-xs font-semibold">
+                                                                            <div className="flex items-center gap-1.5 text-zinc-400 bg-white/[0.03] px-2.5 py-1.5 rounded-lg border border-white/5">
+                                                                                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                                                                                {session.title === "Infosys Certified Course" ? (
+                                                                                    "Self-paced Upload"
+                                                                                ) : (
+                                                                                    `${new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — ${new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                                                )}
+                                                                            </div>
                                                                         </div>
                                                                         <p className="text-zinc-500 text-sm max-w-lg leading-relaxed">{session.description}</p>
                                                                     </div>
@@ -918,7 +1040,7 @@ function AdminDashboard() {
                                                         <tbody className="divide-y divide-white/5">
                                                             {progressLoading ? (
                                                                 <tr>
-                                                                    <td colSpan={sessions.length + 1} className="p-8 text-center bg-black/20">
+                                                                    <td colSpan={sessions.length + 2} className="p-8 text-center bg-black/20">
                                                                         <div className="flex flex-col items-center gap-3">
                                                                             <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                                                                             <p className="text-white/40 text-sm">Loading students...</p>
@@ -927,8 +1049,8 @@ function AdminDashboard() {
                                                                 </tr>
                                                             ) : progressData.length === 0 ? (
                                                                 <tr>
-                                                                    <td colSpan={sessions.length + 1} className="p-8 text-center text-white/40 bg-black/20">
-                                                                        No students found
+                                                                    <td colSpan={sessions.length + 2} className="p-8 text-center text-white/40 bg-black/20">
+                                                                        No students found matching your search.
                                                                     </td>
                                                                 </tr>
                                                             ) : (
@@ -945,15 +1067,14 @@ function AdminDashboard() {
                                                                             const fullSession = sessions.find(fs => fs._id === s.sessionId);
                                                                             return fullSession?.title !== "Infosys Certified Course";
                                                                         }).map(session => {
-                                                                            const fullSession = sessions.find(s => s._id === session.sessionId);
-
+                                                                            const fullSession = sessions.find(fs => fs._id === session.sessionId);
                                                                             const hasAttendance = session.attendance?.status === 'PRESENT';
                                                                             const isOverride = session.attendance?.isOverride;
                                                                             const photoPath = session.attendance?.photoPath;
                                                                             const photoUrl = getPhotoUrl(photoPath);
 
                                                                             return (
-                                                                                <td key={session.sessionId} className="p-4">
+                                                                                <td key={session.sessionId} className="p-4 border-r border-white/5">
                                                                                     <div className="flex flex-col items-center gap-1">
                                                                                         {hasAttendance ? (
                                                                                             <button
@@ -967,6 +1088,18 @@ function AdminDashboard() {
                                                                                             >
                                                                                                 <CheckCircle className="w-4 h-4" />
                                                                                             </button>
+                                                                                        ) : fullSession?.attendanceOpen ? (
+                                                                                            <div className="flex flex-col items-center gap-2">
+                                                                                                <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center animate-pulse" title="Attendance Open - Waiting">
+                                                                                                    <Clock className="w-4 h-4" />
+                                                                                                </div>
+                                                                                                <button
+                                                                                                    onClick={() => openOverrideModal(student, session.sessionId)}
+                                                                                                    className="text-[9px] px-2 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all font-bold uppercase tracking-tighter"
+                                                                                                >
+                                                                                                    Override
+                                                                                                </button>
+                                                                                            </div>
                                                                                         ) : (
                                                                                             <div className="flex flex-col items-center gap-2">
                                                                                                 <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center" title="Absent">
@@ -974,8 +1107,7 @@ function AdminDashboard() {
                                                                                                 </div>
                                                                                                 <button
                                                                                                     onClick={() => openOverrideModal(student, session.sessionId)}
-                                                                                                    className="text-xs px-2 py-1 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all"
-                                                                                                    title="Override attendance for this session"
+                                                                                                    className="text-[9px] px-2 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all font-bold uppercase tracking-tighter"
                                                                                                 >
                                                                                                     Override
                                                                                                 </button>
@@ -1121,7 +1253,7 @@ function AdminDashboard() {
                                         <div className="space-y-6">
                                             <div className="mb-6">
                                                 <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">System Exports</h2>
-                                                <p className="text-zinc-500 text-sm">Generate and download workshop reports in Microsoft Excel format.</p>
+                                                <p className="text-zinc-500 text-sm">Generate and download bootcamp reports in Microsoft Excel format.</p>
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1205,7 +1337,194 @@ function AdminDashboard() {
                                                         </button>
                                                     </div>
                                                 </div>
+
+                                                {/* Assessment Export */}
+                                                <div className="p-10 rounded-[2.5rem] bg-[#111111]/80 border border-white/5 hover:border-orange-500/20 transition-all group relative overflow-hidden">
+                                                    <div className="absolute -right-12 -top-12 size-48 bg-orange-500/10 blur-[100px] group-hover:bg-orange-500/20 transition-all rounded-full" />
+
+                                                    <div className="relative z-10 h-full flex flex-col">
+                                                        <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-8 text-orange-400">
+                                                            <BarChart2 className="w-8 h-8" />
+                                                        </div>
+                                                        <h3 className="text-3xl font-bold text-white mb-3">Assessment Report</h3>
+                                                        <p className="text-zinc-500 mb-10 text-sm leading-relaxed max-w-sm">Consolidated report of all assessment submissions including Proof-of-Work Drive links for each student.</p>
+
+                                                        <div className="space-y-6 mb-12 flex-1">
+                                                            <div className="space-y-2.5">
+                                                                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Target Dimension</label>
+                                                                <select
+                                                                    value={exportFilters.dayId}
+                                                                    onChange={(e) => setExportFilters({ dayId: e.target.value, sessionId: '' })}
+                                                                    className="w-full px-6 py-5 rounded-[1.25rem] bg-[#0d0d0d] border border-white/10 text-white text-sm font-medium focus:outline-none focus:border-orange-500/50 focus:ring-4 focus:ring-orange-500/5 transition-all appearance-none cursor-pointer"
+                                                                >
+                                                                    <option value="">Full Bootcamp Scope</option>
+                                                                    {days.map(d => (
+                                                                        <option key={d._id} value={d._id}>Timeline: Day {d.dayNumber}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+
+                                                            <div className="space-y-2.5">
+                                                                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-1">Granularity</label>
+                                                                <select
+                                                                    value={exportFilters.sessionId}
+                                                                    onChange={(e) => setExportFilters({ ...exportFilters, sessionId: e.target.value })}
+                                                                    className="w-full px-6 py-5 rounded-[1.25rem] bg-[#0d0d0d] border border-white/10 text-white text-sm font-medium focus:outline-none focus:border-orange-500/50 focus:ring-4 focus:ring-orange-500/5 transition-all appearance-none cursor-pointer"
+                                                                >
+                                                                    <option value="">All Assessment Modules</option>
+                                                                    {sessions
+                                                                        .filter(s => s.title.toLowerCase().includes('assessment'))
+                                                                        .filter(s => !exportFilters.dayId || s.dayId?._id === exportFilters.dayId || s.dayId === exportFilters.dayId)
+                                                                        .map(s => (
+                                                                            <option key={s._id} value={s._id}>{s.title}</option>
+                                                                        ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={exportAssessments}
+                                                            className="w-full py-5 rounded-[1.25rem] bg-orange-600 hover:bg-orange-500 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                                                        >
+                                                            <Download className="w-5 h-5" /> Export Assessment Data
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'assessments' && (
+                                        <div className="space-y-8">
+                                            {!selectedAssessmentId ? (
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                                    <div className="space-y-2">
+                                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-[10px] font-black uppercase tracking-widest border border-orange-500/20">
+                                                            Monitoring Removed
+                                                        </div>
+                                                        <h2 className="text-4xl font-bold text-white tracking-tight">Assessment Monitoring Disabled</h2>
+                                                        <p className="text-zinc-500 font-medium">This section has been temporarily disabled.</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-6">
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                                        <div className="flex items-center gap-4">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedAssessmentId(null);
+                                                                    setAssessmentDetails(null);
+                                                                }}
+                                                                className="size-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
+                                                            >
+                                                                <ChevronLeft className="w-6 h-6" />
+                                                            </button>
+                                                            <div>
+                                                                <h2 className="text-2xl font-bold text-white tracking-tight">
+                                                                    {assessmentDetails?.session?.title || 'Assessment Details'}
+                                                                </h2>
+                                                                <div className="flex items-center gap-3 mt-1">
+                                                                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Day {assessmentDetails?.session?.dayNumber}</span>
+                                                                    <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                                                                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                                        Live Response Tracker
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="relative group">
+                                                                <DebouncedInput
+                                                                    type="text"
+                                                                    placeholder="Search students..."
+                                                                    value={searchTerm}
+                                                                    onChange={setSearchTerm}
+                                                                    className="w-full md:w-64 px-5 py-3 pl-11 rounded-xl bg-[#111111] border border-white/5 text-white text-sm focus:outline-none focus:border-orange-500/50 transition-all"
+                                                                />
+                                                                <Users className="w-4 h-4 text-zinc-600 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-orange-400 transition-colors" />
+                                                            </div>
+                                                            <button
+                                                                onClick={() => fetchAssessmentDetails(selectedAssessmentId, searchTerm)}
+                                                                className="px-5 py-3 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] text-white text-sm font-bold flex items-center gap-2 transition-all"
+                                                            >
+                                                                <RefreshCw className={cn("w-4 h-4", assessmentDetailsLoading && "animate-spin")} />
+                                                                Sync
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/[0.02] backdrop-blur-sm">
+                                                        <div className="overflow-x-auto">
+                                                            <table className="w-full text-left border-collapse">
+                                                                <thead>
+                                                                    <tr className="bg-white/[0.03] border-b border-white/10">
+                                                                        <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-widest border-r border-white/5">Student Info</th>
+                                                                        <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-widest border-r border-white/5 text-center">Status</th>
+                                                                        <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center border-r border-white/5 last:border-0">Proof of Work</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-white/5">
+                                                                    {assessmentDetailsLoading && !assessmentDetails ? (
+                                                                        <tr>
+                                                                            <td colSpan={7} className="p-20 text-center">
+                                                                                <div className="flex flex-col items-center gap-4">
+                                                                                    <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                                                                                    <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Synchronizing responses...</p>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    ) : assessmentDetails?.students.length === 0 ? (
+                                                                        <tr>
+                                                                            <td colSpan={7} className="p-20 text-center text-zinc-500">
+                                                                                No matching students found.
+                                                                            </td>
+                                                                        </tr>
+                                                                    ) : (
+                                                                        assessmentDetails?.students.map(student => (
+                                                                            <tr key={student.registerNumber} className="hover:bg-white/[0.01] transition-colors group/row">
+                                                                                <td className="p-5 border-r border-white/5">
+                                                                                    <div className="text-sm font-bold text-white group-hover/row:text-orange-400 transition-colors">{student.name}</div>
+                                                                                    <div className="text-[10px] text-zinc-500 font-mono mt-0.5">{student.registerNumber}</div>
+                                                                                </td>
+                                                                                <td className="p-5 border-r border-white/5 text-center">
+                                                                                    <div className={cn(
+                                                                                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-tighter uppercase",
+                                                                                        student.totalSubmitted > 0
+                                                                                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                                                                            : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                                                                    )}>
+                                                                                        <div className={cn("size-1.5 rounded-full", student.totalSubmitted > 0 ? "bg-emerald-500" : "bg-amber-500")} />
+                                                                                        {student.totalSubmitted > 0 ? "Completed" : "Pending"}
+                                                                                    </div>
+                                                                                </td>
+                                                                                {student.responses.map((res, i) => (
+                                                                                    <td key={i} className="p-5 border-r border-white/5 last:border-0 text-center">
+                                                                                        {res.response ? (
+                                                                                            <a
+                                                                                                href={res.response}
+                                                                                                target="_blank"
+                                                                                                rel="noopener noreferrer"
+                                                                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-emerald-500 hover:text-white transition-all text-xs font-bold text-zinc-400 border border-white/10 hover:border-emerald-500 group/btn"
+                                                                                                title={`Submitted: ${new Date(res.submittedAt).toLocaleTimeString()}`}
+                                                                                            >
+                                                                                                <LinkIcon className="w-3.5 h-3.5 group-hover/btn:rotate-45 transition-transform" />
+                                                                                                View Proof
+                                                                                            </a>
+                                                                                        ) : (
+                                                                                            <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider">--</span>
+                                                                                        )}
+                                                                                    </td>
+                                                                                ))}
+                                                                            </tr>
+                                                                        ))
+                                                                    )}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -1269,15 +1588,17 @@ function AdminDashboard() {
                                                         </div>
                                                     ))}
                                             </div>
+
+                                            {/* Live Certificate Tracking Removed */}
                                         </div>
                                     )}
                                 </motion.div>
-                            </AnimatePresence>
-                        </div>
-                    </div>
-                </main>
-            </div>
-        </div>
+                            </AnimatePresence >
+                        </div >
+                    </div >
+                </main >
+            </div >
+        </div >
     );
 }
 

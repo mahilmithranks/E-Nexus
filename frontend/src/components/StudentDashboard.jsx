@@ -163,6 +163,11 @@ function StudentDashboard() {
             return;
         }
 
+        if (assignment.type === 'certificate' || assignment.title === 'Certificate') {
+            const confirmed = window.confirm("Are you sure you want to submit? This certificate link will be FINAL and cannot be edited afterward.");
+            if (!confirmed) return;
+        }
+
         try {
             const formData = new FormData();
             formData.append('sessionId', session._id);
@@ -250,14 +255,12 @@ function StudentDashboard() {
                 <header className="h-16 sm:h-20 border-b border-white/40 bg-white/60 backdrop-blur-xl sticky top-0 z-50 px-3 sm:px-6 md:px-10 flex items-center justify-between shadow-sm supports-[backdrop-filter]:bg-white/60">
                     <div className="flex items-center gap-2 sm:gap-4 md:gap-6 overflow-hidden min-w-0">
                         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                            <img src="/univ-logo.png" alt="University Logo" className="h-8 sm:h-10 md:h-12 w-auto object-contain shrink-0" />
-                            <span className="text-zinc-400 font-light text-base sm:text-xl hidden xs:inline">×</span>
                             <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-10 sm:h-12 md:h-16 w-auto object-contain shrink-0" />
 
                             <div className="h-8 sm:h-10 w-px bg-zinc-200/50 mx-1 sm:mx-2 hidden md:block" />
 
                             <div className="hidden md:block">
-                                <span className="text-sm sm:text-base md:text-lg font-bold text-zinc-900 tracking-tight block leading-none">Workshop Console</span>
+                                <span className="text-sm sm:text-base md:text-lg font-bold text-zinc-900 tracking-tight block leading-none">E-Nexus <span className="text-[#f05423]">Buildmode 2026 Bootcamp</span></span>
                                 <span className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1 block">Live Learning Environment</span>
                             </div>
                         </div>
@@ -399,7 +402,7 @@ function StudentDashboard() {
 
                         {/* Workshop Rules Section */}
                         <div className="space-y-4 px-4">
-                            <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] mb-4">Workshop Rules</h3>
+                            <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] mb-4">Bootcamp Rules</h3>
                             <div className="space-y-3">
                                 {[
                                     { text: "Professional Conduct", color: "text-indigo-400" },
@@ -463,7 +466,11 @@ function StudentDashboard() {
                                                             "text-3xl font-black tracking-tighter leading-none",
                                                             isActive ? "text-white" : "text-zinc-900 group-hover/card:text-zinc-700"
                                                         )}>
-                                                            {String(day.dayNumber).padStart(2, '0')}
+                                                            {day.title.toLowerCase().includes('certificate') ? (
+                                                                <Upload className="w-8 h-8" />
+                                                            ) : (
+                                                                String(day.dayNumber).padStart(2, '0')
+                                                            )}
                                                         </span>
                                                         {isLocked ? (
                                                             <Lock className="w-4 h-4 text-zinc-300" />
@@ -575,6 +582,31 @@ function StudentDashboard() {
                                                                 <p className="text-zinc-500 text-sm font-medium line-clamp-1 max-w-sm">{session.description}</p>
                                                             </div>
 
+                                                            {/* Infosys Assessment Link */}
+                                                            {session.title === "Infosys Certified Course" && (
+                                                                <div className="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-3">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div>
+                                                                            <h4 className="text-sm font-bold text-indigo-900">Course Assessment</h4>
+                                                                            <p className="text-[10px] text-indigo-600 font-medium mt-0.5">Complete the assessment form before uploading your certificate.</p>
+                                                                        </div>
+                                                                        <a
+                                                                            href="https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors shadow-sm"
+                                                                        >
+                                                                            Open Form
+                                                                            <ExternalLink className="w-3 h-3" />
+                                                                        </a>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-amber-600 text-[10px] font-bold bg-white/50 px-2 py-1.5 rounded-md border border-amber-100 w-fit">
+                                                                        <AlertCircle className="w-3 h-3" />
+                                                                        WARNING: Access allowed only with registered college mail ID.
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
                                                             {/* Certificate Upload Section - ONLY for Infosys Certified Course */}
                                                             {session.title === "Infosys Certified Course" && session.isCertificateUploadOpen && (
                                                                 <div className="mt-6 pt-6 border-t border-zinc-100/50 space-y-4">
@@ -585,7 +617,7 @@ function StudentDashboard() {
 
                                                                     {session.assignmentsSubmitted?.includes('Certificate') ? (
                                                                         <div className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10 backdrop-blur-sm">
-                                                                            <div className="flex items-center gap-3 mb-2">
+                                                                            <div className="flex items-center gap-3 mb-3">
                                                                                 <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shadow-sm ring-1 ring-emerald-500/20">
                                                                                     <CheckCircle className="w-4 h-4" />
                                                                                 </div>
@@ -597,9 +629,10 @@ function StudentDashboard() {
                                                                                         Your certificate Drive link has been recorded.
                                                                                     </p>
                                                                                 </div>
+
                                                                             </div>
                                                                             <p className="text-[10px] text-zinc-500 mt-2 font-medium border-t border-emerald-500/10 pt-2">
-                                                                                * If you provided the wrong link, please contact the admin immediately to reset your submission.
+                                                                                * Note: Your certificate link can be updated anytime before the deadline.
                                                                             </p>
                                                                         </div>
                                                                     ) : (
@@ -616,7 +649,7 @@ function StudentDashboard() {
                                                                                     />
                                                                                 </div>
                                                                                 <button
-                                                                                    onClick={() => handleAssignmentSubmit(session, { title: 'Certificate', type: 'link' })}
+                                                                                    onClick={() => handleAssignmentSubmit(session, { title: 'Certificate', type: 'certificate' })}
                                                                                     disabled={!assignmentData[`${session._id}-Certificate`]}
                                                                                     className="w-full sm:w-auto px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
                                                                                 >
@@ -628,8 +661,8 @@ function StudentDashboard() {
                                                                                 <span className="text-[#f05423] font-black">!</span>
                                                                                 <span>Ensure your Google Drive link is set to <span className="text-emerald-600 font-bold">"Anyone with the link"</span></span>
                                                                             </p>
-                                                                            <p className="text-[9px] text-red-400 mt-1 font-bold italic">
-                                                                                * Note: You can only submit once.
+                                                                            <p className="text-[9px] text-red-500 mt-1 font-bold italic">
+                                                                                * Info: You can update your certificate link multiple times.
                                                                             </p>
                                                                         </div>
                                                                     )}
@@ -638,7 +671,73 @@ function StudentDashboard() {
                                                         </div>
 
                                                         <div className="shrink-0">
-                                                            {session.title === "Infosys Certified Course" ? (
+                                                            {session.title.toLowerCase().includes('assessment') ? (
+                                                                <div className="flex flex-col items-end gap-3">
+                                                                    {!session.hasAttendance ? (
+                                                                        session.attendanceStatus === 'closed' ? (
+                                                                            <div className="flex flex-col items-end gap-2 text-right">
+                                                                                <div className="px-6 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 backdrop-blur-sm">
+                                                                                    <X className="w-3 h-3" />
+                                                                                    Absent
+                                                                                </div>
+                                                                                <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter bg-white/40 px-3 py-1 rounded-lg border border-white/60 backdrop-blur-sm">
+                                                                                    Attendance Window Closed
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <>
+                                                                                <div className="px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 text-[10px] font-bold uppercase tracking-wide flex items-center gap-2 backdrop-blur-sm border-dashed">
+                                                                                    <AlertCircle className="w-3 h-3" />
+                                                                                    Mark attendance to unlock assessment window
+                                                                                </div>
+                                                                                {session.isAttendanceActive ? (
+                                                                                    <button
+                                                                                        onClick={() => openCamera(session)}
+                                                                                        className="px-8 py-3 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-[#f05423]/20 transition-all flex items-center gap-2.5 active:scale-95"
+                                                                                    >
+                                                                                        <Camera className="w-4 h-4" />
+                                                                                        Authenticate
+                                                                                    </button>
+                                                                                ) : (
+                                                                                    <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-400 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm ring-1 ring-white/50">
+                                                                                        <Lock className="w-4 h-4" />
+                                                                                        Attendance Not Started Yet
+                                                                                    </div>
+                                                                                )}
+                                                                            </>
+                                                                        )
+                                                                    ) : (
+                                                                        <div className="flex flex-col items-end gap-3">
+                                                                            <div className="px-6 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
+                                                                                <CheckCircle className="w-4 h-4" />
+                                                                                Attendance Verified
+                                                                            </div>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    if (session.assignmentsSubmitted?.length >= 5) {
+                                                                                        navigate(`/assessment/${session._id}`);
+                                                                                    } else {
+                                                                                        navigate(`/assessment/${session._id}`);
+                                                                                    }
+                                                                                }}
+                                                                                className="px-8 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-700 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-zinc-200/50 transition-all flex items-center gap-2.5 active:scale-95 group"
+                                                                            >
+                                                                                {session.assignmentsSubmitted?.length >= 5 ? (
+                                                                                    <>
+                                                                                        <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                                                                        View Submitted Assessment
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <FileText className="w-4 h-4 group-hover:rotate-12 transition-transform text-[#f05423]" />
+                                                                                        Start Assessment
+                                                                                    </>
+                                                                                )}
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : session.title === "Infosys Certified Course" ? (
                                                                 <>
                                                                     {session.assignmentsSubmitted?.includes('Certificate') ? (
                                                                         <div className="px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
@@ -676,7 +775,7 @@ function StudentDashboard() {
                                                                             <Camera className="w-4 h-4" />
                                                                             Authenticate
                                                                         </button>
-                                                                    ) : session.attendanceStatus === 'closed' && session.attendanceEndTime ? (
+                                                                    ) : (session.attendanceStatus === 'closed' && session.attendanceEndTime && new Date(session.attendanceEndTime) < new Date()) ? (
                                                                         <div className="flex flex-col items-end gap-2">
                                                                             <div className="px-6 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 backdrop-blur-sm">
                                                                                 <X className="w-3 h-3" />
@@ -689,7 +788,7 @@ function StudentDashboard() {
                                                                     ) : (
                                                                         <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-600 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm">
                                                                             <Lock className="w-4 h-4" />
-                                                                            Awaiting Startup
+                                                                            Attendance Not Started
                                                                         </div>
                                                                     )}
                                                                 </>
@@ -709,9 +808,9 @@ function StudentDashboard() {
                 </main >
 
                 {/* MOBILE NAV PLACEHOLDER / FOOTER */}
-                < footer className="py-10 border-t border-zinc-200/50 text-center bg-white/50 backdrop-blur-sm" >
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.5em]">Workshop Management System</p>
-                </footer >
+                <footer className="py-10 border-t border-zinc-200/50 text-center bg-white/50 backdrop-blur-sm">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Buildmode 2026 Bootcamp developed by E-nexus tech member.</p>
+                </footer>
             </div >
 
             {/* Camera Overlay */}

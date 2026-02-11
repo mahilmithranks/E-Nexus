@@ -325,6 +325,7 @@ export const stopAttendance = async (req, res) => {
         }
 
         session.attendanceOpen = false;
+        session.attendanceEndTime = new Date();
         await session.save();
 
         // Clear caches
@@ -509,6 +510,47 @@ export const getProgress = async (req, res) => {
     }
 };
 
+// @desc    Get assessment submission stats
+// @route   GET /api/admin/assessment-stats
+// @access  Private/Admin
+export const getAssessmentStats = async (req, res) => {
+    try {
+        const assessmentSessions = await Session.find({
+            title: { $regex: /assessment/i }
+        }).populate('dayId').lean();
+
+        // Filter out Day 1 sessions and sessions with no dayId
+        const filteredSessions = assessmentSessions.filter(s => s.dayId && s.dayId.dayNumber !== 1);
+
+        if (filteredSessions.length === 0) {
+            return res.json([]);
+        }
+
+        const totalStudents = await User.countDocuments({ role: 'student' });
+
+        // Count unique students who submitted something for each session
+        const stats = await Promise.all(filteredSessions.map(async (session) => {
+            const submittedCount = await AssignmentSubmission.distinct('registerNumber', {
+                sessionId: session._id
+            });
+
+            return {
+                sessionId: session._id,
+                title: session.title,
+                dayNumber: session.dayId?.dayNumber || 0,
+                totalStudents,
+                submittedCount: submittedCount.length,
+                percentage: totalStudents > 0 ? (submittedCount.length / totalStudents * 100).toFixed(1) : 0
+            };
+        }));
+
+        res.json(stats);
+    } catch (error) {
+        console.error('Get assessment stats error:', error);
+        res.status(500).json({ message: 'Server error fetching assessment stats' });
+    }
+};
+
 // @desc    Export attendance to Excel
 // @route   GET /api/admin/export/attendance
 // @access  Private/Admin
@@ -575,7 +617,7 @@ export const exportAttendance = async (req, res) => {
         }
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=${filename}_${Date.now()}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}_${Date.now()}.xlsx"`);
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
@@ -666,7 +708,7 @@ export const exportAssignments = async (req, res) => {
             filename = `assignments_day_${sessions[0].dayId?.dayNumber || 'filtered'}`;
         }
 
-        res.setHeader('Content-Disposition', `attachment; filename=${filename}_${Date.now()}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}_${Date.now()}.xlsx"`);
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
@@ -675,6 +717,9 @@ export const exportAssignments = async (req, res) => {
     }
 };
 
+// @desc    Export certificates to Excel
+// @route   GET /api/admin/export/certificates
+// @access  Private/Admin
 // @desc    Export certificates to Excel
 // @route   GET /api/admin/export/certificates
 // @access  Private/Admin
@@ -690,20 +735,26 @@ export const exportCertificates = async (req, res) => {
             sessionQuery._id = sessionId;
         } else if (dayId) {
             sessionQuery.dayId = dayId;
+        } else {
+            // Default: Auto-detect certificate sessions (Infosys, etc.)
+            sessionQuery.$or = [
+                { title: { $regex: /certificate/i } },
+                { title: { $regex: /infosys/i } },
+                { isCertificateUploadOpen: true }
+            ];
         }
 
-        // Only include sessions where certificate upload IS or WAS open (or just all sessions to show missing ones too)
-        // Let's include all sessions that match the filter for completeness
         const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
 
         if (sessions.length === 0) {
-            return res.status(404).json({ message: 'No sessions found' });
+            return res.status(404).json({ message: 'No certificate sessions found' });
         }
 
         const sessionIds = sessions.map(s => s._id);
+
+        // Find submissions
         const allCertificates = await AssignmentSubmission.find({
-            sessionId: { $in: sessionIds },
-            assignmentType: 'certificate'
+            sessionId: { $in: sessionIds }
         }).lean();
 
         const certMap = new Map();
@@ -725,27 +776,18 @@ export const exportCertificates = async (req, res) => {
 
         for (const student of students) {
             for (const session of sessions) {
-                // Check if this session even offers certificate upload (optional check, but good for clarity)
-                // If the session has isCertificateUploadOpen=true OR if there are any submissions for it, we include it.
-                // Or simply included all sessions if the admin filtered for them.
-                // To avoid clutter, let's include if session.isCertificateUploadOpen is true OR there is a submission.
-                // Actually, if a session never had it open, it's noise.
-                // But simplified: checking if 'isCertificateUploadOpen' might be false NOW but was true earlier.
-                // So we'll list for all sessions in the filter.
-
                 const cert = certMap.get(`${student.registerNumber}|${session._id.toString()}`);
 
-                // Construct full URL for the certificate if it exists
                 let fileLink = '-';
                 let fileType = '-';
 
                 if (cert) {
                     if (cert.assignmentType === 'link' || cert.assignmentType === 'certificate') {
                         fileLink = cert.response || (cert.files && cert.files.length > 0 ? cert.files[0] : '-');
-                        fileType = cert.assignmentType === 'link' ? 'LINK' : (fileLink.split('.').pop() || 'FILE');
+                        fileType = cert.assignmentType === 'link' ? 'LINK' : 'FILE';
                     } else if (cert.files && cert.files.length > 0) {
                         fileLink = cert.files[0];
-                        fileType = fileLink.split('.').pop();
+                        fileType = 'FILE';
                     }
                 }
 
@@ -767,15 +809,22 @@ export const exportCertificates = async (req, res) => {
         worksheet.getRow(1).fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FFD1FAE5' } // Light emerald/green
+            fgColor: { argb: 'FFD1FAE5' }
         };
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        let filename = 'certificates_report';
-        if (sessionId) filename = `certificates_${sessions[0].title.replace(/\s+/g, '_')}`;
-        else if (dayId) filename = `certificates_day_${sessions[0].dayId?.dayNumber || 'filtered'}`;
 
-        res.setHeader('Content-Disposition', `attachment; filename=${filename}_${Date.now()}.xlsx`);
+        // Robust filename generation
+        let filename = 'certificates_report';
+        if (sessionId && sessions.length > 0) {
+            filename = `certificates_${sessions[0].title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+        } else if (dayId && sessions.length > 0) {
+            filename = `certificates_day_${sessions[0].dayId?.dayNumber || 'filtered'}`;
+        } else {
+            filename = 'certificates_infosys_all';
+        }
+
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}_${Date.now()}.xlsx"`);
         await workbook.xlsx.write(res);
         res.end();
 
@@ -785,6 +834,9 @@ export const exportCertificates = async (req, res) => {
     }
 };
 
+// @desc    Toggle certificate upload window
+// @route   PUT /api/admin/sessions/:id/certificate-upload
+// @access  Private/Admin
 // @desc    Toggle certificate upload window
 // @route   PUT /api/admin/sessions/:id/certificate-upload
 // @access  Private/Admin
@@ -811,6 +863,257 @@ export const toggleCertificateUpload = async (req, res) => {
     } catch (error) {
         console.error('Toggle certificate upload error:', error);
         res.status(500).json({ message: 'Server error updating certificate upload status' });
+    }
+};
+
+// @desc    Export assessments to Excel
+// @route   GET /api/admin/export/assessments
+// @access  Private/Admin
+// @desc    Export assessments to Excel
+// @route   GET /api/admin/export/assessments
+// @access  Private/Admin
+export const exportAssessments = async (req, res) => {
+    try {
+        const { dayId, sessionId } = req.query;
+
+        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
+
+        // Filter sessions that are assessments
+        let sessionQuery = {
+            title: { $regex: /assessment/i }
+        };
+
+        if (sessionId) {
+            sessionQuery._id = sessionId;
+        } else if (dayId) {
+            sessionQuery.dayId = dayId;
+        }
+
+        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+
+        if (sessions.length === 0) {
+            // Try to find ANY assessment if strict filter failed
+            if (sessionId || dayId) {
+                return res.status(404).json({ message: 'No assessment sessions found for this filter' });
+            }
+        }
+
+        const sessionIds = sessions.map(s => s._id);
+        const allSubmissions = await AssignmentSubmission.find({
+            sessionId: { $in: sessionIds }
+        }).lean();
+
+        const subMap = new Map();
+        allSubmissions.forEach(s => {
+            // Store by RegNum|SessionId|Title to handle multiple q's if needed, 
+            // but effectively we just need the main proof for the new format.
+            const key = `${s.registerNumber}|${s.sessionId.toString()}|${s.assignmentTitle}`;
+            subMap.set(key, s);
+            // Also map by just RegNum|SessionId for easier lookup if title varies
+            const fallbackKey = `${s.registerNumber}|${s.sessionId.toString()}`;
+            if (!subMap.has(fallbackKey)) subMap.set(fallbackKey, s);
+        });
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Assessment Submissions');
+
+        worksheet.columns = [
+            { header: 'Reg Number', key: 'reg', width: 15 },
+            { header: 'Student Name', key: 'name', width: 25 },
+            { header: 'Day', key: 'day', width: 10 },
+            { header: 'Session', key: 'session', width: 30 },
+            { header: 'Assessment Link / Proof', key: 'proof', width: 50 },
+            { header: 'Submitted At', key: 'submittedAt', width: 20 },
+            { header: 'Status', key: 'status', width: 15 }
+        ];
+
+        for (const student of students) {
+            for (const session of sessions) {
+                // Priority: 'Assessment Proof' -> 'Question 01' -> Any submission for this session
+                let submission = subMap.get(`${student.registerNumber}|${session._id.toString()}|Assessment Proof`);
+
+                if (!submission) {
+                    submission = subMap.get(`${student.registerNumber}|${session._id.toString()}|Question 01`);
+                }
+
+                if (!submission) {
+                    // Fallback: any submission for this user+session
+                    submission = subMap.get(`${student.registerNumber}|${session._id.toString()}`);
+                }
+
+                worksheet.addRow({
+                    reg: student.registerNumber,
+                    name: student.name,
+                    day: session.dayId?.dayNumber || '-',
+                    session: session.title,
+                    proof: submission ? (submission.response || (submission.files?.[0] || '-')) : '-',
+                    submittedAt: submission ? new Date(submission.submittedAt).toLocaleString() : '-',
+                    status: submission ? 'SUBMITTED' : 'PENDING'
+                });
+            }
+        }
+
+        // Apply formatting
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD1FAE5' } // Custom color
+        };
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        let filename = 'assessment_report';
+        if (sessions.length > 0) {
+            if (sessionId) filename = `assessment_${sessions[0].title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+            else if (dayId) filename = `assessment_day_${sessions[0].dayId?.dayNumber || 'filtered'}`;
+        }
+
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}_${Date.now()}.xlsx"`);
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (error) {
+        console.error('Export assessment error:', error);
+        res.status(500).json({ message: 'Export failed' });
+    }
+};
+
+// @desc    Get detailed assessment submissions for a session (Real-time tracking)
+// @route   GET /api/admin/assessment-details/:sessionId
+// @access  Private/Admin
+export const getCertificateSubmissions = async (req, res) => {
+    try {
+        const { search = '' } = req.query;
+
+        // Find the certificate session
+        const session = await Session.findOne({
+            $or: [
+                { title: /certificate/i },
+                { title: /Infosys Certified Course/i }
+            ]
+        });
+
+        if (!session) {
+            return res.status(404).json({ message: 'Certificate session not found' });
+        }
+
+        const studentQuery = { role: 'student' };
+        if (search) {
+            studentQuery.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { registerNumber: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const students = await User.find(studentQuery).select('-password').sort({ registerNumber: 1 });
+
+        // Find all submissions for certificate (by title or type)
+        const submissions = await AssignmentSubmission.find({
+            $or: [
+                { sessionId: session._id },
+                { assignmentType: 'certificate' },
+                { assignmentTitle: /certificate/i }
+            ]
+        }).lean();
+
+        const subMap = new Map();
+        submissions.forEach(s => {
+            // Keep the most recent if multiple (though findOneAndUpdate should prevent multiples)
+            subMap.set(s.registerNumber, s);
+        });
+
+        const data = students.map(student => ({
+            name: student.name,
+            registerNumber: student.registerNumber,
+            collegeEmail: student.collegeEmail,
+            hasSubmitted: subMap.has(student.registerNumber),
+            submission: subMap.get(student.registerNumber) || null
+        }));
+
+        res.json({
+            session: {
+                _id: session._id,
+                title: session.title,
+                isUploadOpen: session.isCertificateUploadOpen
+            },
+            students: data,
+            stats: {
+                total: students.length,
+                submitted: submissions.length,
+                pending: students.length - submissions.length
+            }
+        });
+
+    } catch (error) {
+        console.error('Get certificate tracking error:', error);
+        res.status(500).json({ message: 'Server error fetching certificate details' });
+    }
+};
+
+export const getDetailedAssessmentSubmissions = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const { search = '' } = req.query;
+
+        const session = await Session.findById(sessionId).populate('dayId');
+        if (!session) {
+            // Log for debugging 404
+            console.warn(`[adminController] Detailed Assessment: Session ${sessionId} NOT FOUND`);
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        const studentQuery = { role: 'student' };
+        if (search) {
+            studentQuery.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { registerNumber: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const students = await User.find(studentQuery).select('-password').sort({ registerNumber: 1 });
+        const submissions = await AssignmentSubmission.find({ sessionId }).lean();
+
+        const subMap = new Map();
+        submissions.forEach(s => {
+            const key = `${s.registerNumber}|${s.assignmentTitle}`;
+            subMap.set(key, s);
+        });
+
+        const questions = ['Assessment Proof'];
+
+        const data = students.map(student => {
+            const row = {
+                name: student.name,
+                registerNumber: student.registerNumber,
+                responses: questions.map(q => {
+                    // Check for new format first, then legacy Q1 if not found
+                    let sub = subMap.get(`${student.registerNumber}|${q}`);
+                    if (!sub && q === 'Assessment Proof') {
+                        sub = subMap.get(`${student.registerNumber}|Question 01`);
+                    }
+
+                    return {
+                        title: q,
+                        response: sub ? sub.response : null,
+                        submittedAt: sub ? sub.submittedAt : null
+                    };
+                }),
+                totalSubmitted: subMap.has(`${student.registerNumber}|Assessment Proof`) || subMap.has(`${student.registerNumber}|Question 01`) ? 1 : 0
+            };
+            return row;
+        });
+
+        res.json({
+            session: {
+                title: session.title,
+                dayNumber: session.dayId?.dayNumber
+            },
+            students: data
+        });
+
+    } catch (error) {
+        console.error('Get detailed assessment submissions error:', error);
+        res.status(500).json({ message: 'Server error fetching assessment details' });
     }
 };
 

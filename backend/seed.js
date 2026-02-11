@@ -10,6 +10,14 @@ dotenv.config();
 
 const studentsData = [
     {
+        "name": "Test User",
+        "registerNumber": "9988776655",
+        "email": "9988776655@klu.ac.in",
+        "department": "CSE",
+        "yearOfStudy": "2",
+        "role": "student"
+    },
+    {
         "name": "Dasaraiahgari Bhavya",
         "registerNumber": "9823005001",
         "email": "9823005001@klu.ac.in",
@@ -1274,7 +1282,7 @@ const studentsData = [
         "role": "student"
     },
     {
-        "name": "Unregistered Student",
+        "name": "Raparla Mahitha",
         "registerNumber": "99230040850",
         "email": "99230040850@klu.ac.in",
         "department": "CSE",

@@ -2,11 +2,13 @@ import axios from 'axios';
 
 // Helper to handle missing protocol in VITE_API_URL
 const getBaseUrl = () => {
-    let url = import.meta.env.VITE_API_URL;
-    if (!url) return '/api';
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) return url;
-    return `https://${url}`;
+    const url = import.meta.env.VITE_API_URL;
+    if (url) {
+        if (url.startsWith('http')) return url;
+        return `https://${url}`;
+    }
+    // Default to relative /api for local dev (Vite proxy) and Vercel monorepo setups
+    return '/api';
 };
 
 const api = axios.create({

@@ -24,7 +24,7 @@ export const login = async (req, res) => {
         console.log(`[Login] Attempt for: ${username} (normalized: ${normalizedUsername})`);
 
         // Find user by registerNumber (always stored uppercase) or email (lowercase)
-        const user = await User.findOne({
+        let user = await User.findOne({
             $or: [
                 { registerNumber: normalizedUsername.toUpperCase() },
                 { email: normalizedUsername }
@@ -32,12 +32,23 @@ export const login = async (req, res) => {
         });
 
         if (!user) {
-            console.log(`[Login] User not found: ${normalizedUsername}`);
-            return res.status(401).json({ message: 'Invalid credentials' });
+            console.log(`[Login] Extract match failed for: ${normalizedUsername}. Trying regex fallback...`);
+            // Fallback: Case-insensitive regex search
+            user = await User.findOne({
+                $or: [
+                    { registerNumber: { $regex: `^${normalizedUsername}$`, $options: 'i' } },
+                    { email: { $regex: `^${normalizedUsername}$`, $options: 'i' } }
+                ]
+            });
+
+            if (!user) {
+                console.log(`[Login] User not found (even with regex): ${normalizedUsername}`);
+                return res.status(401).json({ message: 'Invalid credentials' });
+            }
+            console.log(`[Login] User found via fallback: ${user.registerNumber}`);
         }
 
         console.log(`[Login] Found user: ${user.registerNumber} (${user.role})`);
-
 
         // Check password
         const isMatch = await user.comparePassword(password);
@@ -45,7 +56,6 @@ export const login = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-
 
         // Generate token
         const token = generateToken(user._id);

@@ -12,10 +12,14 @@ import {
     overrideAttendance,
     getProgress,
     exportAssignments,
+    exportAssessments,
     exportCertificates,
     exportAttendance,
     runAutoCloseJob,
     getDashboardStats,
+    getAssessmentStats,
+    getDetailedAssessmentSubmissions,
+    getCertificateSubmissions,
     toggleCertificateUpload
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
@@ -52,10 +56,14 @@ router.put('/sessions/:id/certificate-upload', toggleCertificateUpload);
 
 // Progress tracking
 router.get('/progress', cacheMiddleware('admin-progress', 60000), getProgress); // Cache for 60s (expensive query)
+router.get('/assessment-stats', getAssessmentStats);
+router.get('/assessment-details/:sessionId', getDetailedAssessmentSubmissions);
+router.get('/certificate-tracking', getCertificateSubmissions);
 
 // Excel exports (no cache - always fresh data)
 router.get('/export/attendance', exportAttendance);
 router.get('/export/assignments', exportAssignments);
+router.get('/export/assessments', exportAssessments);
 router.get('/export/certificates', exportCertificates);
 
 export default router;

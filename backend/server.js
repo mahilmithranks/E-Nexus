@@ -29,7 +29,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Trust proxy for accurate IP detection (needed for rate limiting behind NAT/Vercel)
-app.set('trust proxy', true);
+app.set('trust proxy', process.env.VERCEL ? 1 : false);
 
 // Middleware
 // Explicit CORS headers for Vercel serverless compatibility
@@ -159,9 +159,9 @@ const initializeAdmin = async () => {
 
         if (!adminExists) {
             await User.create({
-                registerNumber: process.env.ADMIN_REGISTER_NUMBER || '99240041375',
-                email: process.env.ADMIN_EMAIL || '99240041375@klu.ac.in',
-                password: process.env.ADMIN_PASSWORD || '19012007',
+                registerNumber: process.env.ADMIN_REGISTER_NUMBER || '992300817',
+                email: process.env.ADMIN_EMAIL || '992300817@klu.ac.in',
+                password: process.env.ADMIN_PASSWORD || '9943517648',
                 name: 'System Administrator',
                 role: 'admin'
             });

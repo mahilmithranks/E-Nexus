@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import AdminDashboard from './components/AdminDashboard';
 import StudentDashboard from './components/StudentDashboard';
+import AssessmentPage from './components/AssessmentPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import { isAuthenticated, isAdmin, isStudent } from './utils/auth';
@@ -34,6 +35,15 @@ function App() {
                     element={
                         <ProtectedRoute requiredRole="student">
                             <StudentDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/assessment/:sessionId"
+                    element={
+                        <ProtectedRoute requiredRole="student">
+                            <AssessmentPage />
                         </ProtectedRoute>
                     }
                 />

@@ -64,7 +64,7 @@ function StudentDashboard() {
             }
         };
 
-        const interval = setInterval(checkSync, 3000);
+        const interval = setInterval(checkSync, 60000); // Check every minute, session-specific refreshes handle real-time
 
         return () => clearInterval(interval);
     }, [selectedDay, isRefreshing, lastSyncTime]);
@@ -637,6 +637,35 @@ function StudentDashboard() {
                                                                         </div>
                                                                     ) : (
                                                                         <div className="bg-white/40 p-4 rounded-xl border border-white/60 backdrop-blur-sm shadow-sm">
+                                                                            {/* Infosys Direct Link Row */}
+                                                                            <div className="mb-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className="size-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                                                                                        <ExternalLink className="w-5 h-5" />
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <p className="text-xs font-bold text-indigo-900">Earn your Infosys Certificate</p>
+                                                                                        <p className="text-[10px] text-indigo-600 font-medium">Complete the course on Springboard first</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <a
+                                                                                    href="https://infyspringboard.onwingspan.com/web/en/app/toc/lex_auth_014449374745780224228/overview"
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="px-6 py-2 bg-white border border-indigo-200 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-indigo-50 transition-all shadow-sm flex items-center gap-2"
+                                                                                >
+                                                                                    Access Infosys Portal
+                                                                                </a>
+                                                                            </div>
+
+                                                                            {/* Deadline Banner */}
+                                                                            <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3">
+                                                                                <Clock className="w-4 h-4 text-red-500" />
+                                                                                <p className="text-[10px] sm:text-xs font-black text-red-600 uppercase tracking-widest">
+                                                                                    Global Submission Deadline: February 13, 2026
+                                                                                </p>
+                                                                            </div>
+
                                                                             <div className="flex flex-col sm:flex-row items-center gap-4">
                                                                                 <div className="relative flex-1 w-full">
                                                                                     <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
@@ -722,10 +751,10 @@ function StudentDashboard() {
                                                                                 }}
                                                                                 className="px-8 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-700 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-zinc-200/50 transition-all flex items-center gap-2.5 active:scale-95 group"
                                                                             >
-                                                                                {session.assignmentsSubmitted?.length >= 5 ? (
+                                                                                {session.assignmentsSubmitted?.some(title => title.toLowerCase().includes('assessment')) ? (
                                                                                     <>
                                                                                         <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                                                                        View Submitted Assessment
+                                                                                        Assessment Completed
                                                                                     </>
                                                                                 ) : (
                                                                                     <>

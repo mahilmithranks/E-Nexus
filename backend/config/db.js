@@ -15,7 +15,7 @@ const connectDB = async () => {
         const options = {
             maxPoolSize: isServerless ? 5 : 100,
             minPoolSize: isServerless ? 1 : 10,
-            serverSelectionTimeoutMS: 5000,
+            serverSelectionTimeoutMS: 30000,
             socketTimeoutMS: 45000,
             connectTimeoutMS: 30000,
             heartbeatFrequencyMS: 10000,

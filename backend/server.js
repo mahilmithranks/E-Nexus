@@ -18,9 +18,6 @@ import syncRoutes from './routes/sync.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { clearCache } from './middleware/cache.js';
 
-// Load environment variables - MOVED TO TOP FOR ES MODULES
-// dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -31,10 +28,6 @@ const app = express();
 app.set('trust proxy', process.env.VERCEL ? 1 : false);
 
 // Middleware
-// Explicit CORS headers for Vercel serverless compatibility
-// Middleware
-// Robust CORS configuration for Vercel/Local with Credentials support
-// Cors configuration
 app.use(cors({
     origin: true, // Allow all origins dynamically
     credentials: true,
@@ -42,16 +35,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
-// Handle preflight requests explicitly if needed (cors middleware usually handles this)
+// Handle preflight requests explicitly
 app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Use helmet for security and headers
-// app.use(helmet({
-//     crossOriginResourcePolicy: { policy: "cross-origin" }
-// }));
 
 // Compress all responses
 app.use(compression());
@@ -77,8 +65,6 @@ app.get('/', (req, res) => {
 });
 
 // Background job to close expired attendance sessions
-// SKIP on Vercel (We use Vercel Cron instead)
-
 if (!process.env.VERCEL) {
     setInterval(async () => {
         // Guard: Only run if DB is connected
@@ -109,9 +95,7 @@ if (!process.env.VERCEL) {
     }, 10 * 1000); // Check every 10 seconds
 }
 
-
 // Create upload directories if they don't exist
-// wrapped in try-catch for Vercel (read-only fs)
 const uploadDirs = [
     'uploads/attendance-photos',
     'uploads/assignments'
@@ -127,11 +111,9 @@ try {
     console.log('Skipping mkdir in read-only environment (Vercel)');
 }
 
-// Serve static files (uploaded photos and assignments)
-// Only works if files exist
-// Serve static files with caching headers for performance
+// Serve static files with caching headers
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-    maxAge: '1d', // Cache uploads for 1 day
+    maxAge: '1d',
     etag: true
 }));
 
@@ -188,12 +170,10 @@ const initializeAdmin = async () => {
     }
 };
 
-// Start the server directly (No clustering for better stability on free tier)
+// Start the server directly
 const startServer = async () => {
     try {
         await connectDB();
-
-        // Initialize admin
         await initializeAdmin();
 
         const PORT = process.env.PORT || 5000;
@@ -208,16 +188,12 @@ const startServer = async () => {
 
 // Start logic based on environment
 if (process.env.VERCEL) {
-    // Vercel Serverless
     (async () => {
         await connectDB();
         await initializeAdmin();
     })();
 } else {
-    // Render / Local / VPS
     startServer();
 }
 
-
 export default app;
-// Server restart trigger

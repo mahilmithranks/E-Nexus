@@ -6,7 +6,13 @@ import Session from './models/Session.js';
 import Attendance from './models/Attendance.js';
 import AssignmentSubmission from './models/AssignmentSubmission.js';
 
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const studentsData = [
     {
@@ -1596,7 +1602,7 @@ const studentsData = [
     {
         "name": "Madhumitha M.",
         "registerNumber": "9922008356",
-        "email": "9922008356@gmail.com",
+        "email": "9922008356@klu.ac.in",
         "department": "IT - D",
         "yearOfStudy": "4",
         "role": "student"

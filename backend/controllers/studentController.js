@@ -82,11 +82,10 @@ export const getSessionsForDay = async (req, res) => {
                     attendanceWindowStatus = 'active';
                 } else if (session.attendanceEndTime && now > new Date(session.attendanceEndTime)) {
                     attendanceWindowStatus = 'closed';
-                } else {
-                    // Default to not_started if not explicitly open and not expired
-                    attendanceWindowStatus = 'not_started';
                 }
 
+                // If marked attendance, it's always 'active' from student perspective (or 'marked')
+                // but let's stick to the window status and let frontend handle 'hasAttendance'
                 const isAttendanceActive = session.attendanceOpen && (
                     !session.attendanceEndTime ||
                     (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
@@ -359,6 +358,7 @@ export const submitAssignment = async (req, res) => {
 
         // Clear admin progress cache
         clearCache('admin-progress');
+        clearCache('student-sessions');
 
         res.status(201).json({
             message: 'Assignment submitted successfully',

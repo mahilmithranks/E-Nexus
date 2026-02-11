@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Backend for Workshop Management System",
+  "engines": {
+    "node": "18.x"
+  },
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

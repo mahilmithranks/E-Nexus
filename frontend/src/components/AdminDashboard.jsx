@@ -1036,7 +1036,7 @@ function AdminDashboard() {
                                                             <tr className="bg-white/[0.03] border-b border-white/10">
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] w-14 text-center border-r border-white/5 sticky left-0 z-20 bg-[#0d0d0d]">#</th>
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] sticky left-14 bg-[#0d0d0d] z-20 min-w-[200px] border-r border-white/5">Student Information</th>
-                                                                {sessions.filter(s => s.title !== "Infosys Certified Course").map(s => (
+                                                                {sessions.filter(s => s.title !== "Infosys Certified Course" && s.type !== 'BREAK' && s.title?.toUpperCase() !== 'LUNCH').map(s => (
                                                                     <th key={s._id} className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] whitespace-nowrap text-center border-r border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
                                                                         <div>{s.title}</div>
                                                                         <div className="text-[10px] text-indigo-400/50 font-bold mt-1 tracking-widest italic">Day {s.dayId?.dayNumber}</div>
@@ -1072,7 +1072,7 @@ function AdminDashboard() {
                                                                         </td>
                                                                         {student.sessions.filter(s => {
                                                                             const fullSession = sessions.find(fs => fs._id === s.sessionId);
-                                                                            return fullSession?.title !== "Infosys Certified Course";
+                                                                            return fullSession?.title !== "Infosys Certified Course" && fullSession?.type !== 'BREAK' && fullSession?.title?.toUpperCase() !== 'LUNCH';
                                                                         }).map(session => {
                                                                             const fullSession = sessions.find(fs => fs._id === session.sessionId);
                                                                             const hasAttendance = session.attendance?.status === 'PRESENT';

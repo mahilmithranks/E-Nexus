@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Memory cache for sync check to handle 200+ concurrent users
 let cachedSync = { lastUpdate: 0, timestamp: 0 };
-const SYNC_CACHE_TTL = 1500; // 1.5 seconds
+const SYNC_CACHE_TTL = 5000; // 5 seconds
 
 // @desc    Quickly check for any state changes
 // @route   GET /api/sync/check

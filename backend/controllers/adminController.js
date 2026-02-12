@@ -568,7 +568,15 @@ export const exportAttendance = async (req, res) => {
             sessionQuery.dayId = dayId;
         }
 
-        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+        let sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+
+        // Filter out Lunch, Break and Infosys sessions from attendance export
+        sessions = sessions.filter(s =>
+            s.title?.toUpperCase() !== 'LUNCH' &&
+            s.type !== 'BREAK' &&
+            s.title !== "Infosys Certified Course"
+        );
+
         const sessionIds = sessions.map(s => s._id);
 
         const allAttendance = await Attendance.find({

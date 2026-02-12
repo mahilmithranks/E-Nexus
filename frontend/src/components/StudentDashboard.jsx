@@ -620,7 +620,7 @@ function StudentDashboard() {
                                                                             <p className="text-[10px] text-indigo-600 font-medium mt-0.5">Complete the assessment form before uploading your certificate.</p>
                                                                         </div>
                                                                         <a
-                                                                            href={(session.title.includes("Day 3") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 3"))
+                                                                            href={(session.title.includes("Day 3") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 3") || days.find(d => d._id === selectedDay)?.dayNumber === 3 || days.find(d => d._id === selectedDay)?.dayNumber === '3')
                                                                                 ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
                                                                                 : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
                                                                             }

@@ -241,15 +241,15 @@ const AssessmentPage = () => {
                                 </div>
 
                                 <a
-                                    href={session?.title?.includes('Day 3')
+                                    href={(session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3')
                                         ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
                                         : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
                                     }
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="block w-full py-4 rounded-xl bg-white border border-indigo-200 text-indigo-600 font-bold text-center hover:bg-indigo-50 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 group/btn"
+                                    className="block w-full py-4 rounded-xl bg-white border border-zinc-200 text-indigo-600 font-bold text-center hover:bg-indigo-50 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 group/btn"
                                 >
-                                    Open {session?.title?.includes('Day 3') ? 'Day 3' : ''} Assessment Form
+                                    Open {(session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3') ? 'Day 3 ' : ''}Assessment Form
                                     <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                 </a>
                             </div>

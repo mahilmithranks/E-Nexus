@@ -769,6 +769,7 @@ export const exportCertificates = async (req, res) => {
             { header: 'Day', key: 'day', width: 10 },
             { header: 'Session', key: 'session', width: 30 },
             { header: 'Status', key: 'status', width: 15 },
+            { header: 'Update Count', key: 'updateCount', width: 15 },
             { header: 'Submitted At', key: 'submittedAt', width: 20 },
             { header: 'Certificate Link', key: 'link', width: 50 },
             { header: 'File Type', key: 'fileType', width: 10 }
@@ -797,6 +798,7 @@ export const exportCertificates = async (req, res) => {
                     day: session.dayId?.dayNumber || '-',
                     session: session.title,
                     status: cert ? 'UPLOADED' : 'PENDING',
+                    updateCount: cert ? (cert.updateCount || 0) : 0,
                     submittedAt: cert ? new Date(cert.submittedAt).toLocaleString() : '-',
                     link: fileLink,
                     fileType: fileType

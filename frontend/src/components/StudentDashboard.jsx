@@ -19,6 +19,7 @@ function StudentDashboard() {
     const [lastSyncTime, setLastSyncTime] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [assignmentData, setAssignmentData] = useState({});
+    const [redoActive, setRedoActive] = useState({}); // Tracking resubmission mode per session
 
     const user = getUser();
     const navigate = useNavigate();
@@ -124,6 +125,26 @@ function StudentDashboard() {
         }
     };
 
+    // Auto-populate assignment data from existing submissions (ONLY for Infosys)
+    useEffect(() => {
+        if (sessions.length > 0) {
+            const newAssignmentData = { ...assignmentData };
+            sessions.forEach(session => {
+                // Restricted to Infosys Certified Course as per user request
+                if (session.title === "Infosys Certified Course" && session.submissionDetails) {
+                    session.submissionDetails.forEach(detail => {
+                        const key = `${session._id}-${detail.title}`;
+                        // Only populate if not already touched by user in current session
+                        if (!newAssignmentData[key]) {
+                            newAssignmentData[key] = detail.response;
+                        }
+                    });
+                }
+            });
+            setAssignmentData(newAssignmentData);
+        }
+    }, [sessions]);
+
     const handleLogout = () => {
         clearAuth();
         window.location.href = '/';
@@ -164,7 +185,7 @@ function StudentDashboard() {
         }
 
         if (assignment.type === 'certificate' || assignment.title === 'Certificate') {
-            const confirmed = window.confirm("Are you sure you want to submit? This certificate link will be FINAL and cannot be edited afterward.");
+            const confirmed = window.confirm("Are you sure you want to submit? You can update this link anytime before the deadline.");
             if (!confirmed) return;
         }
 
@@ -187,6 +208,12 @@ function StudentDashboard() {
 
             toast.success('Assignment submitted successfully!');
             setAssignmentData({ ...assignmentData, [key]: '' });
+
+            // Clear redo mode if this was a certificate update
+            if (assignment.title === 'Certificate' || assignment.type === 'certificate') {
+                setRedoActive({ ...redoActive, [session._id]: false });
+            }
+
             selectDay(selectedDay);
         } catch (error) {
             toast.error('Error submitting assignment: ' + (error.response?.data?.message || error.message));
@@ -480,12 +507,14 @@ function StudentDashboard() {
                                                     </div>
 
                                                     <div className="relative z-10 space-y-1.5 text-left">
-                                                        <p className={cn(
-                                                            "text-[9px] font-black uppercase tracking-widest",
-                                                            isActive ? "text-white/60" : "text-zinc-400"
-                                                        )}>
-                                                            {day.date ? new Date(day.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }) : 'TBA'}
-                                                        </p>
+                                                        {!day.title.toLowerCase().includes('certificate') && (
+                                                            <p className={cn(
+                                                                "text-[9px] font-black uppercase tracking-widest",
+                                                                isActive ? "text-white/60" : "text-zinc-400"
+                                                            )}>
+                                                                {day.date ? new Date(day.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }) : 'TBA'}
+                                                            </p>
+                                                        )}
                                                         <div className={cn(
                                                             "h-px w-full",
                                                             isActive ? "bg-white/20" : "bg-zinc-200/50"
@@ -572,10 +601,11 @@ function StudentDashboard() {
                                                                 {session.startTime && (
                                                                     <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold bg-white/50 px-3 py-1.5 rounded-lg border border-zinc-200/50 backdrop-blur-sm">
                                                                         <Clock className="w-3.5 h-3.5 text-[#f05423]" />
-                                                                        {session.title === "Infosys Certified Course" ? (
-                                                                            new Date(session.startTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                                                                        ) : (
-                                                                            `${new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — ${new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                                        {session.title !== "Infosys Certified Course" && !session.title.toLowerCase().includes('certificate') && (
+                                                                            new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ' + new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                                        )}
+                                                                        {(session.title === "Infosys Certified Course" || session.title.toLowerCase().includes('certificate')) && (
+                                                                            <span className="opacity-80">Flexible Completion until 13th Feb</span>
                                                                         )}
                                                                     </div>
                                                                 )}
@@ -610,33 +640,62 @@ function StudentDashboard() {
                                                             {/* Certificate Upload Section - ONLY for Infosys Certified Course */}
                                                             {session.title === "Infosys Certified Course" && session.isCertificateUploadOpen && (
                                                                 <div className="mt-6 pt-6 border-t border-zinc-100/50 space-y-4">
-                                                                    <div className="flex items-center gap-2 text-zinc-900 font-bold text-sm">
-                                                                        <FileText className="w-4 h-4 text-emerald-500" />
-                                                                        {session.assignmentsSubmitted?.includes('Certificate') ? 'Certificate Status' : 'Upload Certification'}
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2 text-zinc-900 font-bold text-sm">
+                                                                            <FileText className="w-4 h-4 text-emerald-500" />
+                                                                            {session.assignmentsSubmitted?.includes('Certificate') ? 'Certification Status' : 'Upload Certification'}
+                                                                        </div>
                                                                     </div>
 
-                                                                    {session.assignmentsSubmitted?.includes('Certificate') ? (
-                                                                        <div className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10 backdrop-blur-sm">
-                                                                            <div className="flex items-center gap-3 mb-3">
-                                                                                <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shadow-sm ring-1 ring-emerald-500/20">
-                                                                                    <CheckCircle className="w-4 h-4" />
-                                                                                </div>
-                                                                                <div>
-                                                                                    <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
-                                                                                        Successfully Submitted
-                                                                                    </p>
-                                                                                    <p className="text-[10px] font-medium text-emerald-600/80">
-                                                                                        Your certificate Drive link has been recorded.
-                                                                                    </p>
+                                                                    {/* Success Status Banner - ONLY shown when NOT in redo mode */}
+                                                                    {session.assignmentsSubmitted?.includes('Certificate') && !redoActive[session._id] && (
+                                                                        <div className="bg-emerald-500/5 p-5 rounded-2xl border border-emerald-500/10 backdrop-blur-sm animate-in fade-in duration-300">
+                                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className="size-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shadow-sm ring-1 ring-emerald-500/20">
+                                                                                        <CheckCircle className="w-5 h-5" />
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <p className="text-sm font-bold text-emerald-700 uppercase tracking-wide">
+                                                                                            SUCCESSFULLY SUBMITTED
+                                                                                        </p>
+                                                                                        <p className="text-[11px] font-medium text-emerald-600/80">
+                                                                                            Your certificate Drive link has been recorded.
+                                                                                        </p>
+                                                                                    </div>
                                                                                 </div>
 
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className="text-right hidden sm:block">
+                                                                                        <p className="text-[9px] font-black text-emerald-600/50 uppercase tracking-widest">Update Limit</p>
+                                                                                        <p className="text-[10px] font-bold text-emerald-700">
+                                                                                            Used: {session.submissionDetails?.find(d => d.title === 'Certificate')?.updateCount || 0}/1
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    <button
+                                                                                        onClick={() => setRedoActive({ ...redoActive, [session._id]: true })}
+                                                                                        disabled={session.submissionDetails?.find(d => d.title === 'Certificate')?.updateCount >= 1}
+                                                                                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20 disabled:opacity-30 disabled:cursor-not-allowed group"
+                                                                                    >
+                                                                                        <Send className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                                                                        Resubmit Link
+                                                                                    </button>
+                                                                                </div>
                                                                             </div>
-                                                                            <p className="text-[10px] text-zinc-500 mt-2 font-medium border-t border-emerald-500/10 pt-2">
-                                                                                * Note: Your certificate link can be updated anytime before the deadline.
-                                                                            </p>
+                                                                            <div className="mt-4 pt-3 border-t border-emerald-500/10 flex items-center justify-between">
+                                                                                <p className="text-[10px] text-zinc-500 font-medium italic opacity-80">
+                                                                                    * Note: Your certificate link can be updated anytime before the deadline.
+                                                                                </p>
+                                                                                <div className="sm:hidden text-[9px] font-bold text-emerald-700 bg-emerald-100/50 px-2 py-0.5 rounded-full">
+                                                                                    Used: {session.submissionDetails?.find(d => d.title === 'Certificate')?.updateCount || 0}/1
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
-                                                                    ) : (
-                                                                        <div className="bg-white/40 p-4 rounded-xl border border-white/60 backdrop-blur-sm shadow-sm">
+                                                                    )}
+
+                                                                    {/* URL Provider Box - ONLY if NOT submitted OR redo mode is ACTIVE */}
+                                                                    {(!session.assignmentsSubmitted?.includes('Certificate') || redoActive[session._id]) && (
+                                                                        <div className="bg-white/40 p-4 rounded-xl border border-white/60 backdrop-blur-sm shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
                                                                             {/* Infosys Direct Link Row */}
                                                                             <div className="mb-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                                                                                 <div className="flex items-center gap-3">
@@ -677,21 +736,39 @@ function StudentDashboard() {
                                                                                         className="w-full pl-9 pr-4 py-2 bg-white/50 border border-zinc-200 rounded-xl text-xs focus:ring-2 focus:ring-[#f05423]/20 focus:border-[#f05423] outline-none transition-all placeholder:text-zinc-400 font-medium"
                                                                                     />
                                                                                 </div>
+                                                                                {/* Submit/Update Button */}
                                                                                 <button
                                                                                     onClick={() => handleAssignmentSubmit(session, { title: 'Certificate', type: 'certificate' })}
-                                                                                    disabled={!assignmentData[`${session._id}-Certificate`]}
+                                                                                    disabled={!assignmentData[`${session._id}-Certificate`] || (session.submissionDetails?.find(d => d.title === 'Certificate')?.updateCount >= 1)}
                                                                                     className="w-full sm:w-auto px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
                                                                                 >
                                                                                     <Send className="w-3 h-3" />
-                                                                                    Submit Link
+                                                                                    {session.assignmentsSubmitted?.includes('Certificate') ? 'Update Link' : 'Submit Link'}
                                                                                 </button>
                                                                             </div>
-                                                                            <p className="text-[10px] text-zinc-700 mt-3 font-medium flex items-center gap-2">
+
+                                                                            {/* Warning Message Box */}
+                                                                            <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3">
+                                                                                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                                                                <div className="space-y-1">
+                                                                                    <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tight">Submission Guidelines</p>
+                                                                                    <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
+                                                                                        You can resubmit your link a maximum of <span className="font-bold underline">1 time</span>.
+                                                                                        {session.submissionDetails?.find(d => d.title === 'Certificate') && (
+                                                                                            <span className="ml-1 text-[#f05423] font-bold">
+                                                                                                Used: {session.submissionDetails.find(d => d.title === 'Certificate').updateCount}/1
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <p className="text-[10px] text-zinc-700 mt-4 font-medium flex items-center gap-2">
                                                                                 <span className="text-[#f05423] font-black">!</span>
                                                                                 <span>Ensure your Google Drive link is set to <span className="text-emerald-600 font-bold">"Anyone with the link"</span></span>
                                                                             </p>
                                                                             <p className="text-[9px] text-red-500 mt-1 font-bold italic">
-                                                                                * Info: You can update your certificate link multiple times.
+                                                                                * Info: You can update your certificate link only once.
                                                                             </p>
                                                                         </div>
                                                                     )}

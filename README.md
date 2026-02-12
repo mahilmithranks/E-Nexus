@@ -84,7 +84,17 @@ E-Nexus is a complete workshop management solution designed for educational inst
 - **Status Badges**: Clear attendance and assignment status
 - **Responsive Design**: Works on all devices
 
-#### 📸 Attendance System (ENHANCED!)
+### 🎓 Infosys Certified Course (NEW!)
+- **Self-Paced Learning**: Flexible completion window for the certificate course.
+- **Dynamic Certificate Upload**: Dedicated secure upload portal for Drive links.
+- **One-Time Update Policy**:
+  - Students can submit their certificate link.
+  - Allowed **exactly 1 edit** after the initial submission.
+  - "Used: X/1" status tracking clearly displayed in the dashboard.
+- **Deadline Enforcement**: Automatic closing of the upload window on the set deadline.
+- **Verification Note**: Automatic instructions to ensure Drive links are set to "Anyone with the link".
+
+#### 📊 Attendance System (ENHANCED!)
 - **AI Face Detection**: Automatic face validation before submission
 - **Photo Capture**: Live camera integration (no gallery uploads)
 - **Smart Validation**:

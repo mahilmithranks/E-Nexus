@@ -51,7 +51,7 @@ export const getSessionsForDay = async (req, res) => {
             AssignmentSubmission.find({
                 registerNumber: req.user.registerNumber,
                 sessionId: { $in: sessionIds }
-            }).select('sessionId assignmentTitle').lean()
+            }).select('sessionId assignmentTitle response updateCount').lean()
         ]);
 
         // Create lookups for faster access
@@ -62,9 +62,14 @@ export const getSessionsForDay = async (req, res) => {
         submissions.forEach(s => {
             const sessId = s.sessionId.toString();
             if (!submissionMap.has(sessId)) {
-                submissionMap.set(sessId, new Set());
+                submissionMap.set(sessId, { titles: new Set(), details: [] });
             }
-            submissionMap.get(sessId).add(s.assignmentTitle);
+            submissionMap.get(sessId).titles.add(s.assignmentTitle);
+            submissionMap.get(sessId).details.push({
+                title: s.assignmentTitle,
+                response: s.response,
+                updateCount: s.updateCount || 0
+            });
         });
 
         const now = new Date();
@@ -73,7 +78,8 @@ export const getSessionsForDay = async (req, res) => {
             try {
                 const sessId = session._id.toString();
                 const attendance = attendanceMap.get(sessId);
-                const submittedTitles = submissionMap.get(sessId) || new Set();
+                const submissionData = submissionMap.get(sessId) || { titles: new Set(), details: [] };
+                const submittedTitles = submissionData.titles;
 
                 // Determine attendance window status
                 let attendanceWindowStatus = 'not_started';
@@ -101,7 +107,9 @@ export const getSessionsForDay = async (req, res) => {
                     attendanceStatus: attendanceWindowStatus,
                     isAttendanceActive: isAttendanceActive,
                     assignmentsSubmitted: Array.from(submittedTitles),
-                    totalAssignments: assignmentsCount
+                    submissionDetails: submissionData.details,
+                    totalAssignments: assignmentsCount,
+                    isCertificateUploadOpen: session.title === "Infosys Certified Course" && now < new Date('2026-02-14') // Open until end of Feb 13
                 };
             } catch (err) {
                 console.error(`Error processing session ${session._id}:`, err);
@@ -280,19 +288,23 @@ export const submitAssignment = async (req, res) => {
             }
         }
 
-        // Finality Check: Assessments cannot be edited once submitted
-        const isAssessment = session.title.toLowerCase().includes('assessment');
+        // Finality & Limit Check
+        const isInfosys = session.title === "Infosys Certified Course";
+        const existingSubmission = await AssignmentSubmission.findOne({
+            registerNumber: req.user.registerNumber,
+            sessionId,
+            assignmentTitle
+        });
 
-        if (isAssessment) {
-            const existingSubmission = await AssignmentSubmission.findOne({
-                registerNumber: req.user.registerNumber,
-                sessionId,
-                assignmentTitle
-            });
-
-            if (existingSubmission) {
+        if (existingSubmission) {
+            if (!isInfosys) {
+                const typeLabel = session.title.toLowerCase().includes('assessment') ? 'assessment' : 'assignment';
                 return res.status(403).json({
-                    message: "This assessment response has already been submitted and cannot be edited."
+                    message: `This ${typeLabel} response has already been submitted and cannot be edited.`
+                });
+            } else if (existingSubmission.updateCount >= 1) {
+                return res.status(403).json({
+                    message: "You have already used your one-time edit for this certificate."
                 });
             }
         }
@@ -340,7 +352,7 @@ export const submitAssignment = async (req, res) => {
             return res.status(400).json({ message: 'Assignment response is required' });
         }
 
-        // Use findOneAndUpdate to allow multiple re-submissions (overwrites previous)
+        // Use findOneAndUpdate to allow limited re-submissions
         const submission = await AssignmentSubmission.findOneAndUpdate(
             {
                 registerNumber: req.user.registerNumber,
@@ -351,7 +363,8 @@ export const submitAssignment = async (req, res) => {
                 assignmentType,
                 response: finalResponse,
                 files: filePaths,
-                submittedAt: new Date()
+                submittedAt: new Date(),
+                $inc: { updateCount: existingSubmission ? 1 : 0 }
             },
             { new: true, upsert: true }
         );

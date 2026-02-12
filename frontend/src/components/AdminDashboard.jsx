@@ -810,13 +810,20 @@ function AdminDashboard() {
                                                         <div className="flex justify-between items-start mb-6">
                                                             <div className="space-y-1">
                                                                 <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em]">Bootcamp Timeline</div>
-                                                                {!day.title.toLowerCase().includes('certificate') && (
+                                                                {!day.title.toLowerCase().includes('certificate') ? (
                                                                     <>
                                                                         <h3 className="text-2xl font-bold text-white leading-none">
                                                                             Day {day.dayNumber}
                                                                         </h3>
                                                                         {day.date && <p className="text-zinc-500 text-xs font-medium">{new Date(day.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
                                                                     </>
+                                                                ) : (
+                                                                    <div className="space-y-1">
+                                                                        <h3 className="text-2xl font-bold text-white leading-none">
+                                                                            Certificate Course
+                                                                        </h3>
+                                                                        <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest">Self-Paced Learning</p>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                             <div className={cn(

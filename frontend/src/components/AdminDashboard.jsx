@@ -8,10 +8,9 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { getUser, clearAuth } from '../utils/auth';
-import Timer from './Timer';
 import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
-// import './AdminDashboard.css'; // Removed in favor of Tailwind
+
 
 // Internal Debounced Input Component to fix INP (Input Lag)
 const DebouncedInput = ({ value: initialValue, onChange, delay = 300, ...props }) => {

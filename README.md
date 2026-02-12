@@ -1,6 +1,6 @@
 # E-Nexus Workshop Management System
 
-A comprehensive, local-first web application for managing multi-day college workshop events with **AI-powered face detection**, automatic attendance management, and support for **150+ concurrent users**.
+A comprehensive, local-first web application for managing multi-day college workshop events with **AI-powered face detection**, automatic attendance management, and support for **250+ concurrent users**.
 
 ## 🎯 System Overview
 
@@ -72,7 +72,7 @@ E-Nexus is a complete workshop management solution designed for educational inst
 - **Excel Reports**:
   - **Attendance Report**: Grouped by Day & Session with color-coded status
   - **Assignment Report**: Grouped by Day, Session, & Assignment with detailed responses
-- **Performance Optimized**: Uses O(1) in-memory lookups for 150+ user scalability
+- **Performance Optimized**: Uses O(1) in-memory lookups for 250+ user scalability
 - **Professional Formatting**: Clear headers, borders, and visual hierarchy
 - **One-Click Download**: Instant Excel file generation
 
@@ -406,7 +406,7 @@ App runs on: `http://localhost:5173`
 
 ## ⚡ Performance & Scalability
 
-### Designed for 150+ Concurrent Users
+### Designed for 250+ Concurrent Users
 
 **Database Optimization**:
 - Connection pooling (max 200, min 10)
@@ -426,7 +426,7 @@ App runs on: `http://localhost:5173`
 - Cloudinary CDN for images
 
 **Tested Performance**:
-- ✅ 150+ simultaneous logins
+- ✅ 250+ simultaneous logins
 - ✅ Face detection: 1-2 seconds
 - ✅ Photo upload: <3 seconds
 - ✅ API response: <500ms
@@ -447,7 +447,7 @@ App runs on: `http://localhost:5173`
 - [ ] Verify Excel exports
 
 ### Deployment Steps
-1. **Prepare Data**: Format student data (JSON/CSV)
+1. **Prepare Data**: Format student data (JSON/CSV) for 250+ users
 2. **Import Data**: Run `node import-real-data.js`
 3. **Test System**: Verify with sample users
 4. **Start Services**: Backend + Frontend
@@ -564,6 +564,6 @@ This project is for educational purposes only.
 
 ## 🎉 Ready for Production!
 
-The E-Nexus Workshop Management System is **production-ready** and tested for **150+ concurrent users**. All features are implemented, tested, and documented. Simply import your real student data and deploy!
+The E-Nexus Workshop Management System is **production-ready** and tested for **250+ concurrent users**. All features are implemented, tested, and documented. Simply import your real student data and deploy!
 
 **Current Status**: ✅ **READY TO DEPLOY**

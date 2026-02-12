@@ -30,6 +30,10 @@ const assignmentSubmissionSchema = new mongoose.Schema({
     submittedAt: {
         type: Date,
         default: Date.now
+    },
+    updateCount: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true

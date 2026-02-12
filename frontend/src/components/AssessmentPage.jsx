@@ -242,7 +242,7 @@ const AssessmentPage = () => {
 
                                 <a
                                     href={session?.title?.includes('Day 3')
-                                        ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=publish-editor"
+                                        ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
                                         : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
                                     }
                                     target="_blank"

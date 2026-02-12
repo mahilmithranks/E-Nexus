@@ -5,7 +5,6 @@ import { Camera, LogOut, FileText, Link as LinkIcon, Upload, Calendar, Clock, Ch
 import api from '../services/api';
 import { getUser, clearAuth } from '../utils/auth';
 import CameraCapture from './CameraCapture';
-import Timer from './Timer';
 import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -179,8 +178,8 @@ function StudentDashboard() {
         const key = `${session._id}-${assignment.title}`;
         const data = assignmentData[key];
 
-        if (!data) {
-            toast.error('Please provide a response');
+        if (!data || !data.toString().trim()) {
+            toast.error('Please submit link to submit assessment');
             return;
         }
 
@@ -605,15 +604,15 @@ function StudentDashboard() {
                                                                             new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ' + new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                                                         )}
                                                                         {(session.title === "Infosys Certified Course" || session.title.toLowerCase().includes('certificate')) && (
-                                                                            <span className="opacity-80">Flexible Completion until 13th Feb</span>
+                                                                            <span className="opacity-80">Flexible Completion until 20th Feb</span>
                                                                         )}
                                                                     </div>
                                                                 )}
                                                                 <p className="text-zinc-500 text-sm font-medium line-clamp-1 max-w-sm">{session.description}</p>
                                                             </div>
 
-                                                            {/* Course Assessment Link - ONLY for Assessment Day 2 */}
-                                                            {(session.title === "Assessment Day 2" || days.find(d => d._id === selectedDay)?.title === "Assessment Day 2") && (
+                                                            {/* Course Assessment Link - Handler for Assessment Days */}
+                                                            {(session.title.includes("Assessment Day") || (days.find(d => d._id === selectedDay)?.title || "").includes("Assessment Day")) && (
                                                                 <div className="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-3">
                                                                     <div className="flex items-center justify-between">
                                                                         <div>
@@ -621,7 +620,10 @@ function StudentDashboard() {
                                                                             <p className="text-[10px] text-indigo-600 font-medium mt-0.5">Complete the assessment form before uploading your certificate.</p>
                                                                         </div>
                                                                         <a
-                                                                            href="https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
+                                                                            href={(session.title.includes("Day 3") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 3"))
+                                                                                ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=publish-editor"
+                                                                                : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
+                                                                            }
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
                                                                             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors shadow-sm"
@@ -721,7 +723,7 @@ function StudentDashboard() {
                                                                             <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3">
                                                                                 <Clock className="w-4 h-4 text-red-500" />
                                                                                 <p className="text-[10px] sm:text-xs font-black text-red-600 uppercase tracking-widest">
-                                                                                    Global Submission Deadline: February 13, 2026
+                                                                                    Global Submission Deadline: February 20, 2026, 1:00 AM
                                                                                 </p>
                                                                             </div>
 
@@ -739,7 +741,7 @@ function StudentDashboard() {
                                                                                 {/* Submit/Update Button */}
                                                                                 <button
                                                                                     onClick={() => handleAssignmentSubmit(session, { title: 'Certificate', type: 'certificate' })}
-                                                                                    disabled={!assignmentData[`${session._id}-Certificate`] || (session.submissionDetails?.find(d => d.title === 'Certificate')?.updateCount >= 1)}
+                                                                                    disabled={(session.submissionDetails?.find(d => d.title === 'Certificate')?.updateCount >= 1)}
                                                                                     className="w-full sm:w-auto px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
                                                                                 >
                                                                                     <Send className="w-3 h-3" />

@@ -88,8 +88,8 @@ const AssessmentPage = () => {
         e.preventDefault();
 
         // Basic validation: ensure link is provided
-        if (!responses.q1.trim()) {
-            toast.error('Please provide your Google Drive link');
+        if (!responses.q1 || !responses.q1.trim()) {
+            toast.error('Please submit link to submit assessment');
             return;
         }
 
@@ -241,12 +241,15 @@ const AssessmentPage = () => {
                                 </div>
 
                                 <a
-                                    href="https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
+                                    href={session?.title?.includes('Day 3')
+                                        ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=publish-editor"
+                                        : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
+                                    }
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="block w-full py-4 rounded-xl bg-white border border-indigo-200 text-indigo-600 font-bold text-center hover:bg-indigo-50 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 group/btn"
                                 >
-                                    Open Assessment Form
+                                    Open {session?.title?.includes('Day 3') ? 'Day 3' : ''} Assessment Form
                                     <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                 </a>
                             </div>
@@ -278,7 +281,6 @@ const AssessmentPage = () => {
                                         <input
                                             type="url"
                                             placeholder="https://drive.google.com/file/d/..."
-                                            required
                                             className="w-full pl-12 pr-4 py-4 rounded-xl bg-zinc-50 border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f05423]/20 focus:border-[#f05423]/40 transition-all"
                                             value={responses.q1}
                                             onChange={(e) => handleInputChange('q1', e.target.value)}

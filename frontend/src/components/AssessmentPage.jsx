@@ -220,6 +220,7 @@ const AssessmentPage = () => {
                 ) : (
                     <div className="space-y-8">
                         {/* Step 1: Open Google Doc */}
+                        {/* Step 1: Open Google Doc */}
                         <div className="p-8 rounded-[2rem] bg-indigo-50 border border-indigo-100 relative overflow-hidden group">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-100/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
 
@@ -243,13 +244,18 @@ const AssessmentPage = () => {
                                 <a
                                     href={(session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3')
                                         ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
-                                        : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
+                                        : (session?.title?.includes('Day 4') || session?.dayId?.dayNumber === 4 || session?.dayId?.dayNumber === '4')
+                                            ? "https://docs.google.com/forms/d/e/1FAIpQLSdL5qZXlGmZyL7Eyj4HIH-1ePVwp7sQJ9OOQ5ltgZKc3vxMXg/viewform?usp=header"
+                                            : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
                                     }
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="block w-full py-4 rounded-xl bg-white border border-zinc-200 text-indigo-600 font-bold text-center hover:bg-indigo-50 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 group/btn"
                                 >
-                                    Open {(session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3') ? 'Day 3 ' : ''}Assessment Form
+                                    Open {
+                                        (session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3') ? 'Day 3 ' :
+                                            (session?.title?.includes('Day 4') || session?.dayId?.dayNumber === 4 || session?.dayId?.dayNumber === '4') ? 'Day 4 ' : ''
+                                    }Assessment Form
                                     <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                 </a>
                             </div>

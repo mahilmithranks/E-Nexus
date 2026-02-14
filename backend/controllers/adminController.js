@@ -237,6 +237,9 @@ export const updateSession = async (req, res) => {
         session.title = title || session.title;
         session.description = description || session.description;
         if (assignments) session.assignments = assignments;
+        if (req.body.isCertificateUploadOpen !== undefined) {
+            session.isCertificateUploadOpen = req.body.isCertificateUploadOpen;
+        }
 
         await session.save();
 

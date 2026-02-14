@@ -604,7 +604,7 @@ function StudentDashboard() {
                                                                             new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ' + new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                                                         )}
                                                                         {(session.title === "Infosys Certified Course" || session.title.toLowerCase().includes('certificate')) && (
-                                                                            <span className="opacity-80">Flexible Completion until 20th Feb</span>
+                                                                            <span className="opacity-80">{session.isCertificateUploadOpen ? "Submission Window Open" : "Submission Window Closed"}</span>
                                                                         )}
                                                                     </div>
                                                                 )}
@@ -723,7 +723,7 @@ function StudentDashboard() {
                                                                             <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3">
                                                                                 <Clock className="w-4 h-4 text-red-500" />
                                                                                 <p className="text-[10px] sm:text-xs font-black text-red-600 uppercase tracking-widest">
-                                                                                    Global Submission Deadline: February 20, 2026, 1:00 AM
+                                                                                    Submission Deadline: February 19, 2026
                                                                                 </p>
                                                                             </div>
 
@@ -860,7 +860,7 @@ function StudentDashboard() {
                                                                     ) : (
                                                                         <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm text-center">
                                                                             <Lock className="w-4 h-4" />
-                                                                            Uploading window is closed now!
+                                                                            Uploading window is closed now! (Deadline: Feb 19, 2026)
                                                                         </div>
                                                                     )}
                                                                 </>

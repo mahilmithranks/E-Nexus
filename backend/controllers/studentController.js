@@ -109,7 +109,7 @@ export const getSessionsForDay = async (req, res) => {
                     assignmentsSubmitted: Array.from(submittedTitles),
                     submissionDetails: submissionData.details,
                     totalAssignments: assignmentsCount,
-                    isCertificateUploadOpen: session.title === "Infosys Certified Course" && now < new Date('2026-02-14') // Open until end of Feb 13
+                    isCertificateUploadOpen: session.title === "Infosys Certified Course" ? session.isCertificateUploadOpen : false
                 };
             } catch (err) {
                 console.error(`Error processing session ${session._id}:`, err);

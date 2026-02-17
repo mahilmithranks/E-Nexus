@@ -178,6 +178,7 @@ const AssessmentPage = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-12 p-8 rounded-[2.5rem] bg-white border border-zinc-200 shadow-xl shadow-zinc-200/50"
+                    style={{ willChange: 'transform, opacity' }}
                 >
                     <div className="flex items-start gap-6">
                         <div className="size-16 rounded-3xl bg-[#f05423] flex items-center justify-center text-white shadow-lg shadow-[#f05423]/20 shrink-0">
@@ -207,6 +208,7 @@ const AssessmentPage = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="py-12 flex flex-col items-center text-center space-y-6"
+                        style={{ willChange: 'transform, opacity' }}
                     >
                         <div className="size-24 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
                             <CheckCircle className="w-12 h-12" />
@@ -231,7 +233,7 @@ const AssessmentPage = () => {
                         {/* Step 1: Open Google Doc */}
                         {/* Step 1: Open Google Doc */}
                         <div className="p-8 rounded-[2rem] bg-indigo-50 border border-indigo-100 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-100/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                            <div className="hidden md:block absolute top-0 right-0 w-64 h-64 bg-indigo-100/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
 
                             <div className="relative z-10 space-y-6">
                                 <div className="flex items-center gap-4">

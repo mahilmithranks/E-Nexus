@@ -328,13 +328,20 @@ function StudentDashboard() {
                 <header className="h-16 sm:h-20 border-b border-white/40 bg-white/60 backdrop-blur-xl sticky top-0 z-50 px-3 sm:px-6 md:px-10 flex items-center justify-between shadow-sm supports-[backdrop-filter]:bg-white/60">
                     <div className="flex items-center gap-2 sm:gap-4 md:gap-6 overflow-hidden min-w-0">
                         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                            <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-10 sm:h-12 md:h-16 w-auto object-contain shrink-0" />
+                            {/* Logo - Slightly smaller on mobile */}
+                            <img src="/enexus-logo.png" alt="E-Nexus Logo" className="h-8 sm:h-10 md:h-16 w-auto object-contain shrink-0" />
 
-                            <div className="h-8 sm:h-10 w-px bg-zinc-200/50 mx-1 sm:mx-2 hidden md:block" />
+                            {/* Separator - Hidden on very small screens, shown on sm+ */}
+                            <div className="h-6 sm:h-8 md:h-10 w-px bg-zinc-200/50 mx-1 flex shrink-0" />
 
-                            <div className="hidden md:block">
-                                <span className="text-sm sm:text-base md:text-lg font-bold text-zinc-900 tracking-tight block leading-none">E-Nexus <span className="text-[#f05423]">Buildmode 2026 Bootcamp</span></span>
-                                <span className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1 block">Live Learning Environment</span>
+                            {/* Title - Visible on ALL screens now */}
+                            <div className="flex flex-col justify-center min-w-0">
+                                <span className="text-xs sm:text-sm md:text-lg font-bold text-zinc-900 tracking-tight leading-none truncate">
+                                    E-Nexus <span className="text-[#f05423]">Buildmode</span>
+                                </span>
+                                <span className="text-[8px] sm:text-[9px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-0.5 sm:mt-1 truncate">
+                                    2026 Bootcamp
+                                </span>
                             </div>
                         </div>
                     </div>

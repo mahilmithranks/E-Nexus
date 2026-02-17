@@ -13,7 +13,7 @@ const daySchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['LOCKED', 'OPEN', 'CLOSED'],
+        enum: ['LOCKED', 'OPEN', 'CLOSED', 'COMPLETED'],
         default: 'LOCKED'
     },
     date: {

@@ -275,32 +275,46 @@ function StudentDashboard() {
     return (
         <div className="min-h-screen w-full bg-white text-zinc-600 font-sans selection:bg-[#f05423]/20 selection:text-[#f05423] relative overflow-x-hidden">
             {/* Ambient Background Effects - Enhanced Liquid Motion */}
+            {/* Ambient Background Effects - Optimized for Mobile */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                {/* Mobile: Static Gradient (Zero GPU cost) */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white via-[#f05423]/05 to-white md:hidden" />
+
+                {/* Desktop: Animated Blobs (Only show on md+) */}
                 <motion.div
+                    initial={{ opacity: 0 }}
                     animate={{
+                        opacity: 1,
                         x: [0, 40, -20, 0],
                         y: [0, -30, 50, 0],
                         scale: [1, 1.1, 0.9, 1]
                     }}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#f05423]/10 blur-[120px]"
+                    className="hidden md:block absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#f05423]/10 blur-[120px]"
+                    style={{ willChange: 'transform' }}
                 />
                 <motion.div
+                    initial={{ opacity: 0 }}
                     animate={{
+                        opacity: 1,
                         x: [0, -50, 30, 0],
                         y: [0, 60, -40, 0],
                         scale: [1, 0.9, 1.1, 1]
                     }}
                     transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#ff9d00]/10 blur-[100px]"
+                    className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#ff9d00]/10 blur-[100px]"
+                    style={{ willChange: 'transform' }}
                 />
                 <motion.div
+                    initial={{ opacity: 0 }}
                     animate={{
+                        opacity: 1,
                         x: [0, 30, -50, 0],
                         y: [0, 40, 20, 0]
                     }}
                     transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[30%] left-[20%] w-[40vw] h-[40vw] rounded-full bg-blue-400/05 blur-[120px]"
+                    className="hidden md:block absolute top-[30%] left-[20%] w-[40vw] h-[40vw] rounded-full bg-blue-400/05 blur-[120px]"
+                    style={{ willChange: 'transform' }}
                 />
                 <div className="absolute inset-0 opacity-[0.3]"
                     style={{
@@ -631,7 +645,12 @@ function StudentDashboard() {
                                                 initial={{ opacity: 0, scale: 0.98 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ delay: idx * 0.05 }}
-                                                className="group relative p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] bg-white/60 border border-white/60 hover:border-[#f05423]/30 transition-all duration-500 overflow-hidden shadow-xl shadow-zinc-200/40 backdrop-blur-2xl"
+                                                className="group relative p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] bg-white border border-white/60 hover:border-[#f05423]/30 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-xl shadow-zinc-200/40 md:bg-white/60 md:backdrop-blur-2xl"
+                                                style={{
+                                                    willChange: 'transform, opacity',
+                                                    contentVisibility: 'auto',
+                                                    contain: 'layout paint'
+                                                }}
                                             >
                                                 <div className="absolute -right-20 -bottom-20 size-64 bg-[#f05423]/05 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
 

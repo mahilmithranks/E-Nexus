@@ -18,6 +18,8 @@ function StudentDashboard() {
     const [lastSyncTime, setLastSyncTime] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [assignmentData, setAssignmentData] = useState({});
+    const [showWarning, setShowWarning] = useState(false);
+    const [warningTimerSeconds, setWarningTimerSeconds] = useState(5);
     const [redoActive, setRedoActive] = useState({}); // Tracking resubmission mode per session
 
     const user = getUser();
@@ -68,6 +70,16 @@ function StudentDashboard() {
 
         return () => clearInterval(interval);
     }, [selectedDay, isRefreshing, lastSyncTime]);
+
+    useEffect(() => {
+        let timer;
+        if (showWarning && warningTimerSeconds > 0) {
+            timer = setTimeout(() => {
+                setWarningTimerSeconds(prev => prev - 1);
+            }, 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [showWarning, warningTimerSeconds]);
 
     const fetchDays = async () => {
         try {
@@ -151,6 +163,12 @@ function StudentDashboard() {
 
     const openCamera = (session) => {
         setSelectedSession(session);
+        setWarningTimerSeconds(5);
+        setShowWarning(true);
+    };
+
+    const handleProceedToCamera = () => {
+        setShowWarning(false);
         setShowCamera(true);
     };
 
@@ -457,7 +475,9 @@ function StudentDashboard() {
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-8">
                                     {days.map((day, idx) => {
                                         const isActive = selectedDay === day._id;
-                                        const isLocked = day.status !== 'OPEN';
+                                        // Only LOCKED status disables the day. COMPLETED/OPEN are accessible.
+                                        const isLocked = day.status === 'LOCKED';
+                                        const isCompleted = day.status === 'COMPLETED';
 
                                         return (
                                             <motion.button
@@ -477,7 +497,9 @@ function StudentDashboard() {
                                                     "relative w-full h-full rounded-[2rem] p-5 flex flex-col justify-between overflow-hidden transition-all duration-500 border backdrop-blur-xl",
                                                     isActive
                                                         ? "bg-[#f05423] border-[#f05423] shadow-xl scale-105"
-                                                        : "bg-white/60 border-white/40 hover:border-white hover:bg-white/80 hover:translate-y-[-2px] shadow-sm"
+                                                        : isCompleted
+                                                            ? "bg-emerald-50/60 border-emerald-100 hover:border-emerald-200 hover:bg-emerald-50 hover:translate-y-[-2px] shadow-sm"
+                                                            : "bg-white/60 border-white/40 hover:border-white hover:bg-white/80 hover:translate-y-[-2px] shadow-sm"
                                                 )}>
                                                     {/* Active Background Effects */}
                                                     {isActive && (
@@ -490,7 +512,7 @@ function StudentDashboard() {
                                                     <div className="relative z-10 flex justify-between items-start">
                                                         <span className={cn(
                                                             "text-3xl font-black tracking-tighter leading-none",
-                                                            isActive ? "text-white" : "text-zinc-900 group-hover/card:text-zinc-700"
+                                                            isActive ? "text-white" : isCompleted ? "text-emerald-600" : "text-zinc-900 group-hover/card:text-zinc-700"
                                                         )}>
                                                             {day.title.toLowerCase().includes('certificate') ? (
                                                                 <Upload className="w-8 h-8" />
@@ -500,9 +522,12 @@ function StudentDashboard() {
                                                         </span>
                                                         {isLocked ? (
                                                             <Lock className="w-4 h-4 text-zinc-300" />
+                                                        ) : isCompleted ? (
+                                                            <CheckCircle className={cn("w-5 h-5", isActive ? "text-white" : "text-emerald-500")} />
                                                         ) : isActive ? (
                                                             <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_10px_white]" />
                                                         ) : null}
+
                                                     </div>
 
                                                     <div className="relative z-10 space-y-1.5 text-left">
@@ -612,30 +637,52 @@ function StudentDashboard() {
                                                             </div>
 
                                                             {/* Course Assessment Link - Handler for Assessment Days */}
-                                                            {(session.title.includes("Assessment Day") || (days.find(d => d._id === selectedDay)?.title || "").includes("Assessment Day")) && (
+                                                            {(session.title.includes("Assessment Day") || (days.find(d => d._id === selectedDay)?.title || "").includes("Assessment Day") || session.title.includes("Customization, Debugging & Wrap-up")) && (
                                                                 <div className="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-3">
                                                                     <div className="flex items-center justify-between">
                                                                         <div>
                                                                             <h4 className="text-sm font-bold text-indigo-900">Course Assessment</h4>
-                                                                            <p className="text-[10px] text-indigo-600 font-medium mt-0.5">Complete the assessment form before uploading your certificate.</p>
+                                                                            <p className="text-[10px] text-indigo-600 font-medium mt-0.5">
+                                                                                {session.title.includes("Customization")
+                                                                                    ? "Complete N8N assessment after marking attendance."
+                                                                                    : "Complete the assessment form before uploading your certificate."}
+                                                                            </p>
                                                                         </div>
-                                                                        <a
-                                                                            href={(session.title.includes("Day 3") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 3") || days.find(d => d._id === selectedDay)?.dayNumber === 3 || days.find(d => d._id === selectedDay)?.dayNumber === '3')
-                                                                                ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
-                                                                                : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
-                                                                            }
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors shadow-sm"
-                                                                        >
-                                                                            Open Form
-                                                                            <ExternalLink className="w-3 h-3" />
-                                                                        </a>
+
+                                                                        {/* Only show button if attendance is marked OR if it's not the specific N8N session that requires it */}
+                                                                        {(!session.title.includes("Customization") || session.hasAttendance) ? (
+                                                                            <a
+                                                                                href={(session.title.includes("Day 3") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 3") || days.find(d => d._id === selectedDay)?.dayNumber === 3 || days.find(d => d._id === selectedDay)?.dayNumber === '3')
+                                                                                    ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
+                                                                                    : (session.title.includes("Day 6") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 6") || days.find(d => d._id === selectedDay)?.dayNumber === 6 || days.find(d => d._id === selectedDay)?.dayNumber === '6')
+                                                                                        ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
+                                                                                        : (session.title.includes("Day 7") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 7") || days.find(d => d._id === selectedDay)?.dayNumber === 7 || days.find(d => d._id === selectedDay)?.dayNumber === '7')
+                                                                                            ? "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
+                                                                                            : (session.title.includes("Customization") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 8"))
+                                                                                                ? "https://docs.google.com/forms/d/e/1FAIpQLSdO74i2TwnCNFObqrxIb8_wd4UldEcTvb5I8uL46d9qM-wHhg/viewform?usp=header"
+                                                                                                : undefined
+                                                                                }
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors shadow-sm"
+                                                                            >
+                                                                                Open Form
+                                                                                <ExternalLink className="w-3 h-3" />
+                                                                            </a>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-400 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-zinc-200 cursor-not-allowed">
+                                                                                <Lock className="w-3 h-3" />
+                                                                                Locked
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                    <div className="flex items-center gap-2 text-amber-600 text-[10px] font-bold bg-white/50 px-2 py-1.5 rounded-md border border-amber-100 w-fit">
-                                                                        <AlertCircle className="w-3 h-3" />
-                                                                        WARNING: Access allowed only with registered college mail ID.
-                                                                    </div>
+
+                                                                    {session.title.includes("Customization") && !session.hasAttendance && (
+                                                                        <div className="flex items-center gap-2 text-amber-600 text-[10px] font-bold bg-white/50 px-2 py-1.5 rounded-md border border-amber-100 w-fit">
+                                                                            <AlertCircle className="w-3 h-3" />
+                                                                            Mark attendance to unlock N8N assessment.
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
 
@@ -921,10 +968,64 @@ function StudentDashboard() {
                 </main >
 
                 {/* MOBILE NAV PLACEHOLDER / FOOTER */}
-                <footer className="py-10 border-t border-zinc-200/50 text-center bg-white/50 backdrop-blur-sm">
+                < footer className="py-10 border-t border-zinc-200/50 text-center bg-white/50 backdrop-blur-sm" >
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Buildmode 2026 Bootcamp developed by E-nexus tech member.</p>
-                </footer>
+                </footer >
             </div >
+
+            {/* Warning Modal */}
+            < AnimatePresence >
+                {showWarning && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-2 bg-[#f05423]" />
+
+                            <div className="flex flex-col items-center text-center space-y-6">
+                                <div className="size-16 rounded-full bg-red-100 flex items-center justify-center text-red-500 mb-2">
+                                    <AlertCircle className="w-8 h-8" />
+                                </div>
+
+                                <h3 className="text-xl font-black text-zinc-900 uppercase tracking-tight">
+                                    Attendance Protocol
+                                </h3>
+
+                                <div className="space-y-4 text-sm text-zinc-600 font-medium leading-relaxed">
+                                    <p className="p-4 bg-red-50 rounded-2xl border border-red-100 text-red-700">
+                                        Do not mark attendance without <strong>proper dress code</strong> or showing a <strong>black screen</strong>.
+                                    </p>
+                                    <p>
+                                        Attendance must be marked following proper guidelines. Each entry is <strong>verified individually</strong> by administrators.
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={handleProceedToCamera}
+                                    disabled={warningTimerSeconds > 0}
+                                    className="w-full py-4 rounded-xl bg-[#f05423] hover:bg-[#ff9d00] text-white font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-[#f05423]/20"
+                                >
+                                    {warningTimerSeconds > 0 ? (
+                                        <>
+                                            <Clock className="w-4 h-4 animate-spin" />
+                                            Reading Guidelines ({warningTimerSeconds}s)
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Camera className="w-4 h-4" />
+                                            I Understand, Proceed
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )
+                }
+            </AnimatePresence >
 
             {/* Camera Overlay */}
             < AnimatePresence >

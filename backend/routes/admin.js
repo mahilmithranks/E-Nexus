@@ -20,7 +20,8 @@ import {
     getAssessmentStats,
     getDetailedAssessmentSubmissions,
     getCertificateSubmissions,
-    toggleCertificateUpload
+    toggleCertificateUpload,
+    resetAttendance
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { cacheMiddleware } from '../middleware/cache.js';
@@ -51,6 +52,7 @@ router.get('/sessions', cacheMiddleware('admin-sessions', 30000), getAllSessions
 // Attendance management
 router.post('/sessions/:id/attendance/start', startAttendance);
 router.post('/sessions/:id/attendance/stop', stopAttendance);
+router.post('/sessions/:id/attendance/reset', resetAttendance);
 router.post('/attendance/override', overrideAttendance);
 router.put('/sessions/:id/certificate-upload', toggleCertificateUpload);
 

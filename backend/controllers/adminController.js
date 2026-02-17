@@ -137,6 +137,9 @@ export const createDay = async (req, res) => {
 // @desc    Update day status
 // @route   PUT /api/admin/days/:id/status
 // @access  Private/Admin
+// @desc    Update day status
+// @route   PUT /api/admin/days/:id/status
+// @access  Private/Admin
 export const updateDayStatus = async (req, res) => {
     try {
         const { status } = req.body;
@@ -146,8 +149,17 @@ export const updateDayStatus = async (req, res) => {
             return res.status(404).json({ message: 'Day not found' });
         }
 
+        // Keep day accessible even when completed
         day.status = status;
         await day.save();
+
+        if (status === 'COMPLETED') {
+            const sessions = await Session.find({ dayId: day._id });
+            await Session.updateMany(
+                { dayId: day._id },
+                { $set: { attendanceOpen: false, attendanceEndTime: new Date() } }
+            );
+        }
 
         // Clear cache
         clearCache('admin-days');
@@ -343,6 +355,41 @@ export const stopAttendance = async (req, res) => {
     } catch (error) {
         console.error('Stop attendance error:', error);
         res.status(500).json({ message: 'Server error stopping attendance' });
+    }
+};
+
+// @desc    Reset attendance for a session (Fix for accidental open/close)
+// @route   POST /api/admin/sessions/:id/attendance/reset
+// @access  Private/Admin
+export const resetAttendance = async (req, res) => {
+    try {
+        const session = await Session.findById(req.params.id);
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        // Reset session timing
+        session.attendanceOpen = false;
+        session.attendanceStartTime = null;
+        session.attendanceEndTime = null;
+        await session.save();
+
+        // Optional: Delete "ABSENT" records if your system creates them proactively.
+        // If your system infers "ABSENT" dynamically based on time, resetting the time fixes it.
+
+        // Clear caches
+        clearCache('admin-sessions');
+        clearCache('student-sessions');
+        clearCache('admin-progress');
+
+        res.json({
+            message: 'Attendance reset to NOT STARTED',
+            session
+        });
+    } catch (error) {
+        console.error('Reset attendance error:', error);
+        res.status(500).json({ message: 'Server error resetting attendance' });
     }
 };
 

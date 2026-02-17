@@ -846,9 +846,14 @@ function AdminDashboard() {
                                                                 Activate
                                                             </button>
                                                             <button
-                                                                onClick={() => updateDayStatus(day._id, 'CLOSED')}
-                                                                disabled={day.status === 'CLOSED'}
-                                                                className="px-3 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] text-zinc-400 text-[11px] font-bold border border-white/5 disabled:opacity-20 transition-all uppercase tracking-wide"
+                                                                onClick={() => updateDayStatus(day._id, 'COMPLETED')}
+                                                                disabled={day.status === 'COMPLETED'}
+                                                                className={cn(
+                                                                    "px-3 py-2.5 rounded-xl text-[11px] font-bold border disabled:opacity-20 transition-all uppercase tracking-wide",
+                                                                    day.status === 'COMPLETED'
+                                                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                                                        : "bg-white/[0.03] hover:bg-white/[0.06] text-zinc-400 border-white/5"
+                                                                )}
                                                             >
                                                                 Finish
                                                             </button>
@@ -1096,12 +1101,24 @@ function AdminDashboard() {
                                                                                             </button>
                                                                                         ) : fullSession?.attendanceOpen ? (
                                                                                             <div className="flex flex-col items-center gap-2">
-                                                                                                <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center animate-pulse" title="Attendance Open - Waiting">
+                                                                                                <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center animate-pulse" title="Attendance Open - Live">
                                                                                                     <Clock className="w-4 h-4" />
                                                                                                 </div>
                                                                                                 <button
                                                                                                     onClick={() => openOverrideModal(student, session.sessionId)}
                                                                                                     className="text-[9px] px-2 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all font-bold uppercase tracking-tighter"
+                                                                                                >
+                                                                                                    Override
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        ) : !fullSession?.attendanceStartTime ? (
+                                                                                            <div className="flex flex-col items-center gap-2">
+                                                                                                <div className="w-8 h-8 rounded-full bg-zinc-500/10 text-zinc-600 flex items-center justify-center border border-dashed border-zinc-500/20" title="Not Started">
+                                                                                                    <Clock className="w-4 h-4" />
+                                                                                                </div>
+                                                                                                <button
+                                                                                                    onClick={() => openOverrideModal(student, session.sessionId)}
+                                                                                                    className="text-[9px] px-2 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all font-bold uppercase tracking-tighter opacity-50 hover:opacity-100"
                                                                                                 >
                                                                                                     Override
                                                                                                 </button>

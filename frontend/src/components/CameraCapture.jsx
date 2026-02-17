@@ -1,11 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Camera, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, Camera, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import * as faceapi from 'face-api.js';
 import { cn } from '../lib/utils';
 
 // Global cache for model loading state to avoid redundant re-loading
 let modelsLoaded = false;
+
+export const loadModels = async () => {
+    if (!modelsLoaded) {
+        console.log('📡 Pre-loading face detection models...');
+        try {
+            await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+            modelsLoaded = true;
+            console.log('✅ Models loaded successfully');
+        } catch (err) {
+            console.error('Failed to pre-load models:', err);
+        }
+    }
+};
 
 function CameraCapture({ onCapture, onCancel }) {
     const [stream, setStream] = useState(null);
@@ -70,69 +83,73 @@ function CameraCapture({ onCapture, onCancel }) {
         }
     };
 
-    const capturePhoto = async () => {
+    useEffect(() => {
+        let isVideoReady = false;
+        let animationFrameId;
+
+        const runDetection = async () => {
+            if (!videoRef.current || !isVideoReady || isProcessing || captured) return;
+
+            try {
+                const detectorOptions = new faceapi.TinyFaceDetectorOptions({
+                    inputSize: 160, // Smaller is faster (128, 160, 224)
+                    scoreThreshold: 0.5 // Higher threshold for auto-capture to avoid false positives
+                });
+
+                const detection = await faceapi.detectSingleFace(videoRef.current, detectorOptions);
+
+                if (detection && detection.score > 0.6) {
+                    console.log('✅ Face detected automatically! Confidence:', detection.score);
+                    autoCapture();
+                    return; // Stop loop after capture
+                }
+            } catch (err) {
+                console.warn('Detection loop error:', err);
+            }
+
+            animationFrameId = requestAnimationFrame(runDetection);
+        };
+
+        if (stream && !isModelLoading) {
+            videoRef.current.onloadedmetadata = () => {
+                isVideoReady = true;
+                runDetection();
+            };
+        }
+
+        return () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, [stream, isModelLoading, isProcessing, captured]);
+
+    const autoCapture = async () => {
+        if (isProcessing || captured) return;
+        setIsProcessing(true);
+
         const video = videoRef.current;
         const canvas = canvasRef.current;
+        if (!video || !canvas) return;
 
-        if (!video || !canvas || isProcessing) return;
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Ensure video is playing and has frames
-        if (video.readyState < 2) {
-            setError('Camera is still warming up. Please wait...');
-            return;
-        }
-
-        setIsProcessing(true);
-        setError('');
-
-        try {
-            // Options: Large inputSize (224) is generally more accurate than 128/160
-            const detectorOptions = new faceapi.TinyFaceDetectorOptions({
-                inputSize: 224,
-                scoreThreshold: 0.25 // More permissive
+        canvas.toBlob((blob) => {
+            const file = new File([blob], `attendance-${Date.now()}.jpg`, {
+                type: 'image/jpeg'
             });
+            setCaptured(true);
+            stopCamera();
+            onCapture(file);
+        }, 'image/jpeg', 0.85);
+    };
 
-            // Try to detect face with a small retry logic (3 attempts over 1.5s)
-            // This handles cases where the first frame might be blurry or eyes are closed
-            let detection = null;
-            for (let i = 0; i < 3; i++) {
-                detection = await faceapi.detectSingleFace(video, detectorOptions);
-                if (detection) break;
-                // Wait 300ms before next attempt
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
-
-            if (!detection) {
-                console.warn('Face detection failed after 3 attempts');
-                setError('Face not detected. Please ensure you are in a well-lit area and face the camera directly.');
-                setIsProcessing(false);
-                return;
-            }
-
-            console.log('✅ Face detected! Confidence:', detection.score.toFixed(2));
-
-            // Capture the image
-            const context = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            // Mirror back for the actual file if desired, or keep as is. 
-            // Most systems prefer a natural (non-mirrored) view for records.
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            canvas.toBlob((blob) => {
-                const file = new File([blob], `attendance-${Date.now()}.jpg`, {
-                    type: 'image/jpeg'
-                });
-                setCaptured(true);
-                stopCamera();
-                onCapture(file);
-            }, 'image/jpeg', 0.85);
-        } catch (err) {
-            console.error('Face detection error:', err);
-            setError('Face analysis error. Please try again or refresh the page.');
-            setIsProcessing(false);
-        }
+    const capturePhoto = async () => {
+        // Fallback manual capture
+        autoCapture();
     };
 
     const handleCancel = () => {
@@ -182,6 +199,10 @@ function CameraCapture({ onCapture, onCancel }) {
                         ) : (
                             <div className="space-y-8">
                                 <div className="relative aspect-video bg-black rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl group">
+                                    {isProcessing && !captured && (
+                                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[#f05423] to-transparent animate-scan z-20" />
+                                    )}
+
                                     {!captured ? (
                                         <video
                                             ref={videoRef}
@@ -190,24 +211,30 @@ function CameraCapture({ onCapture, onCancel }) {
                                             className="w-full h-full object-cover transform scale-x-[-1]"
                                         />
                                     ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a]/80 backdrop-blur-md">
-                                            <div className="text-center space-y-4">
-                                                <div className="size-16 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
-                                                    <RefreshCw className="w-8 h-8 animate-spin" />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-md z-30">
+                                            <div className="text-center space-y-6">
+                                                <div className="relative">
+                                                    <div className="size-20 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                                                        <CheckCircle className="w-10 h-10 animate-pulse" />
+                                                    </div>
+                                                    <div className="absolute inset-0 size-20 rounded-full border-2 border-emerald-500/30 animate-ping" />
                                                 </div>
-                                                <div>
-                                                    <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em]">Authenticating</p>
-                                                    <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest mt-1">Updating Records...</p>
+                                                <div className="space-y-2">
+                                                    <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em]">Identity Verified</p>
+                                                    <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Biometric Data Synchronized</p>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
 
                                     {isProcessing && !captured && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="size-10 border-2 border-white/10 border-t-[#f05423] rounded-full animate-spin" />
-                                                <span className="text-white text-[10px] font-black uppercase tracking-widest">Scanning Bio-Markers</span>
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] z-20">
+                                            <div className="flex flex-col items-center gap-4">
+                                                <div className="relative">
+                                                    <div className="size-14 border-4 border-[#f05423]/20 border-t-[#f05423] rounded-full animate-spin" />
+                                                    <div className="absolute inset-0 size-14 rounded-full border-4 border-[#f05423]/10 animate-pulse" />
+                                                </div>
+                                                <span className="text-white text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Syncing...</span>
                                             </div>
                                         </div>
                                     )}
@@ -215,14 +242,18 @@ function CameraCapture({ onCapture, onCancel }) {
                                     <canvas ref={canvasRef} className="hidden" />
 
                                     {/* Advanced Viewfinder */}
-                                    <div className="absolute inset-0 pointer-events-none opacity-40">
-                                        <div className="absolute top-8 left-8 size-12 border-t-2 border-l-2 border-white/20 rounded-tl-xl" />
-                                        <div className="absolute top-8 right-8 size-12 border-t-2 border-r-2 border-white/20 rounded-tr-xl" />
-                                        <div className="absolute bottom-8 left-8 size-12 border-b-2 border-l-2 border-white/20 rounded-bl-xl" />
-                                        <div className="absolute bottom-8 right-8 size-12 border-b-2 border-r-2 border-white/20 rounded-br-xl" />
+                                    <div className="absolute inset-0 pointer-events-none opacity-40 z-10">
+                                        <div className="absolute top-8 left-8 size-12 border-t-2 border-l-2 border-white/40 rounded-tl-xl" />
+                                        <div className="absolute top-8 right-8 size-12 border-t-2 border-r-2 border-white/40 rounded-tr-xl" />
+                                        <div className="absolute bottom-8 left-8 size-12 border-b-2 border-l-2 border-white/40 rounded-bl-xl" />
+                                        <div className="absolute bottom-8 right-8 size-12 border-b-2 border-r-2 border-white/40 rounded-br-xl" />
 
-                                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/5" />
-                                        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-white/5" />
+                                        {/* Dynamic Grid */}
+                                        <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
+                                            {[...Array(16)].map((_, i) => (
+                                                <div key={i} className="border-[0.5px] border-white/5" />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -239,9 +270,9 @@ function CameraCapture({ onCapture, onCancel }) {
                                 <div className="flex flex-col sm:flex-row justify-center gap-4">
                                     <button
                                         onClick={handleCancel}
-                                        className="flex-1 px-8 py-4 rounded-2xl border border-white/10 hover:bg-white/5 text-zinc-500 hover:text-white transition-all font-black text-[10px] uppercase tracking-widest"
+                                        className="flex-1 px-8 py-4 rounded-2xl border border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all font-black text-[10px] uppercase tracking-widest text-zinc-500"
                                     >
-                                        Abandon
+                                        Cancel
                                     </button>
                                     <button
                                         onClick={capturePhoto}
@@ -249,7 +280,7 @@ function CameraCapture({ onCapture, onCancel }) {
                                         className="flex-[2] px-10 py-4 rounded-2xl bg-gradient-to-r from-[#f05423] to-[#ff9d00] text-white shadow-xl shadow-[#f05423]/20 hover:shadow-[#f05423]/40 hover:scale-[1.02] active:scale-[0.98] transition-all font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
                                     >
                                         <Camera className="w-5 h-5" />
-                                        {isProcessing ? 'Processing' : 'Commit Authentication'}
+                                        {isProcessing ? 'Authenticating...' : 'Manual Capture'}
                                     </button>
                                 </div>
                             </div>

@@ -470,40 +470,41 @@ export const getProgress = async (req, res) => {
             ];
         }
 
-        const totalStudents = await User.countDocuments(query);
-        const students = await User.find(query)
-            .select('registerNumber name yearOfStudy department')
-            .sort({ registerNumber: 1 })
-            .skip(skip)
-            .limit(limit)
-            .lean();
+        const [totalStudents, students] = await Promise.all([
+            User.countDocuments(query),
+            User.find(query)
+                .select('registerNumber name yearOfStudy department')
+                .sort({ registerNumber: 1 })
+                .skip(skip)
+                .limit(limit)
+                .lean()
+        ]);
 
         const sessions = await Session.find()
             .populate({ path: 'dayId', select: 'dayNumber title' })
             .select('title dayId assignments attendanceStartTime attendanceOpen')
             .lean();
 
-        // Sort in memory
+        // Sort sessions by dayNumber
         sessions.sort((a, b) => {
             const dayA = a.dayId?.dayNumber ?? 999;
             const dayB = b.dayId?.dayNumber ?? 999;
-            if (dayA !== dayB) return dayA - dayB;
-            return a._id.toString().localeCompare(b._id.toString());
+            return dayA - dayB;
         });
+
         const studentRegNums = students.map(s => s.registerNumber);
 
-        const allAttendance = await Attendance.find({
-            registerNumber: { $in: studentRegNums }
-        })
-            .select('registerNumber sessionId status isOverride timestamp photoPath')
-            .lean();
+        // Fetch attendance and submissions only for current page students
+        const [allAttendance, allSubmissions] = await Promise.all([
+            Attendance.find({ registerNumber: { $in: studentRegNums } })
+                .select('registerNumber sessionId status isOverride timestamp photoPath')
+                .lean(),
+            AssignmentSubmission.find({ registerNumber: { $in: studentRegNums } })
+                .select('registerNumber sessionId assignmentTitle')
+                .lean()
+        ]);
 
-        const allSubmissions = await AssignmentSubmission.find({
-            registerNumber: { $in: studentRegNums }
-        })
-            .select('registerNumber sessionId assignmentTitle')
-            .lean();
-
+        // Create lookups
         const attendanceMap = new Map();
         allAttendance.forEach(a => {
             attendanceMap.set(`${a.registerNumber}|${a.sessionId.toString()}`, a);
@@ -512,19 +513,17 @@ export const getProgress = async (req, res) => {
         const submissionMap = new Map();
         allSubmissions.forEach(s => {
             const key = `${s.registerNumber}|${s.sessionId.toString()}`;
-            if (!submissionMap.has(key)) submissionMap.set(key, []);
-            submissionMap.get(key).push(s);
+            if (!submissionMap.has(key)) submissionMap.set(key, new Set());
+            submissionMap.get(key).add(s.assignmentTitle);
         });
 
         const progressData = students.map(student => ({
-            registerNumber: student.registerNumber,
-            name: student.name,
-            yearOfStudy: student.yearOfStudy,
-            department: student.department,
+            ...student,
             sessions: sessions.map(session => {
-                const attendance = attendanceMap.get(`${student.registerNumber}|${session._id.toString()}`);
-                const subs = submissionMap.get(`${student.registerNumber}|${session._id.toString()}`) || [];
-                const uniqueTitles = new Set(subs.map(s => s.assignmentTitle));
+                const sessId = session._id.toString();
+                const key = `${student.registerNumber}|${sessId}`;
+                const attendance = attendanceMap.get(key);
+                const uniqueTitles = submissionMap.get(key);
 
                 return {
                     sessionId: session._id,
@@ -539,8 +538,8 @@ export const getProgress = async (req, res) => {
                     } : null,
                     attendanceStartTime: session.attendanceStartTime,
                     attendanceOpen: session.attendanceOpen,
-                    assignmentsCompleted: uniqueTitles.size,
-                    totalAssignments: session.assignments ? session.assignments.length : 0
+                    assignmentsCompleted: uniqueTitles ? uniqueTitles.size : 0,
+                    totalAssignments: session.assignments?.length || 0
                 };
             })
         }));
@@ -1051,7 +1050,7 @@ export const getCertificateSubmissions = async (req, res) => {
                 { title: /certificate/i },
                 { title: /Infosys Certified Course/i }
             ]
-        });
+        }).select('_id title isCertificateUploadOpen').lean();
 
         if (!session) {
             return res.status(404).json({ message: 'Certificate session not found' });
@@ -1065,20 +1064,22 @@ export const getCertificateSubmissions = async (req, res) => {
             ];
         }
 
-        const students = await User.find(studentQuery).select('-password').sort({ registerNumber: 1 });
+        const students = await User.find(studentQuery)
+            .select('name registerNumber collegeEmail')
+            .sort({ registerNumber: 1 })
+            .lean();
 
-        // Find all submissions for certificate (by title or type)
+        // Find all submissions for certificate
         const submissions = await AssignmentSubmission.find({
             $or: [
                 { sessionId: session._id },
                 { assignmentType: 'certificate' },
                 { assignmentTitle: /certificate/i }
             ]
-        }).lean();
+        }).select('registerNumber response assignmentTitle assignmentType submittedAt updateCount').lean();
 
         const subMap = new Map();
         submissions.forEach(s => {
-            // Keep the most recent if multiple (though findOneAndUpdate should prevent multiples)
             subMap.set(s.registerNumber, s);
         });
 

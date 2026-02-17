@@ -28,18 +28,18 @@ export const getSessionsForDay = async (req, res) => {
 
         // Verify day exists and is open
         const day = await Day.findById(dayId).select('status dayNumber').lean();
-        if (!day) {
-            return res.status(404).json({ message: 'Day not found' });
-        }
+        if (!day) return res.status(404).json({ message: 'Day not found' });
 
         if (day.status === 'LOCKED') {
             return res.status(403).json({ message: 'This day is not accessible yet' });
         }
 
-        // OPTIMIZATION: Removed blocking lazy-close. Background job (server.js/cron) handles this.
+        // Fetch all sessions with specific fields
+        const sessions = await Session.find({ dayId })
+            .select('title description mode type assignments attendanceOpen attendanceStartTime attendanceEndTime isCertificateUploadOpen')
+            .sort({ createdAt: 1 })
+            .lean();
 
-        // Fetch all sessions for determination
-        const sessions = await Session.find({ dayId }).sort({ createdAt: 1 }).lean();
         const sessionIds = sessions.map(s => s._id);
 
         // Batch fetch attendance and submissions
@@ -54,18 +54,18 @@ export const getSessionsForDay = async (req, res) => {
             }).select('sessionId assignmentTitle response updateCount').lean()
         ]);
 
-        // Create lookups for faster access
-        const attendanceMap = new Map();
-        attendances.forEach(a => attendanceMap.set(a.sessionId.toString(), a));
-
+        // Create lookups
+        const attendanceMap = new Map(attendances.map(a => [a.sessionId.toString(), a]));
         const submissionMap = new Map();
+
         submissions.forEach(s => {
             const sessId = s.sessionId.toString();
             if (!submissionMap.has(sessId)) {
                 submissionMap.set(sessId, { titles: new Set(), details: [] });
             }
-            submissionMap.get(sessId).titles.add(s.assignmentTitle);
-            submissionMap.get(sessId).details.push({
+            const item = submissionMap.get(sessId);
+            item.titles.add(s.assignmentTitle);
+            item.details.push({
                 title: s.assignmentTitle,
                 response: s.response,
                 updateCount: s.updateCount || 0
@@ -73,59 +73,47 @@ export const getSessionsForDay = async (req, res) => {
         });
 
         const now = new Date();
+        const isDay1 = day.dayNumber === 1;
 
         const sessionsWithStatus = sessions.map((session) => {
-            try {
-                const sessId = session._id.toString();
-                const attendance = attendanceMap.get(sessId);
-                const submissionData = submissionMap.get(sessId) || { titles: new Set(), details: [] };
-                const submittedTitles = submissionData.titles;
+            const sessId = session._id.toString();
+            const attendance = attendanceMap.get(sessId);
+            const submissionData = submissionMap.get(sessId) || { titles: new Set(), details: [] };
+            const submittedTitles = Array.from(submissionData.titles);
 
-                // SPECIAL RULE: Day 1 Assessment is always "completed" for everyone
-                if (day.dayNumber === 1 && session.title.toLowerCase().includes('assessment')) {
-                    submittedTitles.add('Assessment');
-                }
-
-                // Determine attendance window status
-                let attendanceWindowStatus = 'not_started';
-
-                if (session.attendanceOpen) {
-                    attendanceWindowStatus = 'active';
-                } else if (session.attendanceEndTime && now > new Date(session.attendanceEndTime)) {
-                    attendanceWindowStatus = 'closed';
-                }
-
-                // If marked attendance, it's always 'active' from student perspective (or 'marked')
-                // but let's stick to the window status and let frontend handle 'hasAttendance'
-                const isAttendanceActive = session.attendanceOpen && (
-                    !session.attendanceEndTime ||
-                    (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
-                );
-
-                const assignmentsCount = Array.isArray(session.assignments)
-                    ? session.assignments.length
-                    : 0;
-
-                return {
-                    ...session,
-                    hasAttendance: !!attendance,
-                    attendanceStatus: attendanceWindowStatus,
-                    isAttendanceActive: isAttendanceActive,
-                    assignmentsSubmitted: Array.from(submittedTitles),
-                    submissionDetails: submissionData.details,
-                    totalAssignments: assignmentsCount,
-                    isCertificateUploadOpen: session.title === "Infosys Certified Course" ? session.isCertificateUploadOpen : false
-                };
-            } catch (err) {
-                console.error(`Error processing session ${session._id}:`, err);
-                return session;
+            // SPECIAL RULE: Day 1 Assessment
+            if (isDay1 && session.title.toLowerCase().includes('assessment')) {
+                if (!submittedTitles.includes('Assessment')) submittedTitles.push('Assessment');
             }
+
+            let attendanceWindowStatus = 'not_started';
+            if (session.attendanceOpen) {
+                attendanceWindowStatus = 'active';
+            } else if (session.attendanceEndTime && now > new Date(session.attendanceEndTime)) {
+                attendanceWindowStatus = 'closed';
+            }
+
+            const isAttendanceActive = session.attendanceOpen && (
+                !session.attendanceEndTime ||
+                (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
+            );
+
+            return {
+                ...session,
+                hasAttendance: !!attendance,
+                attendanceStatus: attendanceWindowStatus,
+                isAttendanceActive,
+                assignmentsSubmitted: submittedTitles,
+                submissionDetails: submissionData.details,
+                totalAssignments: session.assignments?.length || 0,
+                isCertificateUploadOpen: session.title === "Infosys Certified Course" ? session.isCertificateUploadOpen : false
+            };
         });
 
         res.json(sessionsWithStatus);
     } catch (error) {
         console.error('Get sessions error:', error);
-        res.status(500).json({ message: 'Server error fetching sessions', error: error.message });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 

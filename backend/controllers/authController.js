@@ -23,35 +23,34 @@ export const login = async (req, res) => {
 
         console.log(`[Login] Attempt for: ${username} (normalized: ${normalizedUsername})`);
 
-        // Find user by registerNumber (always stored uppercase) or email (lowercase)
+        // Efficient finding: registerNumber is always uppercase in DB
+        const regNum = normalizedUsername.toUpperCase();
         let user = await User.findOne({
             $or: [
-                { registerNumber: normalizedUsername.toUpperCase() },
+                { registerNumber: regNum },
                 { email: normalizedUsername }
             ]
-        });
+        }).lean();
 
         if (!user) {
-            console.log(`[Login] Extract match failed for: ${normalizedUsername}. Trying regex fallback...`);
-            // Fallback: Case-insensitive regex search
+            console.log(`[Login] Exact match failed for: ${normalizedUsername}. Trying case-insensitive search...`);
+            // Fallback: Use regex with ^ and $ for exact field match but case-insensitive
             user = await User.findOne({
                 $or: [
-                    { registerNumber: { $regex: `^${normalizedUsername}$`, $options: 'i' } },
-                    { email: { $regex: `^${normalizedUsername}$`, $options: 'i' } }
+                    { registerNumber: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') } },
+                    { email: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') } }
                 ]
-            });
+            }).lean();
 
             if (!user) {
-                console.log(`[Login] User not found (even with regex): ${normalizedUsername}`);
+                console.log(`[Login] User not found: ${normalizedUsername}`);
                 return res.status(401).json({ message: 'Invalid credentials' });
             }
-            console.log(`[Login] User found via fallback: ${user.registerNumber}`);
         }
 
-        console.log(`[Login] Found user: ${user.registerNumber} (${user.role})`);
-
-        // Check password
-        const isMatch = await user.comparePassword(password);
+        // Must re-fetch or use non-lean for password comparison if it's a model method
+        const userModel = await User.findById(user._id);
+        const isMatch = await userModel.comparePassword(password);
 
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });

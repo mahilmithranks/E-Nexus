@@ -40,6 +40,7 @@ const assignmentSubmissionSchema = new mongoose.Schema({
 });
 
 // Indexes for fast queries
+assignmentSubmissionSchema.index({ registerNumber: 1, sessionId: 1, assignmentTitle: 1 });
 assignmentSubmissionSchema.index({ registerNumber: 1, sessionId: 1 });
 assignmentSubmissionSchema.index({ sessionId: 1 });
 assignmentSubmissionSchema.index({ registerNumber: 1 });

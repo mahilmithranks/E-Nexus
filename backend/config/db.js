@@ -5,9 +5,8 @@ let cachedConnection = null;
 
 const connectDB = async () => {
     // If already connected, return cached connection
-    if (cachedConnection && mongoose.connection.readyState === 1) {
-        console.log('✅ Using cached MongoDB connection');
-        return cachedConnection;
+    if (mongoose.connection.readyState === 1) {
+        return mongoose.connection;
     }
 
     try {
@@ -15,41 +14,42 @@ const connectDB = async () => {
         const options = {
             maxPoolSize: isServerless ? 5 : 200,
             minPoolSize: isServerless ? 1 : 10,
-            serverSelectionTimeoutMS: 30000,
-            socketTimeoutMS: 45000,
+            serverSelectionTimeoutMS: 5000, // Faster failure detection
+            socketTimeoutMS: 30000,
             connectTimeoutMS: 30000,
             heartbeatFrequencyMS: 10000,
             retryWrites: true,
-            retryReads: true
+            retryReads: true,
+            appName: 'ENexus-Production'
         };
 
         const conn = await mongoose.connect(process.env.MONGODB_URI, options);
-
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
 
-        // Handle connection events
-        mongoose.connection.on('error', err => {
-            console.error('MongoDB connection error:', err);
-        });
-
-        mongoose.connection.on('disconnected', () => {
-            console.warn('MongoDB disconnected. Attempting to reconnect...');
-            cachedConnection = null;
-        });
-
-        cachedConnection = conn;
         return conn;
     } catch (error) {
         console.error(`❌ MongoDB Connection Error: ${error.message}`);
-        // Instead of immediate exit, retry once after a delay if it's a network/DNS error
-        if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
-            console.log('Retrying connection in 5 seconds...');
-            await new Promise(resolve => setTimeout(resolve, 5000));
+        // Auto-retry once for network issues
+        if (['MongoNetworkError', 'MongoServerSelectionError'].includes(error.name)) {
+            console.log('🔄 Network issue detected. Retrying in 3 seconds...');
+            await new Promise(res => setTimeout(res, 3000));
             return connectDB();
         }
-        // process.exit(1); // Do not exit in serverless environment
         throw error;
     }
 };
+
+// Global Listeners to handle ephemeral resets silently
+mongoose.connection.on('error', err => {
+    if (err.code === 'ECONNRESET') {
+        console.warn('📡 MongoDB: Connection reset by peer. Driver will auto-reconnect...');
+    } else {
+        console.error('📡 MongoDB: Unhandled error:', err.message);
+    }
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.warn('📡 MongoDB: Disconnected. Ready state:', mongoose.connection.readyState);
+});
 
 export default connectDB;

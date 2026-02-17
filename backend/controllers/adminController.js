@@ -935,42 +935,40 @@ export const exportAssessments = async (req, res) => {
     try {
         const { dayId, sessionId } = req.query;
 
-        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
+        // Optimized Student Query
+        const students = await User.find({ role: 'student' })
+            .select('registerNumber name')
+            .sort({ registerNumber: 1 })
+            .lean();
 
         // Filter sessions that are assessments
-        let sessionQuery = {
-            title: { $regex: /assessment/i }
-        };
+        let sessionQuery = { title: { $regex: /assessment/i } };
+        if (sessionId) sessionQuery._id = sessionId;
+        else if (dayId) sessionQuery.dayId = dayId;
 
-        if (sessionId) {
-            sessionQuery._id = sessionId;
-        } else if (dayId) {
-            sessionQuery.dayId = dayId;
-        }
+        const sessions = await Session.find(sessionQuery)
+            .populate('dayId', 'dayNumber title')
+            .sort({ createdAt: 1 })
+            .lean();
 
-        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
-
-        if (sessions.length === 0) {
-            // Try to find ANY assessment if strict filter failed
-            if (sessionId || dayId) {
-                return res.status(404).json({ message: 'No assessment sessions found for this filter' });
-            }
+        if (sessions.length === 0 && (sessionId || dayId)) {
+            return res.status(404).json({ message: 'No assessment sessions found' });
         }
 
         const sessionIds = sessions.map(s => s._id);
         const allSubmissions = await AssignmentSubmission.find({
             sessionId: { $in: sessionIds }
-        }).lean();
+        }).select('registerNumber sessionId assignmentTitle response files submittedAt').lean();
 
         const subMap = new Map();
         allSubmissions.forEach(s => {
-            // Store by RegNum|SessionId|Title to handle multiple q's if needed, 
-            // but effectively we just need the main proof for the new format.
-            const key = `${s.registerNumber}|${s.sessionId.toString()}|${s.assignmentTitle}`;
-            subMap.set(key, s);
-            // Also map by just RegNum|SessionId for easier lookup if title varies
-            const fallbackKey = `${s.registerNumber}|${s.sessionId.toString()}`;
-            if (!subMap.has(fallbackKey)) subMap.set(fallbackKey, s);
+            const sessId = s.sessionId.toString();
+            // Map by composite key for O(1) lookup
+            subMap.set(`${s.registerNumber}|${sessId}|${s.assignmentTitle}`, s);
+            // Fallback key
+            if (!subMap.has(`${s.registerNumber}|${sessId}`)) {
+                subMap.set(`${s.registerNumber}|${sessId}`, s);
+            }
         });
 
         const workbook = new ExcelJS.Workbook();
@@ -986,21 +984,16 @@ export const exportAssessments = async (req, res) => {
             { header: 'Status', key: 'status', width: 15 }
         ];
 
+        // Batch add rows for performance
+        const rows = [];
         for (const student of students) {
             for (const session of sessions) {
-                // Priority: 'Assessment Proof' -> 'Question 01' -> Any submission for this session
-                let submission = subMap.get(`${student.registerNumber}|${session._id.toString()}|Assessment Proof`);
+                const sessId = session._id.toString();
+                let submission = subMap.get(`${student.registerNumber}|${sessId}|Assessment Proof`) ||
+                    subMap.get(`${student.registerNumber}|${sessId}|Question 01`) ||
+                    subMap.get(`${student.registerNumber}|${sessId}`);
 
-                if (!submission) {
-                    submission = subMap.get(`${student.registerNumber}|${session._id.toString()}|Question 01`);
-                }
-
-                if (!submission) {
-                    // Fallback: any submission for this user+session
-                    submission = subMap.get(`${student.registerNumber}|${session._id.toString()}`);
-                }
-
-                worksheet.addRow({
+                rows.push({
                     reg: student.registerNumber,
                     name: student.name,
                     day: session.dayId?.dayNumber || '-',
@@ -1011,13 +1004,14 @@ export const exportAssessments = async (req, res) => {
                 });
             }
         }
+        worksheet.addRows(rows);
 
-        // Apply formatting
+        // Header Formatting
         worksheet.getRow(1).font = { bold: true };
         worksheet.getRow(1).fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FFD1FAE5' } // Custom color
+            fgColor: { argb: 'FFD1FAE5' }
         };
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

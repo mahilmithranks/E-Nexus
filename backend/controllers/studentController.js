@@ -36,7 +36,8 @@ export const getSessionsForDay = async (req, res) => {
 
         // Fetch all sessions with specific fields
         const sessions = await Session.find({ dayId })
-            .select('title description mode type assignments attendanceOpen attendanceStartTime attendanceEndTime isCertificateUploadOpen')
+            .populate('dayId', 'dayNumber title')
+            .select('title description mode type dayId assignments attendanceOpen attendanceStartTime attendanceEndTime isCertificateUploadOpen')
             .sort({ createdAt: 1 })
             .lean();
 

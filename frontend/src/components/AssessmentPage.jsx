@@ -257,7 +257,13 @@ const AssessmentPage = () => {
                                         ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
                                         : (session?.title?.includes('Day 4') || session?.dayId?.dayNumber === 4 || session?.dayId?.dayNumber === '4')
                                             ? "https://docs.google.com/forms/d/e/1FAIpQLSdL5qZXlGmZyL7Eyj4HIH-1ePVwp7sQJ9OOQ5ltgZKc3vxMXg/viewform?usp=header"
-                                            : "https://docs.google.com/forms/d/e/1FAIpQLSfpbgzMS0fecLmlSnOsFI6Y6aqDKUpru5BNoGYM6pO8snZQtQ/viewform"
+                                            : (session?.title?.includes('Day 5') || session?.dayId?.dayNumber === 5 || session?.dayId?.dayNumber === '5')
+                                                ? "https://forms.gle/NyP7WDEEcyGgvBzp7"
+                                                : (session?.title?.includes('Day 6') || session?.dayId?.dayNumber === 6 || session?.dayId?.dayNumber === '6')
+                                                    ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
+                                                    : (session?.title?.includes('Day 7') || session?.dayId?.dayNumber === 7 || session?.dayId?.dayNumber === '7')
+                                                        ? "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
+                                                        : "https://forms.gle/NyP7WDEEcyGgvBzp7"
                                     }
                                     target="_blank"
                                     rel="noopener noreferrer"

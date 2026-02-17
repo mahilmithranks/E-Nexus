@@ -98,9 +98,12 @@ function CameraCapture({ onCapture, onCancel }) {
 
                 const detection = await faceapi.detectSingleFace(videoRef.current, detectorOptions);
 
-                if (detection && detection.score > 0.6) {
-                    console.log('✅ Face detected automatically! Confidence:', detection.score);
-                    autoCapture();
+                if (detection && detection.score > 0.7) {
+                    // Added a delay to make the detection feel more deliberate/slow (1.5 seconds)
+                    setTimeout(() => {
+                        console.log('✅ Face detected automatically! Confidence:', detection.score);
+                        autoCapture();
+                    }, 1500);
                     return; // Stop loop after capture
                 }
             } catch (err) {
@@ -130,21 +133,57 @@ function CameraCapture({ onCapture, onCancel }) {
 
         const video = videoRef.current;
         const canvas = canvasRef.current;
-        if (!video || !canvas) return;
+        if (!video || !canvas) {
+            setIsProcessing(false);
+            return;
+        }
 
-        const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        try {
+            // Verify face presence one last time on the current frame
+            const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 });
+            const finalDetection = await faceapi.detectSingleFace(video, detectorOptions);
 
-        canvas.toBlob((blob) => {
-            const file = new File([blob], `attendance-${Date.now()}.jpg`, {
-                type: 'image/jpeg'
-            });
-            setCaptured(true);
-            stopCamera();
-            onCapture(file);
-        }, 'image/jpeg', 0.85);
+            if (!finalDetection || finalDetection.score < 0.5) {
+                setError('Biometric verification failed: No clear face detected. Please mark again, this is not accepted.');
+                setIsProcessing(false);
+                return;
+            }
+
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Check for "Black Screen" (Low average brightness)
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            let totalBrightness = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                // Formula for perceived brightness: 0.299R + 0.587G + 0.114B
+                totalBrightness += (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+            }
+            const avgBrightness = totalBrightness / (data.length / 4);
+
+            if (avgBrightness < 15) { // Threshold for "nearly black" (0-255 scale)
+                setError('Biometric verification failed: Black screen detected. Please ensure your camera is not covered and you are in a lit area.');
+                setIsProcessing(false);
+                return;
+            }
+
+            canvas.toBlob((blob) => {
+                const file = new File([blob], `attendance-${Date.now()}.jpg`, {
+                    type: 'image/jpeg'
+                });
+                setCaptured(true);
+                stopCamera();
+                onCapture(file);
+            }, 'image/jpeg', 0.85);
+
+        } catch (err) {
+            console.error('Final verification error:', err);
+            setError('Verification error. Please ensure your camera is not covered and try again.');
+            setIsProcessing(false);
+        }
     };
 
     const capturePhoto = async () => {

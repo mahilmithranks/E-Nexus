@@ -92,18 +92,18 @@ function CameraCapture({ onCapture, onCancel }) {
 
             try {
                 const detectorOptions = new faceapi.TinyFaceDetectorOptions({
-                    inputSize: 160, // Smaller is faster (128, 160, 224)
-                    scoreThreshold: 0.5 // Higher threshold for auto-capture to avoid false positives
+                    inputSize: 224, // Higher resolution for better accuracy
+                    scoreThreshold: 0.6 // Higher threshold to ensure clear face detection
                 });
 
                 const detection = await faceapi.detectSingleFace(videoRef.current, detectorOptions);
 
-                if (detection && detection.score > 0.7) {
-                    // Added a delay to make the detection feel more deliberate/slow (1.5 seconds)
+                if (detection && detection.score > 0.75) {
+                    // Added a 3-second delay to make the detection feel more deliberate/slow
                     setTimeout(() => {
                         console.log('✅ Face detected automatically! Confidence:', detection.score);
                         autoCapture();
-                    }, 1500);
+                    }, 3000);
                     return; // Stop loop after capture
                 }
             } catch (err) {
@@ -139,15 +139,21 @@ function CameraCapture({ onCapture, onCancel }) {
         }
 
         try {
-            // Verify face presence one last time on the current frame
-            const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 });
+            // Add a 2-second delay to make the process feel more deliberate and thorough
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Verify face presence one last time on the current frame with stricter threshold
+            const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.6 });
             const finalDetection = await faceapi.detectSingleFace(video, detectorOptions);
 
-            if (!finalDetection || finalDetection.score < 0.5) {
-                setError('Biometric verification failed: No clear face detected. Please mark again, this is not accepted.');
+            if (!finalDetection || finalDetection.score < 0.6) {
+                setError('❌ Face Verification Failed: No clear face detected in the frame. Please position your face properly in front of the camera and try again.');
                 setIsProcessing(false);
+                setCaptured(false);
                 return;
             }
+
+            console.log('✅ Face verified with confidence:', finalDetection.score);
 
             const context = canvas.getContext('2d', { willReadFrequently: true });
             canvas.width = video.videoWidth;
@@ -165,8 +171,9 @@ function CameraCapture({ onCapture, onCancel }) {
             const avgBrightness = totalBrightness / (data.length / 4);
 
             if (avgBrightness < 15) { // Threshold for "nearly black" (0-255 scale)
-                setError('Biometric verification failed: Black screen detected. Please ensure your camera is not covered and you are in a lit area.');
+                setError('❌ Black Screen Detected: Your camera appears to be covered or the lighting is too dark. Please ensure proper lighting and try again.');
                 setIsProcessing(false);
+                setCaptured(false);
                 return;
             }
 

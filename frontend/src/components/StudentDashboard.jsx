@@ -20,6 +20,8 @@ function StudentDashboard() {
     const [assignmentData, setAssignmentData] = useState({});
     const [showWarning, setShowWarning] = useState(false);
     const [warningTimerSeconds, setWarningTimerSeconds] = useState(5);
+    const [showAttendanceProtocol, setShowAttendanceProtocol] = useState(false);
+    const [protocolTimer, setProtocolTimer] = useState(8);
     const [redoActive, setRedoActive] = useState({}); // Tracking resubmission mode per session
     const [showLaptopNotice, setShowLaptopNotice] = useState(() => {
         return !sessionStorage.getItem('laptopNoticeShown');
@@ -95,6 +97,16 @@ function StudentDashboard() {
         }
         return () => clearTimeout(timer);
     }, [showLaptopNotice, noticeTimer]);
+
+    useEffect(() => {
+        let timer;
+        if (showAttendanceProtocol && protocolTimer > 0) {
+            timer = setTimeout(() => {
+                setProtocolTimer(prev => prev - 1);
+            }, 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [showAttendanceProtocol, protocolTimer]);
 
     const fetchDays = async () => {
         try {
@@ -179,11 +191,12 @@ function StudentDashboard() {
 
     const openCamera = (session) => {
         setSelectedSession(session);
-        setShowCamera(true); // Direct move to camera for "one-click" experience
+        setShowAttendanceProtocol(true); // Show protocol warning first
+        setProtocolTimer(8); // Reset timer
     };
 
     const handleProceedToCamera = () => {
-        setShowWarning(false);
+        setShowAttendanceProtocol(false);
         setShowCamera(true);
     };
 
@@ -215,19 +228,23 @@ function StudentDashboard() {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            toast.success('Attendance verified successfully!', { id: toastId });
+            toast.success('Attendance verified successfully! Redirecting...', { id: toastId });
 
-            // DELAY closing the modal to show the "Identity Verified" success state
+            // Close camera and refresh sessions immediately
+            setShowCamera(false);
+            await refreshSessions(selectedDay);
+
+            // Small delay to show success message before scrolling to top
             setTimeout(() => {
-                setShowCamera(false);
-                refreshSessions(selectedDay);
-            }, 1000);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 500);
         } catch (error) {
             // Revert optimistic update on failure
             setSessions(prev => prev.map(s =>
                 s._id === currentSessionId ? { ...s, hasAttendance: false } : s
             ));
             toast.error('Verification failed: ' + (error.response?.data?.message || error.message), { id: toastId });
+            setShowCamera(false);
         }
     };
 
@@ -730,7 +747,7 @@ function StudentDashboard() {
                                                                                                 ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
                                                                                                 : (session?.title?.includes('Day 7') || session?.dayId?.dayNumber === 7 || session?.dayId?.dayNumber === '7')
                                                                                                     ? "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
-                                                                                                    : "https://forms.gle/NyP7WDEEcyGgvBzp7"
+                                                                                                    : "#re"
                                                                                 }
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
@@ -1100,6 +1117,98 @@ function StudentDashboard() {
                 )
                 }
             </AnimatePresence >
+
+            {/* Attendance Protocol Warning */}
+            <AnimatePresence>
+                {showAttendanceProtocol && (
+                    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative"
+                        >
+                            <div className="bg-gradient-to-r from-[#f05423] to-[#d64419] p-6 text-white relative overflow-hidden">
+                                <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/20 rounded-full blur-2xl" />
+                                <div className="relative z-10 flex items-center gap-3">
+                                    <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                                        <AlertCircle className="w-7 h-7 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-xl uppercase tracking-wider">Attendance Protocol</h3>
+                                        <p className="text-white/90 text-xs font-bold uppercase tracking-widest mt-0.5">Mandatory Requirements</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 sm:p-8 space-y-6">
+                                <div className="space-y-4">
+                                    <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-200">
+                                        <h4 className="text-amber-900 font-black text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            <Camera className="w-4 h-4" />
+                                            Biometric Verification Rules
+                                        </h4>
+                                        <ul className="space-y-2.5 text-amber-800">
+                                            <li className="flex items-start gap-2 text-sm font-semibold">
+                                                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                                                <span>Your <strong>face must be clearly visible</strong> and well-lit</span>
+                                            </li>
+                                            <li className="flex items-start gap-2 text-sm font-semibold">
+                                                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                                                <span>Wear <strong>proper dress code</strong> (formal/semi-formal attire)</span>
+                                            </li>
+                                            <li className="flex items-start gap-2 text-sm font-semibold">
+                                                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                                                <span><strong>Do NOT cover or hide</strong> your camera</span>
+                                            </li>
+                                            <li className="flex items-start gap-2 text-sm font-semibold">
+                                                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600" />
+                                                <span>Attendance will be <strong>verified and validated</strong></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl bg-red-50 border border-red-200">
+                                        <p className="text-red-900 font-bold text-xs uppercase tracking-wider text-center">
+                                            ⚠️ Improper attendance marking may result in rejection
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handleProceedToCamera}
+                                    disabled={protocolTimer > 0}
+                                    className={cn(
+                                        "w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2",
+                                        protocolTimer > 0
+                                            ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                                            : "bg-gradient-to-r from-[#f05423] to-[#d64419] text-white hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                                    )}
+                                >
+                                    {protocolTimer > 0 ? (
+                                        <>
+                                            <Clock className="w-4 h-4 animate-pulse" />
+                                            Wait {protocolTimer}s to Continue
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Camera className="w-4 h-4" />
+                                            I Understand, Proceed to Camera
+                                        </>
+                                    )}
+                                </button>
+
+                                <button
+                                    onClick={() => setShowAttendanceProtocol(false)}
+                                    className="w-full py-3 text-zinc-600 hover:text-zinc-900 font-bold text-xs uppercase tracking-widest transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Camera Overlay */}
             < AnimatePresence >

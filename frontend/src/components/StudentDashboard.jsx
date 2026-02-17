@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, LogOut, FileText, Link as LinkIcon, Upload, Calendar, Clock, ChevronRight, CheckCircle, AlertCircle, Lock, X, Send, ExternalLink } from 'lucide-react';
 import api from '../services/api';
 import { getUser, clearAuth } from '../utils/auth';
-import CameraCapture from './CameraCapture';
+import CameraCapture, { loadModels } from './CameraCapture';
 import { cn } from '../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -47,6 +47,7 @@ function StudentDashboard() {
 
     useEffect(() => {
         fetchDays();
+        loadModels(); // Pre-load face-api models for faster initialization
     }, []);
 
     // Optimized Auto-refresh: Poll for a "tick" first, then fetch full data if changed
@@ -105,8 +106,8 @@ function StudentDashboard() {
             const openDay = daysData.find(d => d.status === 'OPEN');
             if (openDay) {
                 setSelectedDay(openDay._id);
-                const sessionRes = await api.get(`/student/sessions/${openDay._id}`);
-                setSessions(Array.isArray(sessionRes.data) ? sessionRes.data : []);
+                // Background refresh sessions for the current day
+                refreshSessions(openDay._id);
             }
         } catch (error) {
             console.error('Error fetching days:', error);
@@ -125,7 +126,7 @@ function StudentDashboard() {
             setSessions(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Error refreshing sessions:', error);
-            // Don't toast on auto-refresh to avoid spam, but clear sessions if needed
+            // Non-blocking error for background refresh
         } finally {
             setIsRefreshing(false);
         }
@@ -178,8 +179,7 @@ function StudentDashboard() {
 
     const openCamera = (session) => {
         setSelectedSession(session);
-        setWarningTimerSeconds(5);
-        setShowWarning(true);
+        setShowCamera(true); // Direct move to camera for "one-click" experience
     };
 
     const handleProceedToCamera = () => {
@@ -189,21 +189,41 @@ function StudentDashboard() {
 
     const handlePhotoCapture = async (photoFile) => {
         setShowCamera(false);
-        const toastId = toast.loading('Submitting attendance...');
+        const currentSessionId = selectedSession._id;
+
+        // Optimistic UI Update: Mark as verified locally first
+        setSessions(prev => prev.map(s =>
+            s._id === currentSessionId ? { ...s, hasAttendance: true } : s
+        ));
+
+        const toastId = toast.loading('Synchronizing biometric data...', {
+            style: {
+                borderRadius: '10px',
+                background: '#333',
+                color: '#fff',
+                fontSize: '12px',
+                fontWeight: 'bold'
+            }
+        });
 
         try {
             const formData = new FormData();
-            formData.append('sessionId', selectedSession._id);
+            formData.append('sessionId', currentSessionId);
             formData.append('photo', photoFile);
 
             await api.post('/student/attendance', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            toast.success('Attendance marked successfully!', { id: toastId });
-            selectDay(selectedDay);
+            toast.success('Attendance verified successfully!', { id: toastId });
+            // Refresh in background to ensure everything is in sync
+            refreshSessions(selectedDay);
         } catch (error) {
-            toast.error('Error marking attendance: ' + (error.response?.data?.message || error.message), { id: toastId });
+            // Revert optimistic update on failure
+            setSessions(prev => prev.map(s =>
+                s._id === currentSessionId ? { ...s, hasAttendance: false } : s
+            ));
+            toast.error('Verification failed: ' + (error.response?.data?.message || error.message), { id: toastId });
         }
     };
 
@@ -289,9 +309,9 @@ function StudentDashboard() {
                         y: [0, -30, 50, 0],
                         scale: [1, 1.1, 0.9, 1]
                     }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="hidden md:block absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#f05423]/10 blur-[120px]"
-                    style={{ willChange: 'transform' }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="hidden md:block absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#f05423]/05 blur-[80px]"
+                    style={{ willChange: 'transform', transform: 'translate3d(0,0,0)' }}
                 />
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -301,22 +321,11 @@ function StudentDashboard() {
                         y: [0, 60, -40, 0],
                         scale: [1, 0.9, 1.1, 1]
                     }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#ff9d00]/10 blur-[100px]"
-                    style={{ willChange: 'transform' }}
+                    transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                    className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#ff9d00]/05 blur-[80px]"
+                    style={{ willChange: 'transform', transform: 'translate3d(0,0,0)' }}
                 />
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{
-                        opacity: 1,
-                        x: [0, 30, -50, 0],
-                        y: [0, 40, 20, 0]
-                    }}
-                    transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-                    className="hidden md:block absolute top-[30%] left-[20%] w-[40vw] h-[40vw] rounded-full bg-blue-400/05 blur-[120px]"
-                    style={{ willChange: 'transform' }}
-                />
-                <div className="absolute inset-0 opacity-[0.3]"
+                <div className="absolute inset-0 opacity-[0.2]"
                     style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.5'/%3E%3C/svg%3E")`,
                     }}

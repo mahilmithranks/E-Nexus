@@ -188,7 +188,7 @@ function StudentDashboard() {
     };
 
     const handlePhotoCapture = async (photoFile) => {
-        setShowCamera(false);
+        // KEEP CAMERA MODAL OPEN while uploading to prevent "white screen" effect
         const currentSessionId = selectedSession._id;
 
         // Optimistic UI Update: Mark as verified locally first
@@ -216,8 +216,12 @@ function StudentDashboard() {
             });
 
             toast.success('Attendance verified successfully!', { id: toastId });
-            // Refresh in background to ensure everything is in sync
-            refreshSessions(selectedDay);
+
+            // DELAY closing the modal to show the "Identity Verified" success state
+            setTimeout(() => {
+                setShowCamera(false);
+                refreshSessions(selectedDay);
+            }, 1000);
         } catch (error) {
             // Revert optimistic update on failure
             setSessions(prev => prev.map(s =>
@@ -716,15 +720,17 @@ function StudentDashboard() {
                                                                         {/* Only show button if attendance is marked OR if it's not the specific N8N session that requires it */}
                                                                         {(!session.title.includes("Customization") || session.hasAttendance) ? (
                                                                             <a
-                                                                                href={(session.title.includes("Day 3") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 3") || days.find(d => d._id === selectedDay)?.dayNumber === 3 || days.find(d => d._id === selectedDay)?.dayNumber === '3')
+                                                                                href={(session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3')
                                                                                     ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
-                                                                                    : (session.title.includes("Day 6") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 6") || days.find(d => d._id === selectedDay)?.dayNumber === 6 || days.find(d => d._id === selectedDay)?.dayNumber === '6')
-                                                                                        ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
-                                                                                        : (session.title.includes("Day 7") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 7") || days.find(d => d._id === selectedDay)?.dayNumber === 7 || days.find(d => d._id === selectedDay)?.dayNumber === '7')
-                                                                                            ? "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
-                                                                                            : (session.title.includes("Customization") || (days.find(d => d._id === selectedDay)?.title || "").includes("Day 8"))
-                                                                                                ? "https://docs.google.com/forms/d/e/1FAIpQLSdO74i2TwnCNFObqrxIb8_wd4UldEcTvb5I8uL46d9qM-wHhg/viewform?usp=header"
-                                                                                                : undefined
+                                                                                    : (session?.title?.includes('Day 4') || session?.dayId?.dayNumber === 4 || session?.dayId?.dayNumber === '4')
+                                                                                        ? "https://docs.google.com/forms/d/e/1FAIpQLSdL5qZXlGmZyL7Eyj4HIH-1ePVwp7sQJ9OOQ5ltgZKc3vxMXg/viewform?usp=header"
+                                                                                        : (session?.title?.includes('Day 5') || session?.dayId?.dayNumber === 5 || session?.dayId?.dayNumber === '5')
+                                                                                            ? "https://forms.gle/NyP7WDEEcyGgvBzp7"
+                                                                                            : (session?.title?.includes('Day 6') || session?.dayId?.dayNumber === 6 || session?.dayId?.dayNumber === '6')
+                                                                                                ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
+                                                                                                : (session?.title?.includes('Day 7') || session?.dayId?.dayNumber === 7 || session?.dayId?.dayNumber === '7')
+                                                                                                    ? "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
+                                                                                                    : "https://forms.gle/NyP7WDEEcyGgvBzp7"
                                                                                 }
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
@@ -890,7 +896,15 @@ function StudentDashboard() {
                                                         </div>
 
                                                         <div className="shrink-0">
-                                                            {session.title.toLowerCase().includes('assessment') ? (
+                                                            {(
+                                                                session.title.toLowerCase().includes('assessment') ||
+                                                                (session.title.toLowerCase().includes("low level design") && (
+                                                                    session.dayId?.dayNumber === 5 ||
+                                                                    session.dayId === '5' ||
+                                                                    days.find(d => d._id === selectedDay)?.dayNumber === 5 ||
+                                                                    days.find(d => d._id === selectedDay)?.dayNumber === '5'
+                                                                ))
+                                                            ) ? (
                                                                 <div className="flex flex-col items-end gap-3">
                                                                     {!session.hasAttendance ? (
                                                                         session.attendanceStatus === 'closed' ? (
@@ -933,15 +947,11 @@ function StudentDashboard() {
                                                                             </div>
                                                                             <button
                                                                                 onClick={() => {
-                                                                                    if (session.assignmentsSubmitted?.length >= 5) {
-                                                                                        navigate(`/assessment/${session._id}`);
-                                                                                    } else {
-                                                                                        navigate(`/assessment/${session._id}`);
-                                                                                    }
+                                                                                    navigate(`/assessment/${session._id}`);
                                                                                 }}
                                                                                 className="px-6 py-3 sm:px-8 sm:py-4 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-700 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-xl shadow-zinc-200/50 transition-all flex items-center gap-2 active:scale-95 group"
                                                                             >
-                                                                                {session.assignmentsSubmitted?.some(title => title.toLowerCase().includes('assessment')) ? (
+                                                                                {session.assignmentsSubmitted?.some(title => title.toLowerCase().includes('assessment') || title.toLowerCase().includes('proof')) ? (
                                                                                     <>
                                                                                         <CheckCircle className="w-4 h-4 text-emerald-500" />
                                                                                         Assessment Completed

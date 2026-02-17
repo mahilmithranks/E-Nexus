@@ -67,10 +67,13 @@ app.get('/', (req, res) => {
 // Background job to close expired attendance sessions
 if (!process.env.VERCEL) {
     setInterval(async () => {
-        // Guard: Only run if DB is connected
-        if (mongoose.connection.readyState !== 1) return;
-
         try {
+            // Guard: Only run if DB is truly connected
+            if (mongoose.connection.readyState !== 1) {
+                // If disconnected/connecting, don't perform operations
+                return;
+            }
+
             const now = new Date();
             const result = await Session.updateMany(
                 {
@@ -80,19 +83,23 @@ if (!process.env.VERCEL) {
                 {
                     $set: { attendanceOpen: false }
                 }
-            );
+            ).maxTimeMS(5000); // 5s timeout to prevent hanging on network issues
 
             if (result.modifiedCount > 0) {
                 console.log(`Auto-closed ${result.modifiedCount} expired session(s).`);
-                // Clear relevant caches when sessions auto-close
                 clearCache('student-sessions');
                 clearCache('admin-sessions');
                 clearCache('admin-progress');
             }
         } catch (error) {
-            console.error('Error in auto-close job:', error);
+            // Log issues but don't crash the background process
+            if (error.code === 'ECONNRESET' || error.name === 'MongoNetworkError') {
+                console.warn('Background Job: MongoDB network hiccup, skipping this cycle...');
+            } else {
+                console.error('Error in auto-close job:', error);
+            }
         }
-    }, 10 * 1000); // Check every 10 seconds
+    }, 15 * 1000); // Increased interval to 15s to reduce connection pressure
 }
 
 // Create upload directories if they don't exist

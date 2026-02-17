@@ -21,6 +21,10 @@ function StudentDashboard() {
     const [showWarning, setShowWarning] = useState(false);
     const [warningTimerSeconds, setWarningTimerSeconds] = useState(5);
     const [redoActive, setRedoActive] = useState({}); // Tracking resubmission mode per session
+    const [showLaptopNotice, setShowLaptopNotice] = useState(() => {
+        return !sessionStorage.getItem('laptopNoticeShown');
+    });
+    const [noticeTimer, setNoticeTimer] = useState(10);
 
     const user = getUser();
     const navigate = useNavigate();
@@ -80,6 +84,16 @@ function StudentDashboard() {
         }
         return () => clearTimeout(timer);
     }, [showWarning, warningTimerSeconds]);
+
+    useEffect(() => {
+        let timer;
+        if (showLaptopNotice && noticeTimer > 0) {
+            timer = setTimeout(() => {
+                setNoticeTimer(prev => prev - 1);
+            }, 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [showLaptopNotice, noticeTimer]);
 
     const fetchDays = async () => {
         try {
@@ -158,6 +172,7 @@ function StudentDashboard() {
 
     const handleLogout = () => {
         clearAuth();
+        sessionStorage.removeItem('laptopNoticeShown');
         window.location.href = '/';
     };
 
@@ -313,8 +328,8 @@ function StudentDashboard() {
                     <div className="flex items-center gap-2 sm:gap-4">
                         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 border border-white/40 shadow-sm backdrop-blur-md">
                             <div className="text-right">
-                                <p className="text-[9px] sm:text-[10px] md:text-xs font-bold text-zinc-900 leading-none capitalize truncate max-w-[80px] sm:max-w-none">{user.name}</p>
-                                <p className="text-[7px] sm:text-[8px] md:text-[9px] text-zinc-400 font-bold uppercase tracking-tighter mt-0.5 sm:mt-1 truncate">{user.registerNumber}</p>
+                                <p className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-900 leading-none capitalize truncate max-w-[100px] sm:max-w-none">{user.name}</p>
+                                <p className="text-[9px] sm:text-[10px] md:text-xs text-zinc-400 font-bold uppercase tracking-tighter mt-0.5 sm:mt-1 truncate">{user.registerNumber}</p>
                             </div>
                             <div className="size-5 sm:size-6 md:size-8 rounded-md sm:rounded-lg bg-[#f05423]/10 border border-[#f05423]/20 flex items-center justify-center text-[#f05423] text-[9px] sm:text-[10px] md:text-xs font-bold ring-1 sm:ring-2 ring-white/50 shrink-0">
                                 {user.name?.[0]}
@@ -342,10 +357,24 @@ function StudentDashboard() {
                     </div>
                 </header>
 
-                <main className="flex-1 flex flex-col md:flex-row max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-10 py-6 sm:py-10 gap-6 sm:gap-10">
+                <main className="flex-1 flex flex-col-reverse md:flex-row max-w-[1600px] mx-auto w-full px-3 sm:px-4 md:px-10 py-6 sm:py-10 gap-6 sm:gap-10">
 
                     {/* LEFT PANEL: TIMELINE & STATS */}
                     <div className="w-full md:w-80 space-y-6 sm:space-y-8 shrink-0">
+                        {/* PERSISTENT HIGHLIGHTED NOTICE */}
+                        <div className="p-5 sm:p-6 rounded-2xl bg-[#f05423] text-white shadow-xl shadow-[#f05423]/30 relative overflow-hidden group animate-pulse">
+                            <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/20 rounded-full blur-2xl" />
+                            <div className="relative z-10 space-y-3">
+                                <div className="flex items-center gap-2 text-white/90 text-[10px] font-black uppercase tracking-widest">
+                                    <AlertCircle className="w-4 h-4" />
+                                    Critically Important
+                                </div>
+                                <p className="text-sm sm:text-base font-bold leading-tight">
+                                    "A laptop is mandatory for Day 8 (21.02.2026). Please ensure you bring your device."
+                                </p>
+                            </div>
+                        </div>
+
                         {/* User Metadata Card - Glassy */}
                         <div className="p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
                             <div className="absolute -right-4 -top-4 size-24 sm:size-32 bg-[#f05423]/10 blur-3xl rounded-full" />
@@ -585,12 +614,12 @@ function StudentDashboard() {
                         <div className="space-y-6">
                             <AnimatePresence mode="wait">
                                 {isRefreshing && sessions.length === 0 ? (
-                                    <div className="py-20 flex flex-col items-center justify-center text-zinc-400 space-y-4">
+                                    <div className="py-10 sm:py-20 flex flex-col items-center justify-center text-zinc-400 space-y-4">
                                         <div className="w-6 h-6 border border-zinc-300 border-t-transparent animate-spin rounded-full" />
                                         <p className="text-xs font-black uppercase tracking-[0.2em]">Synchronizing Records</p>
                                     </div>
                                 ) : sessions.length === 0 ? (
-                                    <div className="py-20 rounded-[2.5rem] border border-dashed border-zinc-200 flex flex-col items-center justify-center text-zinc-400 bg-white/30 backdrop-blur-sm">
+                                    <div className="py-10 sm:py-20 rounded-[2rem] sm:rounded-[2.5rem] border border-dashed border-zinc-200 flex flex-col items-center justify-center text-zinc-400 bg-white/30 backdrop-blur-sm">
                                         <AlertCircle className="w-8 h-8 mb-4 opacity-20" />
                                         <p className="text-xs font-black uppercase tracking-[0.2em]">No Active Sessions Found</p>
                                     </div>
@@ -602,7 +631,7 @@ function StudentDashboard() {
                                                 initial={{ opacity: 0, scale: 0.98 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ delay: idx * 0.05 }}
-                                                className="group relative p-8 rounded-[2.5rem] bg-white/60 border border-white/60 hover:border-[#f05423]/30 transition-all duration-500 overflow-hidden shadow-xl shadow-zinc-200/40 backdrop-blur-2xl"
+                                                className="group relative p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] bg-white/60 border border-white/60 hover:border-[#f05423]/30 transition-all duration-500 overflow-hidden shadow-xl shadow-zinc-200/40 backdrop-blur-2xl"
                                             >
                                                 <div className="absolute -right-20 -bottom-20 size-64 bg-[#f05423]/05 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
 
@@ -848,7 +877,7 @@ function StudentDashboard() {
                                                                                 {session.isAttendanceActive ? (
                                                                                     <button
                                                                                         onClick={() => openCamera(session)}
-                                                                                        className="px-8 py-3 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-[#f05423]/20 transition-all flex items-center gap-2.5 active:scale-95"
+                                                                                        className="px-6 py-2.5 sm:px-8 sm:py-3 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-lg shadow-[#f05423]/20 transition-all flex items-center gap-2 active:scale-95"
                                                                                     >
                                                                                         <Camera className="w-4 h-4" />
                                                                                         Authenticate
@@ -875,7 +904,7 @@ function StudentDashboard() {
                                                                                         navigate(`/assessment/${session._id}`);
                                                                                     }
                                                                                 }}
-                                                                                className="px-8 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-700 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-zinc-200/50 transition-all flex items-center gap-2.5 active:scale-95 group"
+                                                                                className="px-6 py-3 sm:px-8 sm:py-4 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-700 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-xl shadow-zinc-200/50 transition-all flex items-center gap-2 active:scale-95 group"
                                                                             >
                                                                                 {session.assignmentsSubmitted?.some(title => title.toLowerCase().includes('assessment')) ? (
                                                                                     <>
@@ -925,7 +954,7 @@ function StudentDashboard() {
                                                                     ) : session.isAttendanceActive ? (
                                                                         <button
                                                                             onClick={() => openCamera(session)}
-                                                                            className="px-8 py-4 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-[#f05423]/20 transition-all flex items-center gap-2.5 active:scale-95 hover:scale-105"
+                                                                            className="px-6 py-3 sm:px-8 sm:py-4 rounded-2xl bg-[#f05423] hover:bg-[#ff9d00] text-white text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-xl shadow-[#f05423]/20 transition-all flex items-center gap-2 active:scale-95 hover:scale-105"
                                                                         >
                                                                             <Camera className="w-4 h-4" />
                                                                             Authenticate
@@ -1039,6 +1068,67 @@ function StudentDashboard() {
                 )
                 }
             </AnimatePresence >
+
+            {/* MANDATORY LAPTOP NOTICE */}
+            <AnimatePresence>
+                {showLaptopNotice && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl relative"
+                        >
+                            <div className="bg-[#f05423] p-6 text-white relative overflow-hidden">
+                                <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/20 rounded-full blur-xl" />
+                                <div className="relative z-10 flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                                        <AlertCircle className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-lg uppercase tracking-wider">Crucial Update</h3>
+                                        <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Day 8 Preparation</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 sm:p-8 space-y-6">
+                                <div className="space-y-4 text-center">
+                                    <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-100 shadow-inner">
+                                        <p className="text-zinc-900 font-bold text-lg sm:text-xl leading-relaxed">
+                                            "A laptop is mandatory for Day 8 (21.02.2026). Please ensure you bring your device."
+                                        </p>
+                                    </div>
+                                    <p className="text-[#f05423] text-sm font-bold uppercase tracking-widest animate-pulse">
+                                        Mandatory Requirement
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        setShowLaptopNotice(false);
+                                        sessionStorage.setItem('laptopNoticeShown', 'true');
+                                    }}
+                                    disabled={noticeTimer > 0}
+                                    className="w-full py-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl shadow-zinc-200/50"
+                                >
+                                    {noticeTimer > 0 ? (
+                                        <>
+                                            <Clock className="w-4 h-4 animate-spin" />
+                                            Read Carefully ({noticeTimer}s)
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle className="w-4 h-4" />
+                                            I Acknowledge
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }

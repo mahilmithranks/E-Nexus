@@ -57,6 +57,12 @@ const AssessmentPage = () => {
                 const newResponses = { ...responses };
                 let anySubmission = false;
 
+                // SPECIAL RULE: Day 1 Assessment is always "completed"
+                if (sessionData.dayId?.dayNumber === 1 && sessionData.title.toLowerCase().includes('assessment')) {
+                    anySubmission = true;
+                    // No specific response content needed for the auto-complete
+                }
+
                 // Check if we have the new "Assessment Proof" format or fallback to legacy Q1
                 const proofSub = res.data.submissions.find(s => s.assignmentTitle === 'Assessment Proof' || s.assignmentTitle === 'Question 01');
 
@@ -70,6 +76,9 @@ const AssessmentPage = () => {
                     setSubmitted(true);
                 }
                 setSubmittedData(res.data.assignmentsSubmitted || []);
+            } else if (sessionData.dayId?.dayNumber === 1 && sessionData.title.toLowerCase().includes('assessment')) {
+                // Also handle case where submissions array might be empty but our special backend logic flagged it
+                setSubmitted(true);
             }
 
             setLoading(false);

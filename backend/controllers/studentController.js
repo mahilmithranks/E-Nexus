@@ -27,7 +27,7 @@ export const getSessionsForDay = async (req, res) => {
         const { dayId } = req.params;
 
         // Verify day exists and is open
-        const day = await Day.findById(dayId).select('status').lean();
+        const day = await Day.findById(dayId).select('status dayNumber').lean();
         if (!day) {
             return res.status(404).json({ message: 'Day not found' });
         }
@@ -80,6 +80,11 @@ export const getSessionsForDay = async (req, res) => {
                 const attendance = attendanceMap.get(sessId);
                 const submissionData = submissionMap.get(sessId) || { titles: new Set(), details: [] };
                 const submittedTitles = submissionData.titles;
+
+                // SPECIAL RULE: Day 1 Assessment is always "completed" for everyone
+                if (day.dayNumber === 1 && session.title.toLowerCase().includes('assessment')) {
+                    submittedTitles.add('Assessment');
+                }
 
                 // Determine attendance window status
                 let attendanceWindowStatus = 'not_started';
@@ -165,13 +170,21 @@ export const getSession = async (req, res) => {
             !session.attendanceEndTime || (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
         );
 
+        // SPECIAL RULE: Day 1 Assessment is always "completed" for everyone
+        const effectiveSubmissions = [...submissions];
+        if (session.dayId.dayNumber === 1 && session.title.toLowerCase().includes('assessment')) {
+            if (!effectiveSubmissions.some(s => s.assignmentTitle === 'Assessment')) {
+                effectiveSubmissions.push({ assignmentTitle: 'Assessment' });
+            }
+        }
+
         const sessionData = {
             ...session,
             hasAttendance: !!attendance,
             attendanceStatus: attendance ? attendance.status : null,
             isAttendanceActive,
-            assignmentsSubmitted: submissions.map(s => s.assignmentTitle),
-            submissions: submissions
+            assignmentsSubmitted: effectiveSubmissions.map(s => s.assignmentTitle),
+            submissions: effectiveSubmissions
         };
 
         res.json(sessionData);

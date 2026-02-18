@@ -941,10 +941,19 @@ export const exportAssessments = async (req, res) => {
             .sort({ registerNumber: 1 })
             .lean();
 
-        // Filter sessions that are assessments
-        let sessionQuery = { title: { $regex: /assessment/i } };
-        if (sessionId) sessionQuery._id = sessionId;
-        else if (dayId) sessionQuery.dayId = dayId;
+        // Build session query - when sessionId is given, query by ID only (no title filter)
+        let sessionQuery = {};
+        if (sessionId) {
+            // Specific session requested - don't filter by title
+            sessionQuery._id = sessionId;
+        } else if (dayId) {
+            // Day filter - still look for assessment-titled sessions within that day
+            sessionQuery.dayId = dayId;
+            sessionQuery.title = { $regex: /assessment/i };
+        } else {
+            // No filter - export all assessment sessions
+            sessionQuery.title = { $regex: /assessment/i };
+        }
 
         const sessions = await Session.find(sessionQuery)
             .populate('dayId', 'dayNumber title')
@@ -952,23 +961,34 @@ export const exportAssessments = async (req, res) => {
             .lean();
 
         if (sessions.length === 0 && (sessionId || dayId)) {
-            return res.status(404).json({ message: 'No assessment sessions found' });
+            return res.status(404).json({ message: 'No sessions found for the specified criteria' });
         }
 
         const sessionIds = sessions.map(s => s._id);
-        const allSubmissions = await AssignmentSubmission.find({
-            sessionId: { $in: sessionIds }
-        }).select('registerNumber sessionId assignmentTitle response files submittedAt').lean();
 
+        // Fetch both submissions AND attendance (needed for sessions where assessment is via external form)
+        const [allSubmissions, allAttendance] = await Promise.all([
+            AssignmentSubmission.find({
+                sessionId: { $in: sessionIds }
+            }).select('registerNumber sessionId assignmentTitle response files submittedAt').lean(),
+            Attendance.find({
+                sessionId: { $in: sessionIds }
+            }).select('registerNumber sessionId status timestamp').lean()
+        ]);
+
+        // Build submission map - store ALL submissions per student+session
         const subMap = new Map();
         allSubmissions.forEach(s => {
             const sessId = s.sessionId.toString();
-            // Map by composite key for O(1) lookup
-            subMap.set(`${s.registerNumber}|${sessId}|${s.assignmentTitle}`, s);
-            // Fallback key
-            if (!subMap.has(`${s.registerNumber}|${sessId}`)) {
-                subMap.set(`${s.registerNumber}|${sessId}`, s);
-            }
+            const key = `${s.registerNumber}|${sessId}`;
+            if (!subMap.has(key)) subMap.set(key, []);
+            subMap.get(key).push(s);
+        });
+
+        // Build attendance map
+        const attMap = new Map();
+        allAttendance.forEach(a => {
+            attMap.set(`${a.registerNumber}|${a.sessionId.toString()}`, a);
         });
 
         const workbook = new ExcelJS.Workbook();
@@ -979,6 +999,7 @@ export const exportAssessments = async (req, res) => {
             { header: 'Student Name', key: 'name', width: 25 },
             { header: 'Day', key: 'day', width: 10 },
             { header: 'Session', key: 'session', width: 30 },
+            { header: 'Attendance', key: 'attendance', width: 12 },
             { header: 'Assessment Link / Proof', key: 'proof', width: 50 },
             { header: 'Submitted At', key: 'submittedAt', width: 20 },
             { header: 'Status', key: 'status', width: 15 }
@@ -989,18 +1010,25 @@ export const exportAssessments = async (req, res) => {
         for (const student of students) {
             for (const session of sessions) {
                 const sessId = session._id.toString();
-                let submission = subMap.get(`${student.registerNumber}|${sessId}|Assessment Proof`) ||
-                    subMap.get(`${student.registerNumber}|${sessId}|Question 01`) ||
-                    subMap.get(`${student.registerNumber}|${sessId}`);
+                const key = `${student.registerNumber}|${sessId}`;
+
+                // Get all submissions for this student+session, pick the best one
+                const submissions = subMap.get(key) || [];
+                let submission = submissions.find(s => s.assignmentTitle === 'Assessment Proof') ||
+                    submissions.find(s => s.assignmentTitle === 'Question 01') ||
+                    submissions[0] || null;
+
+                const attendance = attMap.get(key);
 
                 rows.push({
                     reg: student.registerNumber,
                     name: student.name,
                     day: session.dayId?.dayNumber || '-',
                     session: session.title,
+                    attendance: attendance ? 'PRESENT' : 'ABSENT',
                     proof: submission ? (submission.response || (submission.files?.[0] || '-')) : '-',
                     submittedAt: submission ? new Date(submission.submittedAt).toLocaleString() : '-',
-                    status: submission ? 'SUBMITTED' : 'PENDING'
+                    status: submission ? 'SUBMITTED' : (attendance ? 'ATTENDED (External Form)' : 'PENDING')
                 });
             }
         }

@@ -1396,8 +1396,14 @@ function AdminDashboard() {
                                                                 >
                                                                     <option value="">All Assessment Modules</option>
                                                                     {sessions
-                                                                        .filter(s => s.title.toLowerCase().includes('assessment'))
                                                                         .filter(s => !exportFilters.dayId || s.dayId?._id === exportFilters.dayId || s.dayId === exportFilters.dayId)
+                                                                        .filter(s => {
+                                                                            // For Day 5, show all sessions (assessment is via external Google Form)
+                                                                            const selectedDay = days.find(d => d._id === exportFilters.dayId);
+                                                                            if (selectedDay?.dayNumber === 5) return true;
+                                                                            // For all other days, only show assessment-titled sessions
+                                                                            return s.title.toLowerCase().includes('assessment');
+                                                                        })
                                                                         .map(s => (
                                                                             <option key={s._id} value={s._id}>{s.title}</option>
                                                                         ))}

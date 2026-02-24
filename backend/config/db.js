@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 // Cache the database connection for serverless environments
 let cachedConnection = null;
 
-const connectDB = async () => {
+const connectDB = async (retryCount = 0) => {
     // If already connected, return cached connection
     if (mongoose.connection.readyState === 1) {
         return mongoose.connection;
@@ -14,9 +14,9 @@ const connectDB = async () => {
         const options = {
             maxPoolSize: isServerless ? 5 : 200,
             minPoolSize: isServerless ? 1 : 10,
-            serverSelectionTimeoutMS: 5000, // Faster failure detection
-            socketTimeoutMS: 30000,
-            connectTimeoutMS: 30000,
+            serverSelectionTimeoutMS: 10000, // Increased to 10s for slower DNS
+            socketTimeoutMS: 45000,
+            connectTimeoutMS: 45000,
             heartbeatFrequencyMS: 10000,
             retryWrites: true,
             retryReads: true,
@@ -28,12 +28,23 @@ const connectDB = async () => {
 
         return conn;
     } catch (error) {
-        console.error(`❌ MongoDB Connection Error: ${error.message}`);
-        // Auto-retry once for network issues
-        if (['MongoNetworkError', 'MongoServerSelectionError'].includes(error.name)) {
-            console.log('🔄 Network issue detected. Retrying in 3 seconds...');
-            await new Promise(res => setTimeout(res, 3000));
-            return connectDB();
+        const isNetworkError = [
+            'MongoNetworkError',
+            'MongoServerSelectionError',
+            'ETIMEOUT',
+            'EAI_AGAIN'
+        ].includes(error.code) ||
+            ['MongoNetworkError', 'MongoServerSelectionError'].includes(error.name) ||
+            error.message.includes('ETIMEOUT');
+
+        console.error(`❌ MongoDB Connection Error (Attempt ${retryCount + 1}): ${error.message}`);
+
+        // Limit retries to 3
+        if (isNetworkError && retryCount < 3) {
+            const delay = 5000 * (retryCount + 1);
+            console.log(`🔄 Network issue detected. Retrying in ${delay / 1000} seconds...`);
+            await new Promise(res => setTimeout(res, delay));
+            return connectDB(retryCount + 1);
         }
         throw error;
     }

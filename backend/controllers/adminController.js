@@ -8,6 +8,7 @@ import { clearCache } from '../middleware/cache.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import bcrypt from 'bcryptjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,38 +46,45 @@ export const preloadStudents = async (req, res) => {
             return res.status(400).json({ message: 'Invalid students data' });
         }
 
-        let createdCount = 0;
-        let skippedCount = 0;
+        // Batch-check existing register numbers in one query
+        const regNums = students.map(s => s.registerNumber.toUpperCase());
+        const existing = await User.find({ registerNumber: { $in: regNums } }).select('registerNumber').lean();
+        const existingSet = new Set(existing.map(u => u.registerNumber));
 
+        // Build bulk ops only for new students
+        // IMPORTANT: bulkWrite bypasses Mongoose pre-save hooks, so we must hash passwords manually
+        const salt = await bcrypt.genSalt(10);
+        const ops = [];
         for (const studentData of students) {
             const { registerNumber, name, email, yearOfStudy, department } = studentData;
-
-            // Check if student already exists
-            const studentExists = await User.findOne({ registerNumber: registerNumber.toUpperCase() });
-
-            if (studentExists) {
-                skippedCount++;
-                continue;
-            }
-
-            // Create new student - password is registerNumber by default
-            await User.create({
-                registerNumber,
-                name,
-                email: email || `${registerNumber.toLowerCase()}@klu.ac.in`,
-                password: registerNumber,
-                yearOfStudy: yearOfStudy || '1',
-                department: department || 'General',
-                role: 'student'
+            const regUpper = registerNumber.toUpperCase();
+            if (existingSet.has(regUpper)) continue;
+            const hashedPassword = await bcrypt.hash(registerNumber, salt);
+            ops.push({
+                insertOne: {
+                    document: {
+                        registerNumber: regUpper,
+                        name,
+                        email: email || `${registerNumber.toLowerCase()}@klu.ac.in`,
+                        password: hashedPassword,
+                        yearOfStudy: yearOfStudy || '1',
+                        department: department || 'General',
+                        role: 'student'
+                    }
+                }
             });
+        }
 
-            createdCount++;
+        let createdCount = 0;
+        if (ops.length > 0) {
+            const result = await User.bulkWrite(ops, { ordered: false });
+            createdCount = result.insertedCount;
         }
 
         res.json({
             message: `Successfully processed ${students.length} students`,
             created: createdCount,
-            skipped: skippedCount
+            skipped: students.length - createdCount
         });
     } catch (error) {
         console.error('Preload students error:', error);
@@ -89,14 +97,13 @@ export const preloadStudents = async (req, res) => {
 // @access  Private/Admin
 export const getAllDays = async (req, res) => {
     try {
-        const days = await Day.find().sort({ dayNumber: 1 });
+        const days = await Day.find().sort({ dayNumber: 1 }).lean();
         res.json(days);
     } catch (error) {
         console.error('CRITICAL: Get days error:', error);
         res.status(500).json({
             message: 'Server error fetching days',
-            error: error.message,
-            stack: error.stack
+            error: error.message
         });
     }
 };
@@ -153,6 +160,13 @@ export const updateDayStatus = async (req, res) => {
         day.status = status;
         await day.save();
 
+        if (status === 'OPEN') {
+            await Session.updateMany(
+                { dayId: day._id },
+                { $set: { attendanceOpen: false, attendanceStartTime: null, attendanceEndTime: null } }
+            );
+        }
+
         if (status === 'COMPLETED') {
             const sessions = await Session.find({ dayId: day._id });
             await Session.updateMany(
@@ -189,14 +203,16 @@ export const updateDayStatus = async (req, res) => {
 // @access  Private/Admin
 export const getAllSessions = async (req, res) => {
     try {
-        const sessions = await Session.find().populate('dayId').lean();
+        // Sort in DB using populated field via aggregation-style sort (populate then sort in memory is fine for small dataset)
+        const sessions = await Session.find()
+            .populate('dayId', 'dayNumber title status date')
+            .lean();
 
-        // Sort in memory by dayNumber
         sessions.sort((a, b) => {
             const dayA = a.dayId?.dayNumber ?? 999;
             const dayB = b.dayId?.dayNumber ?? 999;
             if (dayA !== dayB) return dayA - dayB;
-            return a._id.toString().localeCompare(b._id.toString());
+            return a.createdAt > b.createdAt ? 1 : -1;
         });
 
         res.json(sessions);
@@ -564,34 +580,40 @@ export const getProgress = async (req, res) => {
 // @access  Private/Admin
 export const getAssessmentStats = async (req, res) => {
     try {
-        const assessmentSessions = await Session.find({
-            title: { $regex: /assessment/i }
-        }).populate('dayId').lean();
+        const [assessmentSessions, totalStudents] = await Promise.all([
+            Session.find({ title: { $regex: /assessment/i } })
+                .populate('dayId', 'dayNumber')
+                .select('title dayId')
+                .lean(),
+            User.countDocuments({ role: 'student' })
+        ]);
 
-        // Filter out Day 1 sessions and sessions with no dayId
+        // Filter out Day 1 and sessions with no dayId
         const filteredSessions = assessmentSessions.filter(s => s.dayId && s.dayId.dayNumber !== 1);
+        if (filteredSessions.length === 0) return res.json([]);
 
-        if (filteredSessions.length === 0) {
-            return res.json([]);
-        }
+        const sessionIds = filteredSessions.map(s => s._id);
 
-        const totalStudents = await User.countDocuments({ role: 'student' });
+        // Single aggregation instead of N separate distinct queries
+        const submissionCounts = await AssignmentSubmission.aggregate([
+            { $match: { sessionId: { $in: sessionIds } } },
+            { $group: { _id: '$sessionId', uniqueStudents: { $addToSet: '$registerNumber' } } },
+            { $project: { count: { $size: '$uniqueStudents' } } }
+        ]);
 
-        // Count unique students who submitted something for each session
-        const stats = await Promise.all(filteredSessions.map(async (session) => {
-            const submittedCount = await AssignmentSubmission.distinct('registerNumber', {
-                sessionId: session._id
-            });
+        const countMap = new Map(submissionCounts.map(s => [s._id.toString(), s.count]));
 
+        const stats = filteredSessions.map(session => {
+            const count = countMap.get(session._id.toString()) || 0;
             return {
                 sessionId: session._id,
                 title: session.title,
                 dayNumber: session.dayId?.dayNumber || 0,
                 totalStudents,
-                submittedCount: submittedCount.length,
-                percentage: totalStudents > 0 ? (submittedCount.length / totalStudents * 100).toFixed(1) : 0
+                submittedCount: count,
+                percentage: totalStudents > 0 ? (count / totalStudents * 100).toFixed(1) : 0
             };
-        }));
+        });
 
         res.json(stats);
     } catch (error) {
@@ -1138,9 +1160,15 @@ export const getDetailedAssessmentSubmissions = async (req, res) => {
         const { sessionId } = req.params;
         const { search = '' } = req.query;
 
-        const session = await Session.findById(sessionId).populate('dayId');
+        // Parallel fetch session + submissions
+        const [session, submissions] = await Promise.all([
+            Session.findById(sessionId).populate('dayId', 'dayNumber title').lean(),
+            AssignmentSubmission.find({ sessionId })
+                .select('registerNumber assignmentTitle response submittedAt')
+                .lean()
+        ]);
+
         if (!session) {
-            // Log for debugging 404
             console.warn(`[adminController] Detailed Assessment: Session ${sessionId} NOT FOUND`);
             return res.status(404).json({ message: 'Session not found' });
         }
@@ -1153,8 +1181,10 @@ export const getDetailedAssessmentSubmissions = async (req, res) => {
             ];
         }
 
-        const students = await User.find(studentQuery).select('-password').sort({ registerNumber: 1 });
-        const submissions = await AssignmentSubmission.find({ sessionId }).lean();
+        const students = await User.find(studentQuery)
+            .select('name registerNumber')
+            .sort({ registerNumber: 1 })
+            .lean();
 
         const subMap = new Map();
         submissions.forEach(s => {

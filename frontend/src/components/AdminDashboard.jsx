@@ -64,15 +64,20 @@ function AdminDashboard() {
     const [certificateData, setCertificateData] = useState(null);
     const [certificateLoading, setCertificateLoading] = useState(false);
     const [showCertificateTracker, setShowCertificateTracker] = useState(false);
+    const [selectedAttendanceDay, setSelectedAttendanceDay] = useState(null);
 
     const user = getUser();
     const navigate = useNavigate();
 
-    // Default selectedSessionDay to the first OPEN day
     useEffect(() => {
-        if (days.length > 0 && !selectedSessionDay) {
+        if (days.length > 0) {
             const openDay = days.find(d => d.status === 'OPEN');
-            setSelectedSessionDay(openDay ? openDay._id : days[0]._id);
+            if (!selectedSessionDay) {
+                setSelectedSessionDay(openDay ? openDay._id : days[0]._id);
+            }
+            if (!selectedAttendanceDay) {
+                setSelectedAttendanceDay(openDay ? openDay._id : days[0]._id);
+            }
         }
     }, [days]);
 
@@ -1019,7 +1024,24 @@ function AdminDashboard() {
                                                     <h2 className="text-4xl font-bold text-white tracking-tight">Attendance Tracking</h2>
                                                     <p className="text-zinc-500 font-medium">Verified student logs with photographic evidence.</p>
                                                 </div>
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex flex-col md:flex-row items-center gap-4">
+                                                    {/* Day Selector for Attendance */}
+                                                    <div className="flex bg-[#111111] p-1.5 rounded-2xl border border-white/5 overflow-x-auto no-scrollbar">
+                                                        {days.map(day => (
+                                                            <button
+                                                                key={day._id}
+                                                                onClick={() => setSelectedAttendanceDay(day._id)}
+                                                                className={cn(
+                                                                    "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
+                                                                    selectedAttendanceDay === day._id
+                                                                        ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                                                        : "text-zinc-500 hover:text-zinc-300"
+                                                                )}
+                                                            >
+                                                                Day {day.dayNumber}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                     <div className="relative group">
                                                         <DebouncedInput
                                                             type="text"
@@ -1040,12 +1062,15 @@ function AdminDashboard() {
                                                             <tr className="bg-white/[0.03] border-b border-white/10">
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] w-14 text-center border-r border-white/5 sticky left-0 z-20 bg-[#0d0d0d]">#</th>
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] sticky left-14 bg-[#0d0d0d] z-20 min-w-[200px] border-r border-white/5">Student Information</th>
-                                                                {sessions.filter(s => s.title !== "Infosys Certified Course" && s.type !== 'BREAK' && s.title?.toUpperCase() !== 'LUNCH').map(s => (
-                                                                    <th key={s._id} className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] whitespace-nowrap text-center border-r border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
-                                                                        <div>{s.title}</div>
-                                                                        <div className="text-[10px] text-indigo-400/50 font-bold mt-1 tracking-widest italic">Day {s.dayId?.dayNumber}</div>
-                                                                    </th>
-                                                                ))}
+                                                                {sessions
+                                                                    .filter(s => s.title !== "Infosys Certified Course" && s.type !== 'BREAK' && s.title?.toUpperCase() !== 'LUNCH')
+                                                                    .filter(s => !selectedAttendanceDay || s.dayId?._id === selectedAttendanceDay || s.dayId === selectedAttendanceDay)
+                                                                    .map(s => (
+                                                                        <th key={s._id} className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] whitespace-nowrap text-center border-r border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                                                                            <div>{s.title}</div>
+                                                                            <div className="text-[10px] text-indigo-400/50 font-bold mt-1 tracking-widest italic">Day {s.dayId?.dayNumber}</div>
+                                                                        </th>
+                                                                    ))}
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-white/5">
@@ -1076,7 +1101,9 @@ function AdminDashboard() {
                                                                         </td>
                                                                         {student.sessions.filter(s => {
                                                                             const fullSession = sessions.find(fs => fs._id === s.sessionId);
-                                                                            return fullSession?.title !== "Infosys Certified Course" && fullSession?.type !== 'BREAK' && fullSession?.title?.toUpperCase() !== 'LUNCH';
+                                                                            if (!fullSession) return false;
+                                                                            const matchesDay = !selectedAttendanceDay || fullSession.dayId?._id === selectedAttendanceDay || fullSession.dayId === selectedAttendanceDay;
+                                                                            return matchesDay && fullSession.title !== "Infosys Certified Course" && fullSession.type !== 'BREAK' && fullSession.title?.toUpperCase() !== 'LUNCH';
                                                                         }).map(session => {
                                                                             const fullSession = sessions.find(fs => fs._id === session.sessionId);
                                                                             const hasAttendance = session.attendance?.status === 'PRESENT';

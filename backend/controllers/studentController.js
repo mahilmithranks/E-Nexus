@@ -4,13 +4,14 @@ import Attendance from '../models/Attendance.js';
 import AssignmentSubmission from '../models/AssignmentSubmission.js';
 import User from '../models/User.js';
 import { clearCache } from '../middleware/cache.js';
+// Pre-import cloudinary at module load time instead of dynamic import per-request
+import cloudinary from '../config/cloudinary.js';
 
 // @desc    Get enabled days only
 // @route   GET /api/student/days
 // @access  Private/Student
 export const getEnabledDays = async (req, res) => {
     try {
-        // Return all days so they can be displayed (even if locked)
         const days = await Day.find().select('dayNumber title status date').sort({ dayNumber: 1 }).lean();
         res.json(days);
     } catch (error) {
@@ -26,29 +27,29 @@ export const getSessionsForDay = async (req, res) => {
     try {
         const { dayId } = req.params;
 
-        // Verify day exists and is open
-        const day = await Day.findById(dayId).select('status dayNumber').lean();
-        if (!day) return res.status(404).json({ message: 'Day not found' });
+        // Parallel: fetch day + sessions simultaneously
+        const [day, sessions] = await Promise.all([
+            Day.findById(dayId).select('status dayNumber').lean(),
+            Session.find({ dayId })
+                .populate('dayId', 'dayNumber title')
+                .select('title description mode type dayId assignments attendanceOpen attendanceStartTime attendanceEndTime isCertificateUploadOpen startTime endTime')
+                .sort({ createdAt: 1 })
+                .lean()
+        ]);
 
+        if (!day) return res.status(404).json({ message: 'Day not found' });
         if (day.status === 'LOCKED') {
             return res.status(403).json({ message: 'This day is not accessible yet' });
         }
 
-        // Fetch all sessions with specific fields
-        const sessions = await Session.find({ dayId })
-            .populate('dayId', 'dayNumber title')
-            .select('title description mode type dayId assignments attendanceOpen attendanceStartTime attendanceEndTime isCertificateUploadOpen')
-            .sort({ createdAt: 1 })
-            .lean();
-
         const sessionIds = sessions.map(s => s._id);
 
-        // Batch fetch attendance and submissions
+        // Batch fetch attendance and submissions in parallel
         const [attendances, submissions] = await Promise.all([
             Attendance.find({
                 registerNumber: req.user.registerNumber,
                 sessionId: { $in: sessionIds }
-            }).select('sessionId status').lean(),
+            }).select('sessionId').lean(),
             AssignmentSubmission.find({
                 registerNumber: req.user.registerNumber,
                 sessionId: { $in: sessionIds }
@@ -56,10 +57,10 @@ export const getSessionsForDay = async (req, res) => {
         ]);
 
         // Create lookups
-        const attendanceMap = new Map(attendances.map(a => [a.sessionId.toString(), a]));
+        const attendanceSet = new Set(attendances.map(a => a.sessionId.toString()));
         const submissionMap = new Map();
 
-        submissions.forEach(s => {
+        for (const s of submissions) {
             const sessId = s.sessionId.toString();
             if (!submissionMap.has(sessId)) {
                 submissionMap.set(sessId, { titles: new Set(), details: [] });
@@ -71,18 +72,18 @@ export const getSessionsForDay = async (req, res) => {
                 response: s.response,
                 updateCount: s.updateCount || 0
             });
-        });
+        }
 
         const now = new Date();
         const isDay1 = day.dayNumber === 1;
 
         const sessionsWithStatus = sessions.map((session) => {
             const sessId = session._id.toString();
-            const attendance = attendanceMap.get(sessId);
+            const hasAttendance = attendanceSet.has(sessId);
             const submissionData = submissionMap.get(sessId) || { titles: new Set(), details: [] };
             const submittedTitles = Array.from(submissionData.titles);
 
-            // SPECIAL RULE: Day 1 Assessment
+            // SPECIAL RULE: Day 1 Assessment is always completed
             if (isDay1 && session.title.toLowerCase().includes('assessment')) {
                 if (!submittedTitles.includes('Assessment')) submittedTitles.push('Assessment');
             }
@@ -90,7 +91,7 @@ export const getSessionsForDay = async (req, res) => {
             let attendanceWindowStatus = 'not_started';
             if (session.attendanceOpen) {
                 attendanceWindowStatus = 'active';
-            } else if (session.attendanceEndTime && now > new Date(session.attendanceEndTime)) {
+            } else if (session.attendanceStartTime && session.attendanceEndTime && now > new Date(session.attendanceEndTime)) {
                 attendanceWindowStatus = 'closed';
             }
 
@@ -101,13 +102,13 @@ export const getSessionsForDay = async (req, res) => {
 
             return {
                 ...session,
-                hasAttendance: !!attendance,
+                hasAttendance,
                 attendanceStatus: attendanceWindowStatus,
                 isAttendanceActive,
                 assignmentsSubmitted: submittedTitles,
                 submissionDetails: submissionData.details,
                 totalAssignments: session.assignments?.length || 0,
-                isCertificateUploadOpen: session.title === "Infosys Certified Course" ? session.isCertificateUploadOpen : false
+                isCertificateUploadOpen: session.title === 'Infosys Certified Course' ? session.isCertificateUploadOpen : false
             };
         });
 
@@ -125,17 +126,9 @@ export const getSession = async (req, res) => {
     try {
         const { sessionId } = req.params;
 
-        // Use lean for performance
-        const session = await Session.findById(sessionId).populate('dayId', 'status dayNumber').lean();
-        if (!session) {
-            return res.status(404).json({ message: 'Session not found' });
-        }
-
-        if (session.dayId.status === 'LOCKED') {
-            return res.status(403).json({ message: 'This session is not currently accessible' });
-        }
-
-        const [attendance, submissions] = await Promise.all([
+        // Parallel: session + attendance + submissions
+        const [session, attendance, submissions] = await Promise.all([
+            Session.findById(sessionId).populate('dayId', 'status dayNumber').lean(),
             Attendance.findOne({
                 registerNumber: req.user.registerNumber,
                 sessionId
@@ -146,6 +139,11 @@ export const getSession = async (req, res) => {
             }).lean()
         ]);
 
+        if (!session) return res.status(404).json({ message: 'Session not found' });
+        if (session.dayId.status === 'LOCKED') {
+            return res.status(403).json({ message: 'This session is not currently accessible' });
+        }
+
         if (session.title.toLowerCase().includes('assessment') && !attendance) {
             return res.status(403).json({
                 message: 'Identity verification required. Please mark your attendance first to access this assessment.',
@@ -153,13 +151,12 @@ export const getSession = async (req, res) => {
             });
         }
 
-        // Re-construct logic for lean object
         const now = new Date();
         const isAttendanceActive = session.attendanceOpen && (
             !session.attendanceEndTime || (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
         );
 
-        // SPECIAL RULE: Day 1 Assessment is always "completed" for everyone
+        // SPECIAL RULE: Day 1 Assessment is always "completed"
         const effectiveSubmissions = [...submissions];
         if (session.dayId.dayNumber === 1 && session.title.toLowerCase().includes('assessment')) {
             if (!effectiveSubmissions.some(s => s.assignmentTitle === 'Assessment')) {
@@ -167,16 +164,14 @@ export const getSession = async (req, res) => {
             }
         }
 
-        const sessionData = {
+        res.json({
             ...session,
             hasAttendance: !!attendance,
             attendanceStatus: attendance ? attendance.status : null,
             isAttendanceActive,
             assignmentsSubmitted: effectiveSubmissions.map(s => s.assignmentTitle),
             submissions: effectiveSubmissions
-        };
-
-        res.json(sessionData);
+        });
     } catch (error) {
         console.error('Get session error:', error);
         res.status(500).json({ message: 'Server error fetching session' });
@@ -193,7 +188,7 @@ export const markAttendance = async (req, res) => {
         if (!sessionId) return res.status(400).json({ message: 'Session ID is required' });
         if (!req.file) return res.status(400).json({ message: 'Photo is required' });
 
-        // Parallel fetch with LEAN
+        // Parallel fetch session + existing attendance record
         const [session, existingAttendance] = await Promise.all([
             Session.findById(sessionId).populate('dayId', 'status').lean(),
             Attendance.findOne({
@@ -206,7 +201,6 @@ export const markAttendance = async (req, res) => {
         if (existingAttendance) return res.status(400).json({ message: 'Attendance already marked' });
         if (session.dayId.status !== 'OPEN') return res.status(403).json({ message: 'Day not open' });
 
-        // Logic check for active window
         const now = new Date();
         const isAttendanceActive = session.attendanceOpen && (
             !session.attendanceEndTime || (now >= new Date(session.attendanceStartTime) && now <= new Date(session.attendanceEndTime))
@@ -216,13 +210,11 @@ export const markAttendance = async (req, res) => {
             return res.status(403).json({ message: 'Attendance window closed' });
         }
 
-        // Upload
+        // Upload to Cloudinary (pre-imported module)
         let photoPath = null;
         try {
-            const cloudinary = (await import('../config/cloudinary.js')).default;
             const b64 = Buffer.from(req.file.buffer).toString('base64');
             const dataURI = `data:${req.file.mimetype};base64,${b64}`;
-
             const result = await cloudinary.uploader.upload(dataURI, {
                 folder: 'e-nexus/attendance',
                 resource_type: 'image',
@@ -234,21 +226,17 @@ export const markAttendance = async (req, res) => {
             return res.status(500).json({ message: 'Photo upload failed' });
         }
 
-        // Create record
         const attendance = await Attendance.create({
             registerNumber: req.user.registerNumber,
             sessionId,
             status: 'PRESENT',
-            photoPath: photoPath,
+            photoPath,
             timestamp: now
         });
 
         clearCache('admin-progress');
 
-        res.status(201).json({
-            message: 'Attendance marked successfully',
-            attendance
-        });
+        res.status(201).json({ message: 'Attendance marked successfully', attendance });
     } catch (error) {
         console.error('Mark attendance error:', error);
         if (error.code === 11000) return res.status(400).json({ message: 'Attendance already marked' });
@@ -264,39 +252,37 @@ export const submitAssignment = async (req, res) => {
         const { sessionId, assignmentTitle, assignmentType, response } = req.body;
 
         if (!sessionId || !assignmentTitle || !assignmentType) {
-            return res.status(400).json({
-                message: 'Session ID, assignment title, and type are required'
-            });
+            return res.status(400).json({ message: 'Session ID, assignment title, and type are required' });
         }
 
-        // Verify session exists
-        const session = await Session.findById(sessionId);
-        if (!session) {
-            return res.status(404).json({ message: 'Session not found' });
-        }
+        // Parallel: fetch session + existing submission (and attendance for non-cert)
+        const isCertificate = assignmentType === 'certificate';
 
-        // Check if student has marked attendance for this session (skip for certificate)
-        if (assignmentType !== 'certificate') {
-            const attendance = await Attendance.findOne({
+        const [session, existingSubmission, attendance] = await Promise.all([
+            Session.findById(sessionId).select('title assignments isCertificateUploadOpen').lean(),
+            AssignmentSubmission.findOne({
                 registerNumber: req.user.registerNumber,
                 sessionId,
-                status: 'PRESENT'
-            });
+                assignmentTitle
+            }).lean(),
+            // Only query attendance if needed (not certificate type)
+            isCertificate
+                ? Promise.resolve(null)
+                : Attendance.findOne({
+                    registerNumber: req.user.registerNumber,
+                    sessionId,
+                    status: 'PRESENT'
+                }).select('_id').lean()
+        ]);
 
-            if (!attendance) {
-                return res.status(403).json({
-                    message: 'You must mark attendance before submitting assignments'
-                });
-            }
+        if (!session) return res.status(404).json({ message: 'Session not found' });
+
+        // Attendance check for non-certificate submissions
+        if (!isCertificate && !attendance) {
+            return res.status(403).json({ message: 'You must mark attendance before submitting assignments' });
         }
 
-        // Finality & Limit Check
-        const isInfosys = session.title === "Infosys Certified Course";
-        const existingSubmission = await AssignmentSubmission.findOne({
-            registerNumber: req.user.registerNumber,
-            sessionId,
-            assignmentTitle
-        });
+        const isInfosys = session.title === 'Infosys Certified Course';
 
         if (existingSubmission) {
             if (!isInfosys) {
@@ -306,61 +292,46 @@ export const submitAssignment = async (req, res) => {
                 });
             } else if (existingSubmission.updateCount >= 1) {
                 return res.status(403).json({
-                    message: "You have already used your one-time edit for this certificate."
+                    message: 'You have already used your one-time edit for this certificate.'
                 });
             }
         }
 
-        // Handle file upload for file type assignments only (certificates use Drive links)
         let finalResponse = response;
         let filePaths = [];
 
         if (assignmentType === 'file') {
             const filesToUpload = req.files || (req.file ? [req.file] : []);
-
             if (filesToUpload.length > 0) {
                 try {
-                    const cloudinary = (await import('../config/cloudinary.js')).default;
-
-                    for (const file of filesToUpload) {
-                        // Use buffer for memory storage (which is likely what multer is using here based on previous code)
-                        // If previous code was using req.file.path it would be different, but it used buffer.
-                        if (!file.buffer) continue;
-
-                        const b64 = Buffer.from(file.buffer).toString('base64');
-                        const dataURI = `data:${file.mimetype};base64,${b64}`;
-
-                        const result = await cloudinary.uploader.upload(dataURI, {
-                            folder: 'e-nexus/assignments',
-                            resource_type: 'auto'
-                        });
-
-                        filePaths.push(result.secure_url);
-                    }
-                    if (filePaths.length > 0) {
-                        finalResponse = filePaths[0]; // Set first file as response for backward compatibility
-                    }
+                    // Upload all files in parallel instead of sequentially
+                    const uploadResults = await Promise.all(
+                        filesToUpload
+                            .filter(file => file.buffer)
+                            .map(file => {
+                                const b64 = Buffer.from(file.buffer).toString('base64');
+                                const dataURI = `data:${file.mimetype};base64,${b64}`;
+                                return cloudinary.uploader.upload(dataURI, {
+                                    folder: 'e-nexus/assignments',
+                                    resource_type: 'auto'
+                                });
+                            })
+                    );
+                    filePaths = uploadResults.map(r => r.secure_url);
+                    if (filePaths.length > 0) finalResponse = filePaths[0];
                 } catch (cloudinaryError) {
                     console.error('Cloudinary assignment upload failed:', cloudinaryError);
                     return res.status(500).json({ message: 'Failed to upload assignment files' });
                 }
             }
-        } else if (assignmentType === 'certificate' || assignmentType === 'link') {
-            // For certificates and links, use the provided response (Drive link)
-            finalResponse = response;
         }
 
         if (!finalResponse && filePaths.length === 0) {
             return res.status(400).json({ message: 'Assignment response is required' });
         }
 
-        // Use findOneAndUpdate to allow limited re-submissions
         const submission = await AssignmentSubmission.findOneAndUpdate(
-            {
-                registerNumber: req.user.registerNumber,
-                sessionId,
-                assignmentTitle
-            },
+            { registerNumber: req.user.registerNumber, sessionId, assignmentTitle },
             {
                 assignmentType,
                 response: finalResponse,
@@ -371,14 +342,11 @@ export const submitAssignment = async (req, res) => {
             { new: true, upsert: true }
         );
 
-        // Clear admin progress cache
+        // Clear caches
         clearCache('admin-progress');
         clearCache('student-sessions');
 
-        res.status(201).json({
-            message: 'Assignment submitted successfully',
-            submission
-        });
+        res.status(201).json({ message: 'Assignment submitted successfully', submission });
     } catch (error) {
         console.error('Submit assignment error:', error);
         res.status(500).json({ message: 'Server error submitting assignment' });
@@ -390,17 +358,18 @@ export const submitAssignment = async (req, res) => {
 // @access  Private/Student
 export const getProfile = async (req, res) => {
     try {
-        const student = await User.findById(req.user.id).select('-password');
-
-        // Get attendance records
-        const attendanceRecords = await Attendance.find({
-            registerNumber: req.user.registerNumber
-        }).populate('sessionId');
-
-        // Get assignment submissions
-        const submissions = await AssignmentSubmission.find({
-            registerNumber: req.user.registerNumber
-        }).populate('sessionId');
+        // Parallel fetch with lean + minimal field selection
+        const [student, attendanceRecords, submissions] = await Promise.all([
+            User.findById(req.user.id).select('-password').lean(),
+            Attendance.find({ registerNumber: req.user.registerNumber })
+                .select('sessionId status timestamp')
+                .populate('sessionId', 'title dayId')
+                .lean(),
+            AssignmentSubmission.find({ registerNumber: req.user.registerNumber })
+                .select('sessionId assignmentTitle submittedAt')
+                .populate('sessionId', 'title dayId')
+                .lean()
+        ]);
 
         res.json({
             student,

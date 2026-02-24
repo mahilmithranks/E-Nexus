@@ -47,9 +47,9 @@ app.use(compression());
 // Apply rate limiting to all routes
 app.use('/api', apiLimiter);
 
-// Debug middleware to log requests on Vercel
+// Debug middleware to log requests on Vercel (only log non-GET or errors)
 app.use((req, res, next) => {
-    if (process.env.VERCEL) {
+    if (process.env.VERCEL && req.method !== 'GET') {
         console.log(`[Vercel Request] ${req.method} ${req.url}`);
     }
     next();
@@ -130,9 +130,24 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/sync', syncRoutes);
 
-// Health check route
+// Health check with real DB status
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'Server is running' });
+    const dbState = mongoose.connection.readyState;
+    const dbStatusMap = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+    const dbStatus = dbStatusMap[dbState] || 'unknown';
+    const healthy = dbState === 1;
+
+    res.status(healthy ? 200 : 503).json({
+        status: healthy ? 'OK' : 'DEGRADED',
+        message: healthy ? 'Server is running' : 'Database not connected',
+        db: {
+            status: dbStatus,
+            readyState: dbState,
+            host: healthy ? mongoose.connection.host : null
+        },
+        uptime: Math.floor(process.uptime()),
+        time: new Date().toISOString()
+    });
 });
 
 // Error handling middleware
@@ -190,6 +205,10 @@ const startServer = async () => {
         });
     } catch (error) {
         console.error('❌ Server failed to start:', error);
+        if (!process.env.VERCEL) {
+            console.log('Shutting down due to fatal error...');
+            process.exit(1);
+        }
     }
 };
 

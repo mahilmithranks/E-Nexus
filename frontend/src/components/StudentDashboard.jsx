@@ -881,7 +881,7 @@ function StudentDashboard() {
                                                                                 <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3">
                                                                                     <Clock className="w-4 h-4 text-red-500" />
                                                                                     <p className="text-[10px] sm:text-xs font-black text-red-600 uppercase tracking-widest">
-                                                                                        Submission Deadline: February 25, 2026
+                                                                                        Submission Deadline: End of Workshop
                                                                                     </p>
                                                                                 </div>
 
@@ -1031,7 +1031,7 @@ function StudentDashboard() {
                                                                         ) : (
                                                                             <div className="px-6 py-3 rounded-2xl bg-white/40 border border-white/60 text-zinc-500 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm shadow-sm text-center">
                                                                                 <Lock className="w-4 h-4" />
-                                                                                Uploading window is closed now! (Deadline: Feb 25, 2026)
+                                                                                Uploading window is closed now! (Deadline: End of Workshop)
                                                                             </div>
                                                                         )}
                                                                     </>

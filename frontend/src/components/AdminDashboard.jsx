@@ -66,6 +66,26 @@ function AdminDashboard() {
     const [showCertificateTracker, setShowCertificateTracker] = useState(false);
     const [selectedAttendanceDay, setSelectedAttendanceDay] = useState(null);
 
+    // Sessions that count toward overall attendance % (Day 1-8, type=SESSION, not Infosys)
+    const attendanceSessions = sessions.filter(s => {
+        const d = s.dayId?.dayNumber;
+        const titleLower = s.title?.toLowerCase() || '';
+        return d >= 1 && d <= 8 && s.type !== 'BREAK' &&
+            !titleLower.includes('infosys') && !titleLower.includes('certificate');
+    });
+
+    // Helper: compute overall attendance % for a student
+    // total = ALL eligible sessions Day 1-8 (including non-opened/future days)
+    const getOverallAttendance = (student) => {
+        const total = attendanceSessions.length; // full set incl. future/locked days
+        if (total === 0) return null;
+        const attSessIds = new Set(attendanceSessions.map(s => s._id));
+        const attended = student.sessions.filter(s =>
+            attSessIds.has(s.sessionId) && s.attendance?.status === 'PRESENT'
+        ).length;
+        return { attended, total, pct: Math.round((attended / total) * 100) };
+    };
+
     const user = getUser();
     const navigate = useNavigate();
 
@@ -151,6 +171,13 @@ function AdminDashboard() {
             setAssessmentDetails(null);
         }
     }, [activeTab, searchTerm]);
+
+    // Real-time polling: refresh attendance data every 5s when on attendance tab
+    useEffect(() => {
+        if (activeTab !== 'attendance') return;
+        const interval = setInterval(() => fetchProgress(pagination.currentPage, searchTerm), 5000);
+        return () => clearInterval(interval);
+    }, [activeTab, pagination.currentPage, searchTerm]);
 
     const fetchInitialData = async () => {
         try {
@@ -1062,6 +1089,7 @@ function AdminDashboard() {
                                                             <tr className="bg-white/[0.03] border-b border-white/10">
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] w-14 text-center border-r border-white/5 sticky left-0 z-20 bg-[#0d0d0d]">#</th>
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] sticky left-14 bg-[#0d0d0d] z-20 min-w-[200px] border-r border-white/5">Student Information</th>
+                                                                 <th className="p-5 text-[10px] font-black text-emerald-400/80 uppercase tracking-[0.15em] whitespace-nowrap text-center border-r border-white/5 bg-[#0d0d0d]" style={{minWidth:'88px'}}>Overall %</th>
                                                                 {sessions
                                                                     .filter(s => s.title !== "Infosys Certified Course" && s.type !== 'BREAK' && s.title?.toUpperCase() !== 'LUNCH')
                                                                     .filter(s => !selectedAttendanceDay || s.dayId?._id === selectedAttendanceDay || s.dayId === selectedAttendanceDay)
@@ -1099,6 +1127,17 @@ function AdminDashboard() {
                                                                             <div className="text-sm font-bold text-white group-hover/row:text-indigo-400 transition-colors">{student.name}</div>
                                                                             <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">{student.registerNumber}</div>
                                                                         </td>
+                                                                        {(() => {
+                                                                             const oa = getOverallAttendance(student);
+                                                                             if (!oa) return <td className="p-4 border-r border-white/5 text-center"><span className="text-zinc-600 text-xs">—</span></td>;
+                                                                             const color = oa.pct >= 75 ? 'text-emerald-400' : oa.pct >= 50 ? 'text-amber-400' : 'text-red-400';
+                                                                             return (
+                                                                               <td className="p-4 border-r border-white/5 text-center">
+                                                                                 <span className={`text-base font-black ${color}`}>{oa.pct}%</span>
+                                                                                 <div className="text-[9px] text-zinc-600 mt-0.5">{oa.attended}/{oa.total}</div>
+                                                                               </td>
+                                                                             );
+                                                                           })()}
                                                                         {student.sessions.filter(s => {
                                                                             const fullSession = sessions.find(fs => fs._id === s.sessionId);
                                                                             if (!fullSession) return false;

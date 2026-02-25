@@ -30,6 +30,8 @@ function StudentDashboard() {
     const [showCertificateModal, setShowCertificateModal] = useState(false);
     const [certModalTimer, setCertModalTimer] = useState(5);
     const [pendingCertData, setPendingCertData] = useState(null);
+    const [attendanceSummary, setAttendanceSummary] = useState(null);
+    const [showPolicyModal, setShowPolicyModal] = useState(false);
 
     const user = getUser();
     const navigate = useNavigate();
@@ -50,9 +52,27 @@ function StudentDashboard() {
         return `${hours}h ${mins}m`;
     };
 
+    const fetchAttendanceSummary = async () => {
+        try {
+            const response = await api.get('/student/attendance-summary');
+            if (response.data && typeof response.data.percentage === 'number') {
+                setAttendanceSummary(response.data);
+            }
+        } catch (err) {
+            console.error('Attendance summary API error:', err?.response?.status, err?.response?.data || err.message);
+        }
+    };
+
     useEffect(() => {
         fetchDays();
-        loadModels(); // Pre-load face-api models for faster initialization
+        loadModels();
+        fetchAttendanceSummary();
+    }, []);
+
+    // Poll attendance summary every 5s for real-time updates
+    useEffect(() => {
+        const iv = setInterval(fetchAttendanceSummary, 5000);
+        return () => clearInterval(iv);
     }, []);
 
     // Optimized Auto-refresh: Poll for a "tick" first, then fetch full data if changed
@@ -498,6 +518,62 @@ function StudentDashboard() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Overall Attendance */}
+                            {attendanceSummary != null && (
+                                <div className="p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50">
+                                    {/* Header row */}
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Overall Attendance</p>
+                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                            attendanceSummary.percentage >= 75
+                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                                : attendanceSummary.percentage >= 50
+                                                ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                                : 'bg-red-50 text-red-500 border-red-200'
+                                        }`}>
+                                            {attendanceSummary.percentage >= 75 ? 'Good Standing' : attendanceSummary.percentage >= 50 ? 'Needs Improvement' : 'Critical'}
+                                        </span>
+                                    </div>
+
+                                    {/* Big percentage */}
+                                    <div className="flex items-baseline gap-2 mb-3">
+                                        <span className={`text-5xl font-black ${
+                                            attendanceSummary.percentage >= 75 ? 'text-emerald-600'
+                                            : attendanceSummary.percentage >= 50 ? 'text-amber-500'
+                                            : 'text-red-500'
+                                        }`}>
+                                            {attendanceSummary.percentage}%
+                                        </span>
+                                        <span className="text-sm text-zinc-400 font-semibold">
+                                            {attendanceSummary.attended}/{attendanceSummary.total} sessions
+                                        </span>
+                                    </div>
+
+                                    {/* Progress bar */}
+                                    <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden mb-3">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-1000 ${
+                                                attendanceSummary.percentage >= 75 ? 'bg-emerald-500'
+                                                : attendanceSummary.percentage >= 50 ? 'bg-amber-400'
+                                                : 'bg-red-500'
+                                            }`}
+                                            style={{width: `${attendanceSummary.percentage}%`}}
+                                        />
+                                    </div>
+
+                                    {/* Sessions note + policy button */}
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[9px] text-zinc-400">* Day 0 &amp; Infosys sessions excluded</p>
+                                        <button
+                                            onClick={() => setShowPolicyModal(true)}
+                                            className="text-[9px] font-black text-indigo-500 uppercase tracking-wider hover:text-indigo-700 transition-colors flex items-center gap-1 underline underline-offset-2"
+                                        >
+                                            Calculation Policy
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Course Credits Card - Glassy */}
                             <div className="p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
@@ -1395,6 +1471,91 @@ function StudentDashboard() {
                         </motion.div>
                     </div>
                 )}
+            {/* Attendance Calculation Policy Modal */}
+            {showPolicyModal && (
+                <div
+                    className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                    onClick={() => setShowPolicyModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-3xl shadow-2xl border border-zinc-100 max-w-md w-full p-7 max-h-[90vh] overflow-y-auto"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-5">
+                            <div>
+                                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-1">Bootcamp Attendance</p>
+                                <h2 className="text-xl font-black text-zinc-900">Calculation Policy</h2>
+                            </div>
+                            <button
+                                onClick={() => setShowPolicyModal(false)}
+                                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition-colors text-sm font-bold shrink-0"
+                            >
+                                &#x2715;
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 text-sm text-zinc-600">
+                            {/* Formula */}
+                            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                                <p className="font-black text-indigo-700 text-xs uppercase tracking-wider mb-1.5">Formula</p>
+                                <p className="text-indigo-900 font-bold text-base">
+                                    Attended Sessions &divide; Total Sessions &times; 100
+                                </p>
+                            </div>
+
+                            {/* Counted */}
+                            <div className="space-y-2">
+                                <p className="font-black text-zinc-700 text-xs uppercase tracking-wider">What counts?</p>
+                                <ul className="space-y-2">
+                                    <li className="flex gap-2.5">
+                                        <span className="text-emerald-500 font-black shrink-0">&#10003;</span>
+                                        <span>All sessions across <strong className="text-zinc-800">Day 1&ndash;Day 8</strong> are in the denominator &mdash; including future/not-yet-started days.</span>
+                                    </li>
+                                    <li className="flex gap-2.5">
+                                        <span className="text-emerald-500 font-black shrink-0">&#10003;</span>
+                                        <span>Camera-verified attendance and admin <strong className="text-zinc-800">overrides</strong> both count as Present.</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Not counted */}
+                            <div className="space-y-2">
+                                <p className="font-black text-zinc-700 text-xs uppercase tracking-wider">What is excluded?</p>
+                                <ul className="space-y-2">
+                                    <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Day 0</strong> orientation sessions</span></li>
+                                    <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Infosys Certified Course</strong> (self-paced)</span></li>
+                                    <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Break</strong> sessions</span></li>
+                                </ul>
+                            </div>
+
+                            {/* Status bands */}
+                            <div className="grid grid-cols-3 gap-2 pt-1">
+                                <div className="p-3 bg-emerald-50 rounded-2xl text-center border border-emerald-100">
+                                    <p className="text-emerald-600 font-black text-sm">&ge; 75%</p>
+                                    <p className="text-emerald-600 text-[10px] font-bold mt-0.5">Good Standing</p>
+                                </div>
+                                <div className="p-3 bg-amber-50 rounded-2xl text-center border border-amber-100">
+                                    <p className="text-amber-600 font-black text-sm">50&ndash;74%</p>
+                                    <p className="text-amber-600 text-[10px] font-bold mt-0.5">Needs Improvement</p>
+                                </div>
+                                <div className="p-3 bg-red-50 rounded-2xl text-center border border-red-100">
+                                    <p className="text-red-500 font-black text-sm">&lt; 50%</p>
+                                    <p className="text-red-500 text-[10px] font-bold mt-0.5">Critical</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setShowPolicyModal(false)}
+                            className="mt-6 w-full py-3.5 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-black text-sm uppercase tracking-widest transition-colors"
+                        >
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            )}
+
             </AnimatePresence>
         </>
     );

@@ -8,7 +8,8 @@ import {
     markAttendance,
     submitAssignment,
     getProfile,
-    getSession
+    getSession,
+    getAttendanceSummary
 } from '../controllers/studentController.js';
 import { protect, studentOnly } from '../middleware/auth.js';
 import { cacheMiddleware } from '../middleware/cache.js';
@@ -59,5 +60,8 @@ router.post('/assignment', upload.array('assignment'), submitAssignment);
 
 // Profile route (no cache - user-specific data)
 router.get('/profile', getProfile);
+
+// Attendance summary: overall % across Day 1-8, excluding Day 0 and Infosys
+router.get('/attendance-summary', getAttendanceSummary);
 
 export default router;

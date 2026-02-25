@@ -47,9 +47,10 @@ export const getSessionsForDay = async (req, res) => {
         // Batch fetch attendance and submissions in parallel
         const [attendances, submissions] = await Promise.all([
             Attendance.find({
-                registerNumber: req.user.registerNumber,
-                sessionId: { $in: sessionIds }
-            }).select('sessionId').lean(),
+            registerNumber: req.user.registerNumber,
+            sessionId: { $in: sessionIds },
+            status: 'PRESENT'
+        }).select('sessionId').lean(),
             AssignmentSubmission.find({
                 registerNumber: req.user.registerNumber,
                 sessionId: { $in: sessionIds }
@@ -350,6 +351,76 @@ export const submitAssignment = async (req, res) => {
     } catch (error) {
         console.error('Submit assignment error:', error);
         res.status(500).json({ message: 'Server error submitting assignment' });
+    }
+};
+
+// @desc    Get overall attendance summary (Day 1 to Day 8, excluding Day 0 and Infosys uploads)
+// @route   GET /api/student/attendance-summary
+// @access  Private/Student
+export const getAttendanceSummary = async (req, res) => {
+    try {
+        // Fetch ALL days (dayNumber >= 1) -- includes non-opened future days
+        const days = await Day.find({ dayNumber: { $gte: 1 } })
+            .select('_id dayNumber title status')
+            .lean();
+
+        const dayIds = days.map(d => d._id);
+
+        // Get all sessions for those days
+        const sessions = dayIds.length > 0 ? await Session.find({ dayId: { $in: dayIds } })
+            .populate('dayId', 'dayNumber title')
+            .select('_id title type dayId')
+            .lean() : [];
+
+        // Exclude BREAK, Infosys, certificate sessions
+        const attendanceSessions = sessions.filter(s => {
+            const t = (s.title || '').toLowerCase();
+            return s.type !== 'BREAK' && t !== 'infosys certified course' &&
+                !t.includes('certificate') && !t.includes('infosys') && t !== 'lunch';
+        });
+
+        const total = attendanceSessions.length;
+
+        if (total === 0) {
+            return res.json({ attended: 0, total: 0, percentage: 0, sessionBreakdown: [] });
+        }
+
+        const sessionIds = attendanceSessions.map(s => s._id);
+
+        // Count only PRESENT records (camera-verified + admin overrides)
+        const attendanceRecords = await Attendance.find({
+            registerNumber: req.user.registerNumber,
+            sessionId: { $in: sessionIds },
+            status: 'PRESENT'
+        }).select('sessionId').lean();
+
+        const attendedSet = new Set(attendanceRecords.map(a => a.sessionId.toString()));
+        const attended = attendanceRecords.length;
+        const percentage = Math.round((attended / total) * 100);
+
+        // Breakdown per day
+        const dayMap = {};
+        for (const day of days) {
+            dayMap[day._id.toString()] = { dayNumber: day.dayNumber, title: day.title, total: 0, attended: 0 };
+        }
+        for (const session of attendanceSessions) {
+            const dayKey = session.dayId?._id?.toString() || session.dayId?.toString();
+            if (dayMap[dayKey]) {
+                dayMap[dayKey].total++;
+                if (attendedSet.has(session._id.toString())) {
+                    dayMap[dayKey].attended++;
+                }
+            }
+        }
+
+        const sessionBreakdown = Object.values(dayMap)
+            .filter(d => d.total > 0)
+            .sort((a, b) => a.dayNumber - b.dayNumber);
+
+        res.json({ attended, total, percentage, sessionBreakdown });
+    } catch (error) {
+        console.error('Get attendance summary error:', error);
+        res.status(500).json({ message: 'Server error fetching attendance summary' });
     }
 };
 

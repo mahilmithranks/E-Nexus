@@ -484,14 +484,18 @@ export const getProgress = async (req, res) => {
 
         const sessions = await Session.find()
             .populate({ path: 'dayId', select: 'dayNumber title' })
-            .select('title dayId assignments attendanceStartTime attendanceOpen')
+            .select('title dayId assignments attendanceStartTime attendanceOpen startTime')
             .lean();
 
-        // Sort sessions by dayNumber
+        // Sort sessions by dayNumber, then by startTime within each day
         sessions.sort((a, b) => {
             const dayA = a.dayId?.dayNumber ?? 999;
             const dayB = b.dayId?.dayNumber ?? 999;
-            return dayA - dayB;
+            if (dayA !== dayB) return dayA - dayB;
+            // Within same day, sort by startTime
+            const timeA = a.startTime ? new Date(a.startTime).getTime() : Infinity;
+            const timeB = b.startTime ? new Date(b.startTime).getTime() : Infinity;
+            return timeA - timeB;
         });
 
         const studentRegNums = students.map(s => s.registerNumber);

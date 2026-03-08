@@ -1106,6 +1106,12 @@ function AdminDashboard() {
                                                                 {sessions
                                                                     .filter(s => s.title !== "Infosys Certified Course" && s.type !== 'BREAK' && s.title?.toUpperCase() !== 'LUNCH')
                                                                     .filter(s => !selectedAttendanceDay || s.dayId?._id === selectedAttendanceDay || s.dayId === selectedAttendanceDay)
+                                                                    .sort((a, b) => {
+                                                                        if (a.startTime && b.startTime) return new Date(a.startTime) - new Date(b.startTime);
+                                                                        if (a.startTime) return -1;
+                                                                        if (b.startTime) return 1;
+                                                                        return 0;
+                                                                    })
                                                                     .map(s => (
                                                                         <th key={s._id} className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] whitespace-nowrap text-center border-r border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
                                                                             <div>{s.title}</div>
@@ -1151,20 +1157,25 @@ function AdminDashboard() {
                                                                                 </td>
                                                                             );
                                                                         })()}
-                                                                        {student.sessions.filter(s => {
-                                                                            const fullSession = sessions.find(fs => fs._id === s.sessionId);
-                                                                            if (!fullSession) return false;
-                                                                            const matchesDay = !selectedAttendanceDay || fullSession.dayId?._id === selectedAttendanceDay || fullSession.dayId === selectedAttendanceDay;
-                                                                            return matchesDay && fullSession.title !== "Infosys Certified Course" && fullSession.type !== 'BREAK' && fullSession.title?.toUpperCase() !== 'LUNCH';
-                                                                        }).map(session => {
-                                                                            const fullSession = sessions.find(fs => fs._id === session.sessionId);
-                                                                            const hasAttendance = session.attendance?.status === 'PRESENT';
-                                                                            const isOverride = session.attendance?.isOverride;
-                                                                            const photoPath = session.attendance?.photoPath;
+                                                                        {sessions
+                                                                            .filter(s => s.title !== "Infosys Certified Course" && s.type !== 'BREAK' && s.title?.toUpperCase() !== 'LUNCH')
+                                                                            .filter(s => !selectedAttendanceDay || s.dayId?._id === selectedAttendanceDay || s.dayId === selectedAttendanceDay)
+                                                                            .sort((a, b) => {
+                                                                                if (a.startTime && b.startTime) return new Date(a.startTime) - new Date(b.startTime);
+                                                                                if (a.startTime) return -1;
+                                                                                if (b.startTime) return 1;
+                                                                                return 0;
+                                                                            })
+                                                                            .map(fullSession => {
+                                                                            // Find this session's data in student.sessions
+                                                                            const sessionData = student.sessions.find(s => s.sessionId === fullSession._id);
+                                                                            const hasAttendance = sessionData?.attendance?.status === 'PRESENT';
+                                                                            const isOverride = sessionData?.attendance?.isOverride;
+                                                                            const photoPath = sessionData?.attendance?.photoPath;
                                                                             const photoUrl = getPhotoUrl(photoPath);
 
                                                                             return (
-                                                                                <td key={session.sessionId} className="p-4 border-r border-white/5">
+                                                                                <td key={fullSession._id} className="p-4 border-r border-white/5">
                                                                                     <div className="flex flex-col items-center gap-1">
                                                                                         {hasAttendance ? (
                                                                                             <button
@@ -1184,7 +1195,7 @@ function AdminDashboard() {
                                                                                                     <Clock className="w-4 h-4" />
                                                                                                 </div>
                                                                                                 <button
-                                                                                                    onClick={() => openOverrideModal(student, session.sessionId)}
+                                                                                                    onClick={() => openOverrideModal(student, fullSession._id)}
                                                                                                     className="text-[9px] px-2 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all font-bold uppercase tracking-tighter"
                                                                                                 >
                                                                                                     Override
@@ -1196,7 +1207,7 @@ function AdminDashboard() {
                                                                                                     <Clock className="w-4 h-4" />
                                                                                                 </div>
                                                                                                 <button
-                                                                                                    onClick={() => openOverrideModal(student, session.sessionId)}
+                                                                                                    onClick={() => openOverrideModal(student, fullSession._id)}
                                                                                                     className="text-[9px] px-2 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all font-bold uppercase tracking-tighter opacity-50 hover:opacity-100"
                                                                                                 >
                                                                                                     Override
@@ -1208,7 +1219,7 @@ function AdminDashboard() {
                                                                                                     <XCircle className="w-4 h-4" />
                                                                                                 </div>
                                                                                                 <button
-                                                                                                    onClick={() => openOverrideModal(student, session.sessionId)}
+                                                                                                    onClick={() => openOverrideModal(student, fullSession._id)}
                                                                                                     className="text-[9px] px-2 py-0.5 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 hover:border-yellow-500/30 transition-all font-bold uppercase tracking-tighter"
                                                                                                 >
                                                                                                     Override

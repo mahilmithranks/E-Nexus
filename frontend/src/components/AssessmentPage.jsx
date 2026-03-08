@@ -230,57 +230,56 @@ const AssessmentPage = () => {
                     </motion.div>
                 ) : (
                     <div className="space-y-8">
-                        {/* Step 1: Open Google Doc */}
-                        {/* Step 1: Open Google Doc */}
-                        <div className="p-8 rounded-[2rem] bg-indigo-50 border border-indigo-100 relative overflow-hidden group">
-                            <div className="hidden md:block absolute top-0 right-0 w-64 h-64 bg-indigo-100/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
-
-                            <div className="relative z-10 space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="size-12 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                                        <FileText className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-indigo-900">Step 1: Take the Assessment</h3>
-                                        <div className="space-y-1">
-                                            <p className="text-indigo-600/80 text-sm font-medium">Click below to open the assessment form. Complete all questions in the form first.</p>
-                                            <div className="flex items-center gap-2 text-amber-600 text-[10px] font-bold bg-amber-50 px-2 py-1 rounded-md border border-amber-100 w-fit">
-                                                <AlertCircle className="w-3 h-3" />
-                                                WARNING: Access allowed only with registered college mail ID.
+                        {/* Step 1: Open Google Form - only show for days that have a form link (3, 4, 7) */}
+                        {(() => {
+                            const dayNum = session?.dayId?.dayNumber;
+                            const hasFormLink = dayNum === 3 || dayNum === 4 || dayNum === 5 || dayNum === 6 || dayNum === 7;
+                            
+                            if (!hasFormLink) return null;
+                            
+                            return (
+                                <div className="p-8 rounded-[2rem] bg-indigo-50 border border-indigo-100 relative overflow-hidden group">
+                                    <div className="hidden md:block absolute top-0 right-0 w-64 h-64 bg-indigo-100/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                                    <div className="relative z-10 space-y-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="size-12 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                                                <FileText className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-indigo-900">Step 1: Take the Assessment</h3>
+                                                <div className="space-y-1">
+                                                    <p className="text-indigo-600/80 text-sm font-medium">Click below to open the assessment form. Complete all questions in the form first.</p>
+                                                    <div className="flex items-center gap-2 text-amber-600 text-[10px] font-bold bg-amber-50 px-2 py-1 rounded-md border border-amber-100 w-fit">
+                                                        <AlertCircle className="w-3 h-3" />
+                                                        WARNING: Access allowed only with registered college mail ID.
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                        <a
+                                            href={dayNum === 3
+                                                ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
+                                                : dayNum === 4
+                                                    ? "https://docs.google.com/forms/d/e/1FAIpQLSdL5qZXlGmZyL7Eyj4HIH-1ePVwp7sQJ9OOQ5ltgZKc3vxMXg/viewform?usp=header"
+                                                    : dayNum === 5
+                                                        ? "https://forms.gle/NyP7WDEEcyGgvBzp7"
+                                                        : dayNum === 6
+                                                            ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
+                                                            : "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
+                                            }
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block w-full py-4 rounded-xl bg-white border border-zinc-200 text-indigo-600 font-bold text-center hover:bg-indigo-50 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 group/btn"
+                                        >
+                                            Open Day {dayNum} Assessment Form
+                                            <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                        </a>
                                     </div>
                                 </div>
+                            );
+                        })()}
 
-                                <a
-                                    href={(session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3')
-                                        ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
-                                        : (session?.title?.includes('Day 4') || session?.dayId?.dayNumber === 4 || session?.dayId?.dayNumber === '4')
-                                            ? "https://docs.google.com/forms/d/e/1FAIpQLSdL5qZXlGmZyL7Eyj4HIH-1ePVwp7sQJ9OOQ5ltgZKc3vxMXg/viewform?usp=header"
-                                            : (session?.title?.includes('Day 5') || session?.dayId?.dayNumber === 5 || session?.dayId?.dayNumber === '5')
-                                                ? "https://forms.gle/NyP7WDEEcyGgvBzp7"
-                                                : (session?.title?.includes('Day 6') || session?.dayId?.dayNumber === 6 || session?.dayId?.dayNumber === '6')
-                                                    ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
-                                                    : (session?.title?.includes('Day 7') || session?.dayId?.dayNumber === 7 || session?.dayId?.dayNumber === '7')
-                                                        ? "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
-                                                        : (session?.title?.includes('Day 8') || session?.dayId?.dayNumber === 8 || session?.dayId?.dayNumber === '8' || session.title === "Assessment")
-                                                            ? "#"
-                                                            : "#"
-                                    }
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block w-full py-4 rounded-xl bg-white border border-zinc-200 text-indigo-600 font-bold text-center hover:bg-indigo-50 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 group/btn"
-                                >
-                                    Open {
-                                        (session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3') ? 'Day 3 ' :
-                                            (session?.title?.includes('Day 4') || session?.dayId?.dayNumber === 4 || session?.dayId?.dayNumber === '4') ? 'Day 4 ' : ''
-                                    }Assessment Form
-                                    <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                </a>
-                            </div>
-                        </div>
-
-                        {/* Step 2: Submit Proof */}
+                        {/* Submit Drive Link */}
                         <div className="p-8 rounded-[2rem] bg-white border border-zinc-200 shadow-xl shadow-zinc-200/50 relative">
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="flex items-center gap-4 mb-2">
@@ -288,12 +287,36 @@ const AssessmentPage = () => {
                                         <Send className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold text-zinc-900">Step 2: Submit Proof of Completion</h3>
-                                        <p className="text-zinc-500 text-sm font-medium">
-                                            1. Take a <span className="text-zinc-900 font-bold">screenshot of your marks/score</span> from the form.<br />
-                                            2. Upload it to Google Drive.<br />
-                                            3. Paste the Drive link below.
-                                        </p>
+                                        <h3 className="text-xl font-bold text-zinc-900">
+                                            {session?.dayId?.dayNumber === 8
+                                                ? 'Submit Your Assessment Link'
+                                                : 'Step 2: Submit Proof of Completion'}
+                                        </h3>
+                                        {session?.dayId?.dayNumber === 8 ? (
+                                            <div className="text-zinc-500 text-sm font-medium space-y-3 mt-2">
+                                                <p className="text-zinc-700 font-bold">Upload the following screenshots to Google Drive and paste the folder link below:</p>
+                                                <div className="space-y-2 pl-1">
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-[#f05423] font-black text-xs mt-0.5">1.</span>
+                                                        <span><span className="text-zinc-900 font-bold">Screenshot proof of Workflow Runs</span> — showing your n8n workflow executions/runs.</span>
+                                                    </div>
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-[#f05423] font-black text-xs mt-0.5">2.</span>
+                                                        <span><span className="text-zinc-900 font-bold">Output Screenshot</span> — the mail/email received photo as proof of workflow output.</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-amber-600 text-[10px] font-bold bg-amber-50 px-3 py-2 rounded-lg border border-amber-100 w-fit mt-1">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                    Upload both screenshots to a single Drive folder and share the folder link.
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <p className="text-zinc-500 text-sm font-medium">
+                                                1. Take a <span className="text-zinc-900 font-bold">screenshot of your marks/score</span>.<br />
+                                                2. Upload it to Google Drive.<br />
+                                                3. Paste the Drive link below.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 

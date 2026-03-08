@@ -611,7 +611,6 @@ export const getAssessmentStats = async (req, res) => {
         res.status(500).json({ message: 'Server error fetching assessment stats' });
     }
 };
-
 // @desc    Export attendance to Excel
 // @route   GET /api/admin/export/attendance
 // @access  Private/Admin
@@ -619,8 +618,8 @@ export const exportAttendance = async (req, res) => {
     try {
         const { dayId, sessionId } = req.query;
 
-        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
-        const days = await Day.find().sort({ dayNumber: 1 });
+        const students = await User.find({ role: 'student' }).select('registerNumber name').sort({ registerNumber: 1 }).lean();
+        const days = await Day.find().sort({ dayNumber: 1 }).lean();
 
         let sessionQuery = {};
         if (sessionId) {
@@ -629,14 +628,25 @@ export const exportAttendance = async (req, res) => {
             sessionQuery.dayId = dayId;
         }
 
-        let sessions = await Session.find(sessionQuery).populate('dayId').sort({ startTime: 1 });
+        let sessions = await Session.find(sessionQuery).populate('dayId', 'dayNumber title').sort({ startTime: 1 }).lean();
 
-        // Filter out Lunch, Break and Infosys sessions from attendance export
+        // Filter out Lunch, Break, Infosys, and Day 0 sessions
         sessions = sessions.filter(s =>
             s.title?.toUpperCase() !== 'LUNCH' &&
             s.type !== 'BREAK' &&
-            s.title !== "Infosys Certified Course"
+            s.title !== "Infosys Certified Course" &&
+            (s.dayId?.dayNumber || 0) >= 1
         );
+
+        // Sort by day number then startTime
+        sessions.sort((a, b) => {
+            const dayA = a.dayId?.dayNumber ?? 999;
+            const dayB = b.dayId?.dayNumber ?? 999;
+            if (dayA !== dayB) return dayA - dayB;
+            const timeA = a.startTime ? new Date(a.startTime).getTime() : Infinity;
+            const timeB = b.startTime ? new Date(b.startTime).getTime() : Infinity;
+            return timeA - timeB;
+        });
 
         const sessionIds = sessions.map(s => s._id);
 
@@ -650,34 +660,86 @@ export const exportAttendance = async (req, res) => {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Attendance');
 
-        // Simple table structure for export
-        worksheet.columns = [
+        // Build columns: # | Reg Number | Name | Overall % | Session1 | Session2 | ...
+        const columns = [
+            { header: '#', key: 'sno', width: 6 },
             { header: 'Reg Number', key: 'reg', width: 15 },
             { header: 'Student Name', key: 'name', width: 25 },
-            { header: 'Day', key: 'day', width: 10 },
-            { header: 'Session', key: 'session', width: 20 },
-            { header: 'Status', key: 'status', width: 12 },
-            { header: 'Timestamp', key: 'time', width: 20 },
-            { header: 'Override', key: 'override', width: 10 }
+            { header: 'Overall %', key: 'overall', width: 12 }
         ];
 
-        for (const student of students) {
-            for (const session of sessions) {
+        // Add one column per session with Day info in header
+        sessions.forEach((s, idx) => {
+            columns.push({
+                header: `D${s.dayId?.dayNumber || '?'}: ${s.title}`,
+                key: `s${idx}`,
+                width: 18
+            });
+        });
+
+        worksheet.columns = columns;
+
+        // Add student rows
+        students.forEach((student, studentIdx) => {
+            const row = {
+                sno: studentIdx + 1,
+                reg: student.registerNumber,
+                name: student.name
+            };
+
+            let attended = 0;
+            let totalStarted = 0;
+
+            sessions.forEach((session, idx) => {
                 const att = attendanceMap.get(`${student.registerNumber}|${session._id.toString()}`);
-                const status = att ? 'PRESENT' : (session.attendanceStartTime ? 'ABSENT' : 'NOT STARTED');
-                worksheet.addRow({
-                    reg: student.registerNumber,
-                    name: student.name,
-                    day: session.dayId?.dayNumber || '-',
-                    session: session.title,
-                    status: status,
-                    time: att ? new Date(att.timestamp).toLocaleString() : '-',
-                    override: att?.isOverride ? 'YES' : 'NO'
-                });
+                const started = !!session.attendanceStartTime;
+                if (started) totalStarted++;
+
+                if (att) {
+                    row[`s${idx}`] = att.isOverride ? 'P (O)' : 'P';
+                    attended++;
+                } else if (started) {
+                    row[`s${idx}`] = 'A';
+                } else {
+                    row[`s${idx}`] = '-';
+                }
+            });
+
+            row.overall = totalStarted > 0 ? `${Math.round((attended / totalStarted) * 100)}%` : '-';
+            worksheet.addRow(row);
+        });
+
+        // Header styling
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, size: 10 };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
+        headerRow.alignment = { horizontal: 'center', wrapText: true };
+
+        // Color code data cells
+        for (let r = 2; r <= students.length + 1; r++) {
+            const row = worksheet.getRow(r);
+            for (let c = 5; c <= sessions.length + 4; c++) {
+                const cell = row.getCell(c);
+                const val = cell.value;
+                cell.alignment = { horizontal: 'center' };
+                if (val === 'P' || val === 'P (O)') {
+                    cell.font = { bold: true, color: { argb: 'FF16A34A' } };
+                } else if (val === 'A') {
+                    cell.font = { bold: true, color: { argb: 'FFDC2626' } };
+                } else {
+                    cell.font = { color: { argb: 'FF9CA3AF' } };
+                }
             }
+            // Overall % coloring
+            const overallCell = row.getCell(4);
+            overallCell.alignment = { horizontal: 'center' };
+            const pctVal = parseInt(overallCell.value);
+            if (pctVal >= 75) overallCell.font = { bold: true, color: { argb: 'FF16A34A' } };
+            else if (pctVal >= 50) overallCell.font = { bold: true, color: { argb: 'FFD97706' } };
+            else if (!isNaN(pctVal)) overallCell.font = { bold: true, color: { argb: 'FFDC2626' } };
         }
 
-        let filename = 'attendance_report';
+        let filename = 'attendance_all_days';
         if (sessionId && sessions.length > 0) {
             filename = `attendance_${sessions[0].title.replace(/\s+/g, '_')}`;
         } else if (dayId) {
@@ -1017,7 +1079,7 @@ export const exportAssessments = async (req, res) => {
             { header: 'Status', key: 'status', width: 15 }
         ];
 
-        // Batch add rows for performance
+        // Batch add rows for performance - submitted students first, sorted by submission time
         const rows = [];
         for (const student of students) {
             for (const session of sessions) {
@@ -1040,10 +1102,15 @@ export const exportAssessments = async (req, res) => {
                     attendance: attendance ? 'PRESENT' : 'ABSENT',
                     proof: submission ? (submission.response || (submission.files?.[0] || '-')) : '-',
                     submittedAt: submission ? new Date(submission.submittedAt).toLocaleString() : '-',
+                    _submittedAtRaw: submission ? new Date(submission.submittedAt).getTime() : Infinity,
                     status: submission ? 'SUBMITTED' : (attendance ? 'ATTENDED (External Form)' : 'PENDING')
                 });
             }
         }
+        // Sort: submitted first (by earliest submission time), then pending
+        rows.sort((a, b) => a._submittedAtRaw - b._submittedAtRaw);
+        // Remove raw field before adding to worksheet
+        rows.forEach(r => delete r._submittedAtRaw);
         worksheet.addRows(rows);
 
         // Header Formatting

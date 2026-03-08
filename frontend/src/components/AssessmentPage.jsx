@@ -263,7 +263,9 @@ const AssessmentPage = () => {
                                                     ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
                                                     : (session?.title?.includes('Day 7') || session?.dayId?.dayNumber === 7 || session?.dayId?.dayNumber === '7')
                                                         ? "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
-                                                        : "https://forms.gle/NyP7WDEEcyGgvBzp7"
+                                                        : (session?.title?.includes('Day 8') || session?.dayId?.dayNumber === 8 || session?.dayId?.dayNumber === '8' || session.title === "Assessment")
+                                                            ? "#"
+                                                            : "#"
                                     }
                                     target="_blank"
                                     rel="noopener noreferrer"

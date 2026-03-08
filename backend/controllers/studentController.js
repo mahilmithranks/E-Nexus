@@ -33,7 +33,7 @@ export const getSessionsForDay = async (req, res) => {
             Session.find({ dayId })
                 .populate('dayId', 'dayNumber title')
                 .select('title description mode type dayId assignments attendanceOpen attendanceStartTime attendanceEndTime isCertificateUploadOpen startTime endTime')
-                .sort({ createdAt: 1 })
+                .sort({ startTime: 1 })
                 .lean()
         ]);
 
@@ -47,10 +47,10 @@ export const getSessionsForDay = async (req, res) => {
         // Batch fetch attendance and submissions in parallel
         const [attendances, submissions] = await Promise.all([
             Attendance.find({
-            registerNumber: req.user.registerNumber,
-            sessionId: { $in: sessionIds },
-            status: 'PRESENT'
-        }).select('sessionId').lean(),
+                registerNumber: req.user.registerNumber,
+                sessionId: { $in: sessionIds },
+                status: 'PRESENT'
+            }).select('sessionId').lean(),
             AssignmentSubmission.find({
                 registerNumber: req.user.registerNumber,
                 sessionId: { $in: sessionIds }

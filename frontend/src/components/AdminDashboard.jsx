@@ -931,6 +931,14 @@ function AdminDashboard() {
                                                 {sessions
                                                     .filter(session => session.dayId?.dayNumber !== 10) // Hide Day 10 sessions from this list
                                                     .filter(session => !selectedSessionDay || session.dayId?._id === selectedSessionDay || session.dayId === selectedSessionDay)
+                                                    .sort((a, b) => {
+                                                        if (a.startTime && b.startTime) {
+                                                            return new Date(a.startTime) - new Date(b.startTime);
+                                                        }
+                                                        if (a.startTime) return -1;
+                                                        if (b.startTime) return 1;
+                                                        return 0;
+                                                    })
                                                     .map(session => (
                                                         <div key={session._id} className="group relative overflow-hidden p-6 rounded-[2rem] bg-[#111111]/60 border border-white/5 hover:border-indigo-500/30 transition-all duration-500">
                                                             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
@@ -938,7 +946,12 @@ function AdminDashboard() {
                                                                     <div className="size-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col items-center justify-center shrink-0">
                                                                         <div className="text-[10px] font-black text-indigo-400/60 uppercase leading-none mb-1">Session</div>
                                                                         <div className="text-xl font-bold text-white leading-none">
-                                                                            {sessions.indexOf(session) + 1}
+                                                                            {sessions.filter(s => s.dayId?.dayNumber !== 10).sort((a,b) => {
+                                                                                if(a.startTime && b.startTime) return new Date(a.startTime) - new Date(b.startTime);
+                                                                                if(a.startTime) return -1;
+                                                                                if(b.startTime) return 1;
+                                                                                return 0;
+                                                                            }).indexOf(session) + 1}
                                                                         </div>
                                                                     </div>
                                                                     <div className="space-y-2">
@@ -1089,7 +1102,7 @@ function AdminDashboard() {
                                                             <tr className="bg-white/[0.03] border-b border-white/10">
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] w-14 text-center border-r border-white/5 sticky left-0 z-20 bg-[#0d0d0d]">#</th>
                                                                 <th className="p-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] sticky left-14 bg-[#0d0d0d] z-20 min-w-[200px] border-r border-white/5">Student Information</th>
-                                                                 <th className="p-5 text-[10px] font-black text-emerald-400/80 uppercase tracking-[0.15em] whitespace-nowrap text-center border-r border-white/5 bg-[#0d0d0d]" style={{minWidth:'88px'}}>Overall %</th>
+                                                                <th className="p-5 text-[10px] font-black text-emerald-400/80 uppercase tracking-[0.15em] whitespace-nowrap text-center border-r border-white/5 bg-[#0d0d0d]" style={{ minWidth: '88px' }}>Overall %</th>
                                                                 {sessions
                                                                     .filter(s => s.title !== "Infosys Certified Course" && s.type !== 'BREAK' && s.title?.toUpperCase() !== 'LUNCH')
                                                                     .filter(s => !selectedAttendanceDay || s.dayId?._id === selectedAttendanceDay || s.dayId === selectedAttendanceDay)
@@ -1128,16 +1141,16 @@ function AdminDashboard() {
                                                                             <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">{student.registerNumber}</div>
                                                                         </td>
                                                                         {(() => {
-                                                                             const oa = getOverallAttendance(student);
-                                                                             if (!oa) return <td className="p-4 border-r border-white/5 text-center"><span className="text-zinc-600 text-xs">—</span></td>;
-                                                                             const color = oa.pct >= 75 ? 'text-emerald-400' : oa.pct >= 50 ? 'text-amber-400' : 'text-red-400';
-                                                                             return (
-                                                                               <td className="p-4 border-r border-white/5 text-center">
-                                                                                 <span className={`text-base font-black ${color}`}>{oa.pct}%</span>
-                                                                                 <div className="text-[9px] text-zinc-600 mt-0.5">{oa.attended}/{oa.total}</div>
-                                                                               </td>
-                                                                             );
-                                                                           })()}
+                                                                            const oa = getOverallAttendance(student);
+                                                                            if (!oa) return <td className="p-4 border-r border-white/5 text-center"><span className="text-zinc-600 text-xs">—</span></td>;
+                                                                            const color = oa.pct >= 75 ? 'text-emerald-400' : oa.pct >= 50 ? 'text-amber-400' : 'text-red-400';
+                                                                            return (
+                                                                                <td className="p-4 border-r border-white/5 text-center">
+                                                                                    <span className={`text-base font-black ${color}`}>{oa.pct}%</span>
+                                                                                    <div className="text-[9px] text-zinc-600 mt-0.5">{oa.attended}/{oa.total}</div>
+                                                                                </td>
+                                                                            );
+                                                                        })()}
                                                                         {student.sessions.filter(s => {
                                                                             const fullSession = sessions.find(fs => fs._id === s.sessionId);
                                                                             if (!fullSession) return false;

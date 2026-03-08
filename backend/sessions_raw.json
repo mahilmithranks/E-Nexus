@@ -1,0 +1,221 @@
+[
+  {
+    "_id": "6989c238ba1df93052100543",
+    "title": "Infosys Certified Course",
+    "description": "Online (Self-paced) | AI for Data Analytics & Business Intelligence | 30 Hours (Complete before live sessions)",
+    "startTime": "2026-02-09T18:30:00.000Z",
+    "endTime": "2026-02-10T18:29:59.000Z"
+  },
+  {
+    "_id": "6989c238ba1df93052100545",
+    "title": "Introduction, Commands, CLI, Repo",
+    "description": "Day 1 Training: Fundamental Git concepts and operations",
+    "startTime": "2026-02-10T13:30:00.000Z",
+    "endTime": "2026-02-10T14:30:00.000Z"
+  },
+  {
+    "_id": "6989c238ba1df93052100547",
+    "title": "Opensource Startups",
+    "description": "Day 1 Training: Understanding open source ecosystem",
+    "startTime": "2026-02-10T14:30:00.000Z",
+    "endTime": "2026-02-10T15:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100549",
+    "title": "Assessment",
+    "description": "Offline final assessment for Day 8 modules (Linux and n8n).",
+    "startTime": "2026-03-08T11:30:00.000Z",
+    "endTime": "2026-03-08T12:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df9305210054b",
+    "title": "Introduction, Installation and setup",
+    "description": "Day 2 Training: Getting started with MongoDB",
+    "startTime": "2026-02-11T12:30:00.000Z",
+    "endTime": "2026-02-11T13:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df9305210054d",
+    "title": "Using MongoDB atlas compass and making simple node.js project",
+    "description": "Day 2 Training: Connecting Node to Mongo",
+    "startTime": "2026-02-11T13:30:00.000Z",
+    "endTime": "2026-02-11T14:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df9305210054f",
+    "title": "Assessment",
+    "description": "Offline final assessment for Day 8 modules (Linux and n8n).",
+    "startTime": "2026-03-08T11:30:00.000Z",
+    "endTime": "2026-03-08T12:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100551",
+    "title": "NPC Behavior",
+    "description": "Day 3 Training: Designing intelligent characters",
+    "startTime": "2026-02-12T12:30:00.000Z",
+    "endTime": "2026-02-12T13:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100553",
+    "title": "Prompt Frameworks",
+    "description": "Day 3 Training: Mastering advanced prompting techniques",
+    "startTime": "2026-02-12T13:30:00.000Z",
+    "endTime": "2026-02-12T14:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100555",
+    "title": "Assessment",
+    "description": "Offline final assessment for Day 8 modules (Linux and n8n).",
+    "startTime": "2026-03-08T11:30:00.000Z",
+    "endTime": "2026-03-08T12:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100557",
+    "title": "Cursor, Copilot",
+    "description": "Day 4 Training: Speeding up development with AI extensions",
+    "startTime": "2026-02-13T12:30:00.000Z",
+    "endTime": "2026-02-13T13:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100559",
+    "title": "Replit, Orchids",
+    "description": "Day 4 Training: Cloud development and automated workflows",
+    "startTime": "2026-02-13T13:30:00.000Z",
+    "endTime": "2026-02-13T14:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df9305210055b",
+    "title": "Assessment",
+    "description": "Offline final assessment for Day 8 modules (Linux and n8n).",
+    "startTime": "2026-03-08T11:30:00.000Z",
+    "endTime": "2026-03-08T12:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df9305210055d",
+    "title": "Introduction and system design",
+    "description": "Day 5 Training: Core concepts of SDD",
+    "startTime": "2026-02-17T12:30:00.000Z",
+    "endTime": "2026-02-17T13:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df9305210055f",
+    "title": "High level design",
+    "description": "Day 5 Training: Architecture and components",
+    "startTime": "2026-02-17T13:30:00.000Z",
+    "endTime": "2026-02-17T14:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100561",
+    "title": "Low level Design",
+    "description": "Day 5 Training: Detailed component design",
+    "startTime": "2026-02-17T14:30:00.000Z",
+    "endTime": "2026-02-17T15:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100563",
+    "title": "Backend",
+    "description": "Day 6 Training: API Development with Node and Express",
+    "startTime": "2026-02-18T12:30:00.000Z",
+    "endTime": "2026-02-18T13:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100565",
+    "title": "Frontend",
+    "description": "Day 6 Training: Building responsive UI with React",
+    "startTime": "2026-02-18T13:30:00.000Z",
+    "endTime": "2026-02-18T14:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100567",
+    "title": "Assessment",
+    "description": "Offline final assessment for Day 8 modules (Linux and n8n).",
+    "startTime": "2026-03-08T11:30:00.000Z",
+    "endTime": "2026-03-08T12:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df93052100569",
+    "title": "Introduction to GEN AI, setting up the environment",
+    "description": "Day 7 Training: Understanding LLMs and setups",
+    "startTime": "2026-02-19T12:30:00.000Z",
+    "endTime": "2026-02-19T13:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df9305210056b",
+    "title": "RAG concepts and fundamentals",
+    "description": "Day 7 Training: Retrieval-Augmented Generation",
+    "startTime": "2026-02-19T13:30:00.000Z",
+    "endTime": "2026-02-19T14:30:00.000Z"
+  },
+  {
+    "_id": "6989c239ba1df9305210056d",
+    "title": "Assessment",
+    "description": "Offline final assessment for Day 8 modules (Linux and n8n).",
+    "startTime": "2026-03-08T11:30:00.000Z",
+    "endTime": "2026-03-08T12:30:00.000Z"
+  },
+  {
+    "_id": "698aef4c72205ffe40146603",
+    "title": "Test Attendance",
+    "description": "Test your camera and attendance marking functionality",
+    "startTime": "2026-02-09T03:30:00.000Z",
+    "endTime": "2026-02-09T04:30:00.000Z"
+  },
+  {
+    "_id": "698aef4c72205ffe40146604",
+    "title": "Test Upload",
+    "description": "Test your MCQ assessment functionality here",
+    "startTime": "2026-03-03T04:30:00.000Z",
+    "endTime": "2026-03-03T05:30:00.000Z"
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13a7",
+    "title": "Setup & First Workflow",
+    "description": "Initial setup of n8n and creating your first automation workflow."
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13a8",
+    "title": "APIs, Webhooks & Second Workflow",
+    "description": "Working with external APIs and using webhooks in n8n."
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13a9",
+    "title": "Cloud Credentials & Final Workflow",
+    "description": "Integrating cloud services and final project workflow."
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13aa",
+    "title": "Customization, Debugging & Wrap-up",
+    "description": "Advanced n8n features and troubleshooting. Mark attendance to complete."
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13ab",
+    "title": "Lunch Break",
+    "description": "Rest and recharge for the afternoon session."
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13ac",
+    "title": "Introduction and setup Windows subsystem for Linux",
+    "description": "Setting up WSL and basic Linux environment on Windows.",
+    "startTime": "2026-03-08T03:30:00.000Z",
+    "endTime": "2026-03-08T06:30:00.000Z"
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13ad",
+    "title": "Linux Commands and package manager",
+    "description": "Essential Linux terminal commands and managing software with apt.",
+    "startTime": "2026-03-08T06:30:00.000Z",
+    "endTime": "2026-03-08T07:30:00.000Z"
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13ae",
+    "title": "Linux Foundations",
+    "description": "Core concepts of the Linux operating system."
+  },
+  {
+    "_id": "69a6a915cb7a8d92b85b13af",
+    "title": "Assessment",
+    "description": "Offline final assessment for both n8n and Linux modules.",
+    "startTime": "2026-03-08T11:30:00.000Z",
+    "endTime": "2026-03-08T12:30:00.000Z"
+  }
+]

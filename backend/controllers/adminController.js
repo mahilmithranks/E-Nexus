@@ -156,38 +156,18 @@ export const updateDayStatus = async (req, res) => {
             return res.status(404).json({ message: 'Day not found' });
         }
 
-        // Keep day accessible even when completed
-        day.status = status;
-        await day.save();
-
-        if (status === 'OPEN') {
-            await Session.updateMany(
-                { dayId: day._id },
-                { $set: { attendanceOpen: false, attendanceStartTime: null, attendanceEndTime: null } }
-            );
-        }
-
-        if (status === 'COMPLETED') {
-            const sessions = await Session.find({ dayId: day._id });
-            await Session.updateMany(
-                { dayId: day._id },
-                { $set: { attendanceOpen: false, attendanceEndTime: new Date() } }
-            );
-        }
-
-        // Clear cache
+        // Cache busting: Invalidate multiple keys to ensure consistency
         clearCache('admin-days');
-        clearCache('admin-sessions');
         clearCache('student-days');
+        clearCache('admin-sessions');
         clearCache('student-sessions');
-        clearCache('admin-progress');
 
         res.json(day);
     } catch (error) {
         console.error('Update day status error:', error);
 
         // Return 404 if it's a cast error (invalid ID format)
-        if (error.kind === 'ObjectId') {
+        if (error.name === 'CastError' || error.kind === 'ObjectId') {
             return res.status(404).json({ message: 'Invalid Day ID' });
         }
 
@@ -212,6 +192,12 @@ export const getAllSessions = async (req, res) => {
             const dayA = a.dayId?.dayNumber ?? 999;
             const dayB = b.dayId?.dayNumber ?? 999;
             if (dayA !== dayB) return dayA - dayB;
+            
+            if (a.startTime && b.startTime) {
+                return new Date(a.startTime) - new Date(b.startTime);
+            }
+            if (a.startTime) return -1;
+            if (b.startTime) return 1;
             return a.createdAt > b.createdAt ? 1 : -1;
         });
 
@@ -639,7 +625,7 @@ export const exportAttendance = async (req, res) => {
             sessionQuery.dayId = dayId;
         }
 
-        let sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+        let sessions = await Session.find(sessionQuery).populate('dayId').sort({ startTime: 1 });
 
         // Filter out Lunch, Break and Infosys sessions from attendance export
         sessions = sessions.filter(s =>
@@ -722,7 +708,7 @@ export const exportAssignments = async (req, res) => {
             sessionQuery.dayId = dayId;
         }
 
-        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ createdAt: 1 });
+        const sessions = await Session.find(sessionQuery).populate('dayId').sort({ startTime: 1 });
 
         if (sessions.length === 0) {
             return res.status(404).json({ message: 'No sessions found for the specified criteria' });
@@ -979,7 +965,7 @@ export const exportAssessments = async (req, res) => {
 
         const sessions = await Session.find(sessionQuery)
             .populate('dayId', 'dayNumber title')
-            .sort({ createdAt: 1 })
+            .sort({ startTime: 1 })
             .lean();
 
         if (sessions.length === 0 && (sessionId || dayId)) {
@@ -1219,7 +1205,7 @@ export const getDetailedAssessmentSubmissions = async (req, res) => {
         res.json({
             session: {
                 title: session.title,
-                dayNumber: session.dayId?.dayNumber
+                dayNumber: session.dayId?.dayNumber || '-'
             },
             students: data
         });
@@ -1234,11 +1220,20 @@ export const runAutoCloseJob = async (req, res) => {
     try {
         const now = new Date();
         const result = await Session.updateMany(
-            { attendanceOpen: true, attendanceEndTime: { $lt: now } },
+            { attendanceOpen: true, attendanceEndTime: { $ne: null, $lt: now } },
             { $set: { attendanceOpen: false } }
         );
+
+        if (result.modifiedCount > 0) {
+            console.log(`[Auto-Close] Synchronously closed ${result.modifiedCount} sessions. Clearing caches.`);
+            clearCache('student-sessions');
+            clearCache('admin-sessions');
+            clearCache('admin-progress');
+        }
+
         if (res) res.json({ message: `Closed ${result.modifiedCount} sessions` });
     } catch (error) {
+        console.error('[Auto-Close Error]', error);
         if (res) res.status(500).json({ message: 'Cron job failed' });
     }
 };

@@ -23,10 +23,6 @@ function StudentDashboard() {
     const [showAttendanceProtocol, setShowAttendanceProtocol] = useState(false);
     const [protocolTimer, setProtocolTimer] = useState(8);
     const [redoActive, setRedoActive] = useState({}); // Tracking resubmission mode per session
-    const [showLaptopNotice, setShowLaptopNotice] = useState(() => {
-        return !sessionStorage.getItem('laptopNoticeShown');
-    });
-    const [noticeTimer, setNoticeTimer] = useState(10);
     const [showCertificateModal, setShowCertificateModal] = useState(false);
     const [certModalTimer, setCertModalTimer] = useState(5);
     const [pendingCertData, setPendingCertData] = useState(null);
@@ -111,15 +107,6 @@ function StudentDashboard() {
         return () => clearTimeout(timer);
     }, [showWarning, warningTimerSeconds]);
 
-    useEffect(() => {
-        let timer;
-        if (showLaptopNotice && noticeTimer > 0) {
-            timer = setTimeout(() => {
-                setNoticeTimer(prev => prev - 1);
-            }, 1000);
-        }
-        return () => clearTimeout(timer);
-    }, [showLaptopNotice, noticeTimer]);
 
     useEffect(() => {
         let timer;
@@ -168,7 +155,13 @@ function StudentDashboard() {
         try {
             setIsRefreshing(true);
             const response = await api.get(`/student/sessions/${dayId}`);
-            setSessions(Array.isArray(response.data) ? response.data : []);
+            let fetchedSessions = Array.isArray(response.data) ? response.data : [];
+            fetchedSessions.sort((a, b) => {
+                if (!a.startTime) return 1;
+                if (!b.startTime) return -1;
+                return new Date(a.startTime) - new Date(b.startTime);
+            });
+            setSessions(fetchedSessions);
         } catch (error) {
             console.error('Error refreshing sessions:', error);
             // Non-blocking error for background refresh
@@ -182,7 +175,13 @@ function StudentDashboard() {
             setSelectedDay(dayId);
             setIsRefreshing(true);
             const response = await api.get(`/student/sessions/${dayId}`);
-            setSessions(Array.isArray(response.data) ? response.data : []);
+            let fetchedSessions = Array.isArray(response.data) ? response.data : [];
+            fetchedSessions.sort((a, b) => {
+                if (!a.startTime) return 1;
+                if (!b.startTime) return -1;
+                return new Date(a.startTime) - new Date(b.startTime);
+            });
+            setSessions(fetchedSessions);
         } catch (error) {
             console.error('Error fetching sessions:', error);
             if (error.response?.status === 403) {
@@ -456,19 +455,6 @@ function StudentDashboard() {
 
                         {/* LEFT PANEL: TIMELINE & STATS */}
                         <div className="w-full md:w-80 space-y-6 sm:space-y-8 shrink-0">
-                            {/* PERSISTENT HIGHLIGHTED NOTICE */}
-                            <div className="p-5 sm:p-6 rounded-2xl bg-[#f05423] text-white shadow-xl shadow-[#f05423]/30 relative overflow-hidden group animate-pulse">
-                                <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/20 rounded-full blur-2xl" />
-                                <div className="relative z-10 space-y-3">
-                                    <div className="flex items-center gap-2 text-white/90 text-[10px] font-black uppercase tracking-widest">
-                                        <AlertCircle className="w-4 h-4" />
-                                        Critically Important
-                                    </div>
-                                    <p className="text-sm sm:text-base font-bold leading-tight">
-                                        Don't forget to bring the laptop on the live session day. Date for live session will be announced later.
-                                    </p>
-                                </div>
-                            </div>
 
                             {/* User Metadata Card - Glassy */}
                             <div className="p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-zinc-200/50 relative overflow-hidden group">
@@ -525,24 +511,22 @@ function StudentDashboard() {
                                     {/* Header row */}
                                     <div className="flex items-center justify-between mb-3">
                                         <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Overall Attendance</p>
-                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                                            attendanceSummary.percentage >= 75
-                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                                                : attendanceSummary.percentage >= 50
+                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${attendanceSummary.percentage >= 75
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                            : attendanceSummary.percentage >= 50
                                                 ? 'bg-amber-50 text-amber-600 border-amber-200'
                                                 : 'bg-red-50 text-red-500 border-red-200'
-                                        }`}>
+                                            }`}>
                                             {attendanceSummary.percentage >= 75 ? 'Good Standing' : attendanceSummary.percentage >= 50 ? 'Needs Improvement' : 'Critical'}
                                         </span>
                                     </div>
 
                                     {/* Big percentage */}
                                     <div className="flex items-baseline gap-2 mb-3">
-                                        <span className={`text-5xl font-black ${
-                                            attendanceSummary.percentage >= 75 ? 'text-emerald-600'
+                                        <span className={`text-5xl font-black ${attendanceSummary.percentage >= 75 ? 'text-emerald-600'
                                             : attendanceSummary.percentage >= 50 ? 'text-amber-500'
-                                            : 'text-red-500'
-                                        }`}>
+                                                : 'text-red-500'
+                                            }`}>
                                             {attendanceSummary.percentage}%
                                         </span>
                                         <span className="text-sm text-zinc-400 font-semibold">
@@ -553,12 +537,11 @@ function StudentDashboard() {
                                     {/* Progress bar */}
                                     <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden mb-3">
                                         <div
-                                            className={`h-full rounded-full transition-all duration-1000 ${
-                                                attendanceSummary.percentage >= 75 ? 'bg-emerald-500'
+                                            className={`h-full rounded-full transition-all duration-1000 ${attendanceSummary.percentage >= 75 ? 'bg-emerald-500'
                                                 : attendanceSummary.percentage >= 50 ? 'bg-amber-400'
-                                                : 'bg-red-500'
-                                            }`}
-                                            style={{width: `${attendanceSummary.percentage}%`}}
+                                                    : 'bg-red-500'
+                                                }`}
+                                            style={{ width: `${attendanceSummary.percentage}%` }}
                                         />
                                     </div>
 
@@ -821,57 +804,7 @@ function StudentDashboard() {
                                                                     <p className="text-zinc-500 text-sm font-medium line-clamp-1 max-w-sm">{session.description}</p>
                                                                 </div>
 
-                                                                {/* Course Assessment Link - Handler for Assessment Days */}
-                                                                {(session.title.includes("Assessment Day") || (days.find(d => d._id === selectedDay)?.title || "").includes("Assessment Day") || session.title.includes("Customization, Debugging & Wrap-up")) && (
-                                                                    <div className="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-3">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div>
-                                                                                <h4 className="text-sm font-bold text-indigo-900">Course Assessment</h4>
-                                                                                <p className="text-[10px] text-indigo-600 font-medium mt-0.5">
-                                                                                    {session.title.includes("Customization")
-                                                                                        ? "Complete N8N assessment after marking attendance."
-                                                                                        : "Complete the assessment form before uploading your certificate."}
-                                                                                </p>
-                                                                            </div>
 
-                                                                            {/* Only show button if attendance is marked OR if it's not the specific N8N session that requires it */}
-                                                                            {(!session.title.includes("Customization") || session.hasAttendance) ? (
-                                                                                <a
-                                                                                    href={(session?.title?.includes('Day 3') || session?.dayId?.dayNumber === 3 || session?.dayId?.dayNumber === '3')
-                                                                                        ? "https://docs.google.com/forms/d/e/1FAIpQLScJjAnnhpx1BI6XjA77bKiqAFGHmNgrhYegP_fOIOB3jnfXUg/viewform?usp=dialog"
-                                                                                        : (session?.title?.includes('Day 4') || session?.dayId?.dayNumber === 4 || session?.dayId?.dayNumber === '4')
-                                                                                            ? "https://docs.google.com/forms/d/e/1FAIpQLSdL5qZXlGmZyL7Eyj4HIH-1ePVwp7sQJ9OOQ5ltgZKc3vxMXg/viewform?usp=header"
-                                                                                            : (session?.title?.includes('Day 5') || session?.dayId?.dayNumber === 5 || session?.dayId?.dayNumber === '5')
-                                                                                                ? "https://forms.gle/NyP7WDEEcyGgvBzp7"
-                                                                                                : (session?.title?.includes('Day 6') || session?.dayId?.dayNumber === 6 || session?.dayId?.dayNumber === '6')
-                                                                                                    ? "https://docs.google.com/forms/d/e/1FAIpQLSf_6XdpLM7pOjp6Pbq68RWSIdInx_RUqulKzZZQ4rDxfcnxTA/viewform?usp=dialog"
-                                                                                                    : (session?.title?.includes('Day 7') || session?.dayId?.dayNumber === 7 || session?.dayId?.dayNumber === '7')
-                                                                                                        ? "https://docs.google.com/forms/d/e/1FAIpQLSc1gq6CSg-1-nLKNlcDzGHDMixLi5PZTn5CI_LPUz4XsNjHxg/viewform?usp=header"
-                                                                                                        : "#re"
-                                                                                    }
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors shadow-sm"
-                                                                                >
-                                                                                    Open Form
-                                                                                    <ExternalLink className="w-3 h-3" />
-                                                                                </a>
-                                                                            ) : (
-                                                                                <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-400 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-zinc-200 cursor-not-allowed">
-                                                                                    <Lock className="w-3 h-3" />
-                                                                                    Locked
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-
-                                                                        {session.title.includes("Customization") && !session.hasAttendance && (
-                                                                            <div className="flex items-center gap-2 text-amber-600 text-[10px] font-bold bg-white/50 px-2 py-1.5 rounded-md border border-amber-100 w-fit">
-                                                                                <AlertCircle className="w-3 h-3" />
-                                                                                Mark attendance to unlock N8N assessment.
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                )}
 
                                                                 {/* Certificate Upload Section - ONLY for Infosys Certified Course */}
                                                                 {session.title === "Infosys Certified Course" && session.isCertificateUploadOpen && (
@@ -1045,9 +978,9 @@ function StudentDashboard() {
                                                                                 </div>
                                                                             ) : (
                                                                                 <div className="flex flex-col items-end gap-3">
-                                                                                    <div className="px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 text-[10px] font-bold uppercase tracking-wide flex items-center gap-2 backdrop-blur-sm border-dashed">
-                                                                                        <AlertCircle className="w-3 h-3" />
-                                                                                        Mark attendance to unlock assessment window
+                                                                                    <div className="px-4 py-2 rounded-xl bg-[#f05423]/10 border border-[#f05423]/20 text-[#f05423] text-[10px] font-black w-fit uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm shadow-sm md:w-auto text-center md:text-right">
+                                                                                        <AlertCircle className="w-4 h-4" />
+                                                                                        MARK ATTENDANCE TO UNLOCK ASSESSMENT WINDOW
                                                                                     </div>
                                                                                     {session.isAttendanceActive ? (
                                                                                         <button
@@ -1331,66 +1264,6 @@ function StudentDashboard() {
                 )}
             </AnimatePresence>
 
-            {/* MANDATORY LAPTOP NOTICE */}
-            <AnimatePresence>
-                {showLaptopNotice && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl relative"
-                        >
-                            <div className="bg-[#f05423] p-6 text-white relative overflow-hidden">
-                                <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/20 rounded-full blur-xl" />
-                                <div className="relative z-10 flex items-center gap-3">
-                                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                                        <AlertCircle className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-black text-lg uppercase tracking-wider">Crucial Update</h3>
-                                        <p className="text-white/80 text-xs font-bold uppercase tracking-widest">Live Session Preparation</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-6 sm:p-8 space-y-6">
-                                <div className="space-y-4 text-center">
-                                    <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-100 shadow-inner">
-                                        <p className="text-zinc-900 font-bold text-lg sm:text-xl leading-relaxed">
-                                            "Don't forget to bring the laptop on the live session day. Date for live session will be announced later."
-                                        </p>
-                                    </div>
-                                    <p className="text-[#f05423] text-sm font-bold uppercase tracking-widest animate-pulse">
-                                        Mandatory Requirement
-                                    </p>
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        setShowLaptopNotice(false);
-                                        sessionStorage.setItem('laptopNoticeShown', 'true');
-                                    }}
-                                    disabled={noticeTimer > 0}
-                                    className="w-full py-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl shadow-zinc-200/50"
-                                >
-                                    {noticeTimer > 0 ? (
-                                        <>
-                                            <Clock className="w-4 h-4 animate-spin" />
-                                            Read Carefully ({noticeTimer}s)
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckCircle className="w-4 h-4" />
-                                            I Acknowledge
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
 
             {/* Certificate Warning Modal */}
             <AnimatePresence>
@@ -1471,90 +1344,90 @@ function StudentDashboard() {
                         </motion.div>
                     </div>
                 )}
-            {/* Attendance Calculation Policy Modal */}
-            {showPolicyModal && (
-                <div
-                    className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                    onClick={() => setShowPolicyModal(false)}
-                >
+                {/* Attendance Calculation Policy Modal */}
+                {showPolicyModal && (
                     <div
-                        className="bg-white rounded-3xl shadow-2xl border border-zinc-100 max-w-md w-full p-7 max-h-[90vh] overflow-y-auto"
-                        onClick={e => e.stopPropagation()}
+                        className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setShowPolicyModal(false)}
                     >
-                        {/* Header */}
-                        <div className="flex items-start justify-between mb-5">
-                            <div>
-                                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-1">Bootcamp Attendance</p>
-                                <h2 className="text-xl font-black text-zinc-900">Calculation Policy</h2>
+                        <div
+                            className="bg-white rounded-3xl shadow-2xl border border-zinc-100 max-w-md w-full p-7 max-h-[90vh] overflow-y-auto"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="flex items-start justify-between mb-5">
+                                <div>
+                                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-1">Bootcamp Attendance</p>
+                                    <h2 className="text-xl font-black text-zinc-900">Calculation Policy</h2>
+                                </div>
+                                <button
+                                    onClick={() => setShowPolicyModal(false)}
+                                    className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition-colors text-sm font-bold shrink-0"
+                                >
+                                    &#x2715;
+                                </button>
                             </div>
+
+                            <div className="space-y-4 text-sm text-zinc-600">
+                                {/* Formula */}
+                                <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                                    <p className="font-black text-indigo-700 text-xs uppercase tracking-wider mb-1.5">Formula</p>
+                                    <p className="text-indigo-900 font-bold text-base">
+                                        Attended Sessions &divide; Total Sessions &times; 100
+                                    </p>
+                                </div>
+
+                                {/* Counted */}
+                                <div className="space-y-2">
+                                    <p className="font-black text-zinc-700 text-xs uppercase tracking-wider">What counts?</p>
+                                    <ul className="space-y-2">
+                                        <li className="flex gap-2.5">
+                                            <span className="text-emerald-500 font-black shrink-0">&#10003;</span>
+                                            <span>All sessions across <strong className="text-zinc-800">Day 1&ndash;Day 8</strong> are in the denominator &mdash; including future/not-yet-started days.</span>
+                                        </li>
+                                        <li className="flex gap-2.5">
+                                            <span className="text-emerald-500 font-black shrink-0">&#10003;</span>
+                                            <span>Camera-verified attendance and admin <strong className="text-zinc-800">overrides</strong> both count as Present.</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                {/* Not counted */}
+                                <div className="space-y-2">
+                                    <p className="font-black text-zinc-700 text-xs uppercase tracking-wider">What is excluded?</p>
+                                    <ul className="space-y-2">
+                                        <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Day 0</strong> orientation sessions</span></li>
+                                        <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Infosys Certified Course</strong> (self-paced)</span></li>
+                                        <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Break</strong> sessions</span></li>
+                                    </ul>
+                                </div>
+
+                                {/* Status bands */}
+                                <div className="grid grid-cols-3 gap-2 pt-1">
+                                    <div className="p-3 bg-emerald-50 rounded-2xl text-center border border-emerald-100">
+                                        <p className="text-emerald-600 font-black text-sm">&ge; 75%</p>
+                                        <p className="text-emerald-600 text-[10px] font-bold mt-0.5">Good Standing</p>
+                                    </div>
+                                    <div className="p-3 bg-amber-50 rounded-2xl text-center border border-amber-100">
+                                        <p className="text-amber-600 font-black text-sm">50&ndash;74%</p>
+                                        <p className="text-amber-600 text-[10px] font-bold mt-0.5">Needs Improvement</p>
+                                    </div>
+                                    <div className="p-3 bg-red-50 rounded-2xl text-center border border-red-100">
+                                        <p className="text-red-500 font-black text-sm">&lt; 50%</p>
+                                        <p className="text-red-500 text-[10px] font-bold mt-0.5">Critical</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button
                                 onClick={() => setShowPolicyModal(false)}
-                                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition-colors text-sm font-bold shrink-0"
+                                className="mt-6 w-full py-3.5 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-black text-sm uppercase tracking-widest transition-colors"
                             >
-                                &#x2715;
+                                Got it
                             </button>
                         </div>
-
-                        <div className="space-y-4 text-sm text-zinc-600">
-                            {/* Formula */}
-                            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                                <p className="font-black text-indigo-700 text-xs uppercase tracking-wider mb-1.5">Formula</p>
-                                <p className="text-indigo-900 font-bold text-base">
-                                    Attended Sessions &divide; Total Sessions &times; 100
-                                </p>
-                            </div>
-
-                            {/* Counted */}
-                            <div className="space-y-2">
-                                <p className="font-black text-zinc-700 text-xs uppercase tracking-wider">What counts?</p>
-                                <ul className="space-y-2">
-                                    <li className="flex gap-2.5">
-                                        <span className="text-emerald-500 font-black shrink-0">&#10003;</span>
-                                        <span>All sessions across <strong className="text-zinc-800">Day 1&ndash;Day 8</strong> are in the denominator &mdash; including future/not-yet-started days.</span>
-                                    </li>
-                                    <li className="flex gap-2.5">
-                                        <span className="text-emerald-500 font-black shrink-0">&#10003;</span>
-                                        <span>Camera-verified attendance and admin <strong className="text-zinc-800">overrides</strong> both count as Present.</span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            {/* Not counted */}
-                            <div className="space-y-2">
-                                <p className="font-black text-zinc-700 text-xs uppercase tracking-wider">What is excluded?</p>
-                                <ul className="space-y-2">
-                                    <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Day 0</strong> orientation sessions</span></li>
-                                    <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Infosys Certified Course</strong> (self-paced)</span></li>
-                                    <li className="flex gap-2.5"><span className="text-red-400 font-black shrink-0">&#10007;</span><span><strong className="text-zinc-800">Break</strong> sessions</span></li>
-                                </ul>
-                            </div>
-
-                            {/* Status bands */}
-                            <div className="grid grid-cols-3 gap-2 pt-1">
-                                <div className="p-3 bg-emerald-50 rounded-2xl text-center border border-emerald-100">
-                                    <p className="text-emerald-600 font-black text-sm">&ge; 75%</p>
-                                    <p className="text-emerald-600 text-[10px] font-bold mt-0.5">Good Standing</p>
-                                </div>
-                                <div className="p-3 bg-amber-50 rounded-2xl text-center border border-amber-100">
-                                    <p className="text-amber-600 font-black text-sm">50&ndash;74%</p>
-                                    <p className="text-amber-600 text-[10px] font-bold mt-0.5">Needs Improvement</p>
-                                </div>
-                                <div className="p-3 bg-red-50 rounded-2xl text-center border border-red-100">
-                                    <p className="text-red-500 font-black text-sm">&lt; 50%</p>
-                                    <p className="text-red-500 text-[10px] font-bold mt-0.5">Critical</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={() => setShowPolicyModal(false)}
-                            className="mt-6 w-full py-3.5 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-black text-sm uppercase tracking-widest transition-colors"
-                        >
-                            Got it
-                        </button>
                     </div>
-                </div>
-            )}
+                )}
 
             </AnimatePresence>
         </>

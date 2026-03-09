@@ -67,6 +67,7 @@ function AdminDashboard() {
     const [selectedAttendanceDay, setSelectedAttendanceDay] = useState(null);
 
     // Sessions that count toward overall attendance % (Day 1-8, type=SESSION, not Infosys)
+    // Only sessions where attendance was actually started count toward the total
     const attendanceSessions = sessions.filter(s => {
         const d = s.dayId?.dayNumber;
         const titleLower = s.title?.toLowerCase() || '';
@@ -74,12 +75,15 @@ function AdminDashboard() {
             !titleLower.includes('infosys') && !titleLower.includes('certificate');
     });
 
+    // Only sessions where attendance was actually opened/started count in the denominator
+    // This matches the Excel export formula exactly: attended / totalStarted
+    const startedAttendanceSessions = attendanceSessions.filter(s => !!s.attendanceStartTime);
+
     // Helper: compute overall attendance % for a student
-    // total = ALL eligible sessions Day 1-8 (including non-opened/future days)
     const getOverallAttendance = (student) => {
-        const total = attendanceSessions.length; // full set incl. future/locked days
+        const total = startedAttendanceSessions.length; // only sessions where attendance was actually conducted
         if (total === 0) return null;
-        const attSessIds = new Set(attendanceSessions.map(s => s._id));
+        const attSessIds = new Set(startedAttendanceSessions.map(s => s._id));
         const attended = student.sessions.filter(s =>
             attSessIds.has(s.sessionId) && s.attendance?.status === 'PRESENT'
         ).length;

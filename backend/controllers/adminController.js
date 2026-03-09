@@ -13,12 +13,19 @@ import bcrypt from 'bcryptjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Users to exclude from all student queries, exports, and stats
+// Matches name (case-insensitive contains) to filter out admin/test accounts
+const EXCLUDED_USER_FILTER = {
+    role: 'student',
+    name: { $not: { $regex: /^(mahil|test)/i } }
+};
+
 // @desc    Get dashboard stats (Live users count, etc)
 // @route   GET /api/admin/stats
 // @access  Private/Admin
 export const getDashboardStats = async (req, res) => {
     try {
-        const totalStudents = await User.countDocuments({ role: 'student' });
+        const totalStudents = await User.countDocuments(EXCLUDED_USER_FILTER);
 
         res.json({
             onlineUsers: 0,
@@ -155,6 +162,10 @@ export const updateDayStatus = async (req, res) => {
         if (!day) {
             return res.status(404).json({ message: 'Day not found' });
         }
+
+        // Apply the new status and save
+        day.status = status;
+        await day.save();
 
         // Cache busting: Invalidate multiple keys to ensure consistency
         clearCache('admin-days');
@@ -464,7 +475,7 @@ export const getProgress = async (req, res) => {
         const search = req.query.search || '';
         const skip = (page - 1) * limit;
 
-        const query = { role: 'student' };
+        const query = { ...EXCLUDED_USER_FILTER };
         if (search) {
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
@@ -575,7 +586,7 @@ export const getAssessmentStats = async (req, res) => {
                 .populate('dayId', 'dayNumber')
                 .select('title dayId')
                 .lean(),
-            User.countDocuments({ role: 'student' })
+            User.countDocuments(EXCLUDED_USER_FILTER)
         ]);
 
         // Filter out Day 1 and sessions with no dayId
@@ -618,7 +629,7 @@ export const exportAttendance = async (req, res) => {
     try {
         const { dayId, sessionId } = req.query;
 
-        const students = await User.find({ role: 'student' }).select('registerNumber name').sort({ registerNumber: 1 }).lean();
+        const students = await User.find(EXCLUDED_USER_FILTER).select('registerNumber name').sort({ registerNumber: 1 }).lean();
         const days = await Day.find().sort({ dayNumber: 1 }).lean();
 
         let sessionQuery = {};
@@ -660,12 +671,11 @@ export const exportAttendance = async (req, res) => {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Attendance');
 
-        // Build columns: # | Reg Number | Name | Overall % | Session1 | Session2 | ...
+        // Build columns: # | Reg Number | Name | Session1 | Session2 | ...
         const columns = [
             { header: '#', key: 'sno', width: 6 },
             { header: 'Reg Number', key: 'reg', width: 15 },
-            { header: 'Student Name', key: 'name', width: 25 },
-            { header: 'Overall %', key: 'overall', width: 12 }
+            { header: 'Student Name', key: 'name', width: 25 }
         ];
 
         // Add one column per session with Day info in header
@@ -687,17 +697,12 @@ export const exportAttendance = async (req, res) => {
                 name: student.name
             };
 
-            let attended = 0;
-            let totalStarted = 0;
-
             sessions.forEach((session, idx) => {
                 const att = attendanceMap.get(`${student.registerNumber}|${session._id.toString()}`);
                 const started = !!session.attendanceStartTime;
-                if (started) totalStarted++;
 
                 if (att) {
                     row[`s${idx}`] = att.isOverride ? 'P (O)' : 'P';
-                    attended++;
                 } else if (started) {
                     row[`s${idx}`] = 'A';
                 } else {
@@ -705,7 +710,6 @@ export const exportAttendance = async (req, res) => {
                 }
             });
 
-            row.overall = totalStarted > 0 ? `${Math.round((attended / totalStarted) * 100)}%` : '-';
             worksheet.addRow(row);
         });
 
@@ -715,10 +719,10 @@ export const exportAttendance = async (req, res) => {
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
         headerRow.alignment = { horizontal: 'center', wrapText: true };
 
-        // Color code data cells
+        // Color code data cells (sessions start at column 4 now)
         for (let r = 2; r <= students.length + 1; r++) {
             const row = worksheet.getRow(r);
-            for (let c = 5; c <= sessions.length + 4; c++) {
+            for (let c = 4; c <= sessions.length + 3; c++) {
                 const cell = row.getCell(c);
                 const val = cell.value;
                 cell.alignment = { horizontal: 'center' };
@@ -730,13 +734,6 @@ export const exportAttendance = async (req, res) => {
                     cell.font = { color: { argb: 'FF9CA3AF' } };
                 }
             }
-            // Overall % coloring
-            const overallCell = row.getCell(4);
-            overallCell.alignment = { horizontal: 'center' };
-            const pctVal = parseInt(overallCell.value);
-            if (pctVal >= 75) overallCell.font = { bold: true, color: { argb: 'FF16A34A' } };
-            else if (pctVal >= 50) overallCell.font = { bold: true, color: { argb: 'FFD97706' } };
-            else if (!isNaN(pctVal)) overallCell.font = { bold: true, color: { argb: 'FFDC2626' } };
         }
 
         let filename = 'attendance_all_days';
@@ -764,7 +761,7 @@ export const exportAssignments = async (req, res) => {
     try {
         const { dayId, sessionId } = req.query;
 
-        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
+        const students = await User.find(EXCLUDED_USER_FILTER).select('-password').sort({ registerNumber: 1 });
 
         // Filter sessions based on parameters
         let sessionQuery = {};
@@ -858,7 +855,7 @@ export const exportCertificates = async (req, res) => {
     try {
         const { dayId, sessionId } = req.query;
 
-        const students = await User.find({ role: 'student' }).select('-password').sort({ registerNumber: 1 });
+        const students = await User.find(EXCLUDED_USER_FILTER).select('-password').sort({ registerNumber: 1 });
 
         // Filter sessions
         let sessionQuery = {};
@@ -999,33 +996,28 @@ export const toggleCertificateUpload = async (req, res) => {
     }
 };
 
-// @desc    Export assessments to Excel
-// @route   GET /api/admin/export/assessments
-// @access  Private/Admin
-// @desc    Export assessments to Excel
+// @desc    Export assessments to Excel (all days in one file, organized per day)
 // @route   GET /api/admin/export/assessments
 // @access  Private/Admin
 export const exportAssessments = async (req, res) => {
     try {
         const { dayId, sessionId } = req.query;
 
-        // Optimized Student Query
-        const students = await User.find({ role: 'student' })
+        // Fetch students (excluding admin/test accounts)
+        const students = await User.find(EXCLUDED_USER_FILTER)
             .select('registerNumber name')
             .sort({ registerNumber: 1 })
             .lean();
 
-        // Build session query - when sessionId is given, query by ID only (no title filter)
+        // Build session query
         let sessionQuery = {};
         if (sessionId) {
-            // Specific session requested - don't filter by title
             sessionQuery._id = sessionId;
         } else if (dayId) {
-            // Day filter - still look for assessment-titled sessions within that day
             sessionQuery.dayId = dayId;
             sessionQuery.title = { $regex: /assessment/i };
         } else {
-            // No filter - export all assessment sessions
+            // No filter - export ALL assessment sessions across ALL days
             sessionQuery.title = { $regex: /assessment/i };
         }
 
@@ -1034,95 +1026,241 @@ export const exportAssessments = async (req, res) => {
             .sort({ startTime: 1 })
             .lean();
 
-        if (sessions.length === 0 && (sessionId || dayId)) {
-            return res.status(404).json({ message: 'No sessions found for the specified criteria' });
+        if (sessions.length === 0) {
+            return res.status(404).json({ message: 'No assessment sessions found' });
         }
+
+        // Sort sessions by day number then start time
+        sessions.sort((a, b) => {
+            const dayA = a.dayId?.dayNumber ?? 999;
+            const dayB = b.dayId?.dayNumber ?? 999;
+            if (dayA !== dayB) return dayA - dayB;
+            return (a.startTime ? new Date(a.startTime).getTime() : Infinity) - (b.startTime ? new Date(b.startTime).getTime() : Infinity);
+        });
 
         const sessionIds = sessions.map(s => s._id);
 
-        // Fetch both submissions AND attendance (needed for sessions where assessment is via external form)
+        // Fetch submissions and attendance
         const [allSubmissions, allAttendance] = await Promise.all([
-            AssignmentSubmission.find({
-                sessionId: { $in: sessionIds }
-            }).select('registerNumber sessionId assignmentTitle response files submittedAt').lean(),
-            Attendance.find({
-                sessionId: { $in: sessionIds }
-            }).select('registerNumber sessionId status timestamp').lean()
+            AssignmentSubmission.find({ sessionId: { $in: sessionIds } })
+                .select('registerNumber sessionId assignmentTitle response files submittedAt').lean(),
+            Attendance.find({ sessionId: { $in: sessionIds } })
+                .select('registerNumber sessionId status timestamp').lean()
         ]);
 
-        // Build submission map - store ALL submissions per student+session
+        // Build lookup maps
         const subMap = new Map();
         allSubmissions.forEach(s => {
-            const sessId = s.sessionId.toString();
-            const key = `${s.registerNumber}|${sessId}`;
+            const key = `${s.registerNumber}|${s.sessionId.toString()}`;
             if (!subMap.has(key)) subMap.set(key, []);
             subMap.get(key).push(s);
         });
 
-        // Build attendance map
         const attMap = new Map();
         allAttendance.forEach(a => {
             attMap.set(`${a.registerNumber}|${a.sessionId.toString()}`, a);
         });
 
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Assessment Submissions');
 
-        worksheet.columns = [
-            { header: 'Reg Number', key: 'reg', width: 15 },
-            { header: 'Student Name', key: 'name', width: 25 },
-            { header: 'Day', key: 'day', width: 10 },
-            { header: 'Session', key: 'session', width: 30 },
-            { header: 'Attendance', key: 'attendance', width: 12 },
-            { header: 'Assessment Link / Proof', key: 'proof', width: 50 },
-            { header: 'Submitted At', key: 'submittedAt', width: 20 },
-            { header: 'Status', key: 'status', width: 15 }
-        ];
+        // ── If exporting ALL days (no filter), create a SUMMARY sheet + per-day sheets ──
+        if (!sessionId && !dayId) {
+            // Group sessions by day
+            const dayGroups = new Map();
+            sessions.forEach(s => {
+                const dayNum = s.dayId?.dayNumber || 0;
+                if (!dayGroups.has(dayNum)) dayGroups.set(dayNum, []);
+                dayGroups.get(dayNum).push(s);
+            });
 
-        // Batch add rows for performance - submitted students first, sorted by submission time
-        const rows = [];
-        for (const student of students) {
-            for (const session of sessions) {
-                const sessId = session._id.toString();
-                const key = `${student.registerNumber}|${sessId}`;
+            // ── SUMMARY SHEET: One row per student, columns = Day 2, Day 3, ..., Day 8 ──
+            const summarySheet = workbook.addWorksheet('Summary');
+            const sortedDayNums = [...dayGroups.keys()].sort((a, b) => a - b);
+            
+            const summaryCols = [
+                { header: '#', key: 'sno', width: 6 },
+                { header: 'Reg Number', key: 'reg', width: 16 },
+                { header: 'Student Name', key: 'name', width: 28 }
+            ];
+            sortedDayNums.forEach(dayNum => {
+                summaryCols.push({ header: `Day ${dayNum}`, key: `d${dayNum}`, width: 16 });
+            });
+            summaryCols.push({ header: 'Overall', key: 'overall', width: 14 });
+            summarySheet.columns = summaryCols;
 
-                // Get all submissions for this student+session, pick the best one
-                const submissions = subMap.get(key) || [];
-                let submission = submissions.find(s => s.assignmentTitle === 'Assessment Proof') ||
-                    submissions.find(s => s.assignmentTitle === 'Question 01') ||
-                    submissions[0] || null;
+            students.forEach((student, idx) => {
+                const row = { sno: idx + 1, reg: student.registerNumber, name: student.name };
+                let totalSubmitted = 0;
+                let totalSessions = 0;
 
-                const attendance = attMap.get(key);
+                sortedDayNums.forEach(dayNum => {
+                    const daySessions = dayGroups.get(dayNum);
+                    totalSessions += daySessions.length;
+                    let daySubmitted = 0;
 
-                rows.push({
-                    reg: student.registerNumber,
-                    name: student.name,
-                    day: session.dayId?.dayNumber || '-',
-                    session: session.title,
-                    attendance: attendance ? 'PRESENT' : 'ABSENT',
-                    proof: submission ? (submission.response || (submission.files?.[0] || '-')) : '-',
-                    submittedAt: submission ? new Date(submission.submittedAt).toLocaleString() : '-',
-                    _submittedAtRaw: submission ? new Date(submission.submittedAt).getTime() : Infinity,
-                    status: submission ? 'SUBMITTED' : (attendance ? 'ATTENDED (External Form)' : 'PENDING')
+                    for (const session of daySessions) {
+                        const key = `${student.registerNumber}|${session._id.toString()}`;
+                        const submissions = subMap.get(key) || [];
+                        const submission = submissions.find(s => s.assignmentTitle === 'Assessment Proof') ||
+                            submissions.find(s => s.assignmentTitle === 'Question 01') ||
+                            submissions[0] || null;
+                        if (submission) daySubmitted++;
+                    }
+
+                    totalSubmitted += daySubmitted;
+                    row[`d${dayNum}`] = daySubmitted >= daySessions.length ? 'SUBMITTED' : 'PENDING';
                 });
-            }
-        }
-        // Sort: submitted first (by earliest submission time), then pending
-        rows.sort((a, b) => a._submittedAtRaw - b._submittedAtRaw);
-        // Remove raw field before adding to worksheet
-        rows.forEach(r => delete r._submittedAtRaw);
-        worksheet.addRows(rows);
 
-        // Header Formatting
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFD1FAE5' }
-        };
+                row.overall = totalSessions > 0 ? `${totalSubmitted}/${totalSessions}` : '-';
+                summarySheet.addRow(row);
+            });
+
+            // Style summary header
+            const summaryHeader = summarySheet.getRow(1);
+            summaryHeader.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+            summaryHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+            summaryHeader.alignment = { horizontal: 'center', vertical: 'middle' };
+            summaryHeader.height = 28;
+
+            // Color code summary data cells
+            for (let r = 2; r <= students.length + 1; r++) {
+                const dataRow = summarySheet.getRow(r);
+                sortedDayNums.forEach((dayNum, i) => {
+                    const cell = dataRow.getCell(4 + i); // offset by 3 fixed columns
+                    cell.alignment = { horizontal: 'center' };
+                    if (cell.value === 'SUBMITTED') {
+                        cell.font = { bold: true, color: { argb: 'FF16A34A' } };
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0FFF4' } };
+                    } else if (cell.value === 'PENDING') {
+                        cell.font = { bold: true, color: { argb: 'FFDC2626' } };
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF5F5' } };
+                    }
+                });
+                // Overall column
+                const overallCell = dataRow.getCell(4 + sortedDayNums.length);
+                overallCell.alignment = { horizontal: 'center' };
+                overallCell.font = { bold: true };
+            }
+
+            // ── PER-DAY DETAIL SHEETS ──
+            for (const dayNum of sortedDayNums) {
+                const daySessions = dayGroups.get(dayNum);
+                const sheetName = `Day ${dayNum} Details`;
+                const daySheet = workbook.addWorksheet(sheetName);
+
+                daySheet.columns = [
+                    { header: '#', key: 'sno', width: 6 },
+                    { header: 'Reg Number', key: 'reg', width: 16 },
+                    { header: 'Student Name', key: 'name', width: 28 },
+                    { header: 'Session', key: 'session', width: 35 },
+                    { header: 'Attendance', key: 'attendance', width: 14 },
+                    { header: 'Status', key: 'status', width: 16 },
+                    { header: 'Assessment Link / Proof', key: 'proof', width: 55 },
+                    { header: 'Submitted At', key: 'submittedAt', width: 22 }
+                ];
+
+                let sno = 0;
+                for (const student of students) {
+                    for (const session of daySessions) {
+                        sno++;
+                        const key = `${student.registerNumber}|${session._id.toString()}`;
+                        const submissions = subMap.get(key) || [];
+                        const submission = submissions.find(s => s.assignmentTitle === 'Assessment Proof') ||
+                            submissions.find(s => s.assignmentTitle === 'Question 01') ||
+                            submissions[0] || null;
+                        const attendance = attMap.get(key);
+
+                        daySheet.addRow({
+                            sno,
+                            reg: student.registerNumber,
+                            name: student.name,
+                            session: session.title,
+                            attendance: attendance ? 'PRESENT' : 'ABSENT',
+                            status: submission ? 'SUBMITTED' : (attendance ? 'ATTENDED (External Form)' : 'PENDING'),
+                            proof: submission ? (submission.response || (submission.files?.[0] || '-')) : '-',
+                            submittedAt: submission ? new Date(submission.submittedAt).toLocaleString() : '-'
+                        });
+                    }
+                }
+
+                // Style day sheet header
+                const dayHeader = daySheet.getRow(1);
+                dayHeader.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+                dayHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
+                dayHeader.alignment = { horizontal: 'center', vertical: 'middle' };
+                dayHeader.height = 26;
+
+                // Color code status column
+                for (let r = 2; r <= sno + 1; r++) {
+                    const statusCell = daySheet.getRow(r).getCell(6);
+                    statusCell.alignment = { horizontal: 'center' };
+                    if (statusCell.value === 'SUBMITTED') {
+                        statusCell.font = { bold: true, color: { argb: 'FF16A34A' } };
+                    } else if (statusCell.value === 'PENDING') {
+                        statusCell.font = { bold: true, color: { argb: 'FFDC2626' } };
+                    } else {
+                        statusCell.font = { color: { argb: 'FFD97706' } };
+                    }
+                    // Color attendance
+                    const attCell = daySheet.getRow(r).getCell(5);
+                    attCell.alignment = { horizontal: 'center' };
+                    if (attCell.value === 'PRESENT') {
+                        attCell.font = { bold: true, color: { argb: 'FF16A34A' } };
+                    } else {
+                        attCell.font = { bold: true, color: { argb: 'FFDC2626' } };
+                    }
+                }
+            }
+        } else {
+            // ── SINGLE SESSION/DAY EXPORT (original behavior) ──
+            const worksheet = workbook.addWorksheet('Assessment Submissions');
+            worksheet.columns = [
+                { header: '#', key: 'sno', width: 6 },
+                { header: 'Reg Number', key: 'reg', width: 16 },
+                { header: 'Student Name', key: 'name', width: 28 },
+                { header: 'Day', key: 'day', width: 10 },
+                { header: 'Session', key: 'session', width: 35 },
+                { header: 'Attendance', key: 'attendance', width: 14 },
+                { header: 'Status', key: 'status', width: 16 },
+                { header: 'Assessment Link / Proof', key: 'proof', width: 55 },
+                { header: 'Submitted At', key: 'submittedAt', width: 22 }
+            ];
+
+            let sno = 0;
+            for (const student of students) {
+                for (const session of sessions) {
+                    sno++;
+                    const key = `${student.registerNumber}|${session._id.toString()}`;
+                    const submissions = subMap.get(key) || [];
+                    const submission = submissions.find(s => s.assignmentTitle === 'Assessment Proof') ||
+                        submissions.find(s => s.assignmentTitle === 'Question 01') ||
+                        submissions[0] || null;
+                    const attendance = attMap.get(key);
+
+                    worksheet.addRow({
+                        sno,
+                        reg: student.registerNumber,
+                        name: student.name,
+                        day: session.dayId?.dayNumber || '-',
+                        session: session.title,
+                        attendance: attendance ? 'PRESENT' : 'ABSENT',
+                        status: submission ? 'SUBMITTED' : (attendance ? 'ATTENDED (External Form)' : 'PENDING'),
+                        proof: submission ? (submission.response || (submission.files?.[0] || '-')) : '-',
+                        submittedAt: submission ? new Date(submission.submittedAt).toLocaleString() : '-'
+                    });
+                }
+            }
+
+            // Header Formatting
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
+            headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+            headerRow.height = 26;
+        }
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        let filename = 'assessment_report';
+        let filename = 'assessment_all_days_report';
         if (sessions.length > 0) {
             if (sessionId) filename = `assessment_${sessions[0].title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
             else if (dayId) filename = `assessment_day_${sessions[0].dayId?.dayNumber || 'filtered'}`;
@@ -1157,7 +1295,7 @@ export const getCertificateSubmissions = async (req, res) => {
             return res.status(404).json({ message: 'Certificate session not found' });
         }
 
-        const studentQuery = { role: 'student' };
+        const studentQuery = { ...EXCLUDED_USER_FILTER };
         if (search) {
             studentQuery.$or = [
                 { name: { $regex: search, $options: 'i' } },
@@ -1230,7 +1368,7 @@ export const getDetailedAssessmentSubmissions = async (req, res) => {
             return res.status(404).json({ message: 'Session not found' });
         }
 
-        const studentQuery = { role: 'student' };
+        const studentQuery = { ...EXCLUDED_USER_FILTER };
         if (search) {
             studentQuery.$or = [
                 { name: { $regex: search, $options: 'i' } },
